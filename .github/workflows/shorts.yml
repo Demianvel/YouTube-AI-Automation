@@ -16,6 +16,8 @@ on:
         default: true
         type: boolean
   schedule:
+    # Fallback interno de GitHub. Si Repository variable N8N_PRIMARY=true,
+    # estos schedules se omiten y n8n pasa a ser el programador principal.
     # Argentina UTC-3. BrotaVida: 00,06,12,18. DineroClaro: 08,13,17,21.
     - cron: "0 3,9,15,21 * * *"
     - cron: "0 0,11,16,20 * * *"
@@ -30,6 +32,7 @@ concurrency:
 
 jobs:
   publish:
+    if: ${{ github.event_name != 'schedule' || vars.N8N_PRIMARY != 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 90
     env:
