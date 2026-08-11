@@ -45,11 +45,11 @@ Devuelve SOLO JSON valido con esta estructura exacta:
   "hashtags": ["#Shorts", "#..."],
   "tags": ["palabra clave", "..."],
   "scenes": [
-    {{"visual_prompt": "prompt cinematografico autocontenido para Veo, sin texto incrustado", "narration": "frase muy breve en castellano argentino"}}
+    {{"visual_prompt": "descripcion visual autocontenida de la escena, sin logos ni marcas", "narration": "frase muy breve en castellano argentino"}}
   ]
 }}
 
-Reglas: scenes debe tener exactamente {channel['scenes_per_short']} elementos. Cada escena dura {channel['scene_seconds']} segundos. Los visual_prompt deben estar en ingles descriptivo para maximizar consistencia visual; la narration debe estar en castellano argentino y caber comodamente en 8 segundos. Hashtags: 3 a 5. Tags: 6 a 12. No menciones marcas registradas. No agregues markdown.
+Reglas: scenes debe tener exactamente {channel['scenes_per_short']} elementos. Cada escena dura {channel['scene_seconds']} segundos. Los visual_prompt deben describir de forma concreta sujeto, accion y composicion; la narration debe estar en castellano argentino y caber comodamente en 8 segundos. Hashtags: 3 a 5. Tags: 6 a 12. No menciones marcas registradas. No agregues markdown.
 """.strip()
 
 
