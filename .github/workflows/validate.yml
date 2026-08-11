@@ -32,3 +32,23 @@ jobs:
               assert cfg['token_env'].startswith('YOUTUBE_TOKEN_')
           print('configuration OK')
           PY
+      - name: Smoke test free renderer
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg espeak-ng fonts-dejavu-core
+          python -m pip install Pillow
+          python - <<'PY'
+          from pathlib import Path
+          from app.video import generate_short
+          channel = {'handle': '@DineroClaroAi', 'scenes_per_short': 1, 'scene_seconds': 1}
+          metadata = {
+              'topic': 'prueba',
+              'title': 'Prueba de renderer',
+              'hook': 'Una prueba simple',
+              'scenes': [{'narration': 'Esto es una prueba tecnica.'}],
+          }
+          out = Path('/tmp/short-smoke')
+          result = generate_short(channel, metadata, out)
+          assert result.exists() and result.stat().st_size > 1000
+          print(result, result.stat().st_size)
+          PY
