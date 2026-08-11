@@ -38,8 +38,7 @@ jobs:
     env:
       GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
       GEMINI_TEXT_MODEL: gemini-3.6-flash
-      GEMINI_VIDEO_MODEL: veo-3.1-generate-preview
-      VIDEO_RESOLUTION: 720p
+      VIDEO_PROVIDER: procedural
       YOUTUBE_TOKEN_BROTAVIDA: ${{ secrets.YOUTUBE_TOKEN_BROTAVIDA }}
       YOUTUBE_TOKEN_DINEROCLARO: ${{ secrets.YOUTUBE_TOKEN_DINEROCLARO }}
     steps:
@@ -81,11 +80,11 @@ jobs:
           python-version: "3.12"
           cache: pip
 
-      - name: Install ffmpeg and Python dependencies
+      - name: Install renderer and Python dependencies
         if: steps.readiness.outputs.ready == 'true'
         run: |
           sudo apt-get update
-          sudo apt-get install -y ffmpeg
+          sudo apt-get install -y ffmpeg espeak-ng fonts-dejavu-core
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
