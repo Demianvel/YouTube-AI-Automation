@@ -1,0 +1,21 @@
+from __future__ import annotations
+
+import json
+import os
+import sys
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+channels = json.loads((ROOT / "config" / "channels.json").read_text(encoding="utf-8"))
+channel = os.environ.get("CHANNEL", "")
+if channel not in channels:
+    print(f"ready=false: canal invalido {channel}")
+    sys.exit(2)
+
+required = ["GEMINI_API_KEY", channels[channel]["token_env"]]
+missing = [name for name in required if not os.getenv(name)]
+if missing:
+    print("ready=false")
+    print("missing=" + ",".join(missing))
+    sys.exit(3)
+print("ready=true")
