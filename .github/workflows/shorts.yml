@@ -44,31 +44,18 @@ jobs:
         with:
           fetch-depth: 0
 
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-          cache: pip
-
-      - name: Install ffmpeg and Python dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y ffmpeg
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
-
       - name: Select channel
         id: select
         shell: bash
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             CHANNEL="${{ inputs.channel }}"
+          elif [ "${{ github.event.schedule }}" = "0 3,9,15,21 * * *" ]; then
+            CHANNEL="brotavida"
+          elif [ "${{ github.event.schedule }}" = "0 0,11,16,20 * * *" ]; then
+            CHANNEL="dineroclaro"
           else
-            HOUR=$(TZ=America/Argentina/Buenos_Aires date +%H)
-            case "$HOUR" in
-              00|06|12|18) CHANNEL="brotavida" ;;
-              08|13|17|21) CHANNEL="dineroclaro" ;;
-              *) CHANNEL="" ;;
-            esac
+            CHANNEL=""
           fi
           echo "channel=$CHANNEL" >> "$GITHUB_OUTPUT"
           echo "CHANNEL=$CHANNEL" >> "$GITHUB_ENV"
@@ -84,6 +71,20 @@ jobs:
             echo "ready=false" >> "$GITHUB_OUTPUT"
             echo "Credenciales incompletas: no se genera ni se publica contenido."
           fi
+
+      - uses: actions/setup-python@v5
+        if: steps.readiness.outputs.ready == 'true'
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install ffmpeg and Python dependencies
+        if: steps.readiness.outputs.ready == 'true'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
 
       - name: Generate and upload
         if: steps.readiness.outputs.ready == 'true'
