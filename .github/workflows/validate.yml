@@ -1,0 +1,34 @@
+name: Validate automation
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Compile Python
+        run: python -m compileall -q app scripts
+      - name: Validate channel configuration
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          data = json.loads(Path('config/channels.json').read_text(encoding='utf-8'))
+          assert set(data) == {'brotavida', 'dineroclaro'}
+          for slug, cfg in data.items():
+              assert cfg['scenes_per_short'] == 3
+              assert cfg['scene_seconds'] == 8
+              assert cfg['token_env'].startswith('YOUTUBE_TOKEN_')
+          print('configuration OK')
+          PY
