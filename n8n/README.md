@@ -40,9 +40,20 @@ Luego abre el nodo `Dispatch GitHub Action` del workflow importado y selecciona 
 
 Ejecuta manualmente el workflow. Las ejecuciones manuales fuerzan `dry_run=true` y por defecto prueban BrotaVida. El workflow de GitHub generará el contenido pero no debería subirlo a YouTube.
 
-## 5. Activación
+## 5. Hacer que n8n sea el programador principal
 
-NO actives la programación n8n mientras también esté activo el `schedule:` de GitHub Actions, porque duplicaría publicaciones. Cuando n8n vaya a ser el scheduler principal, primero elimina/desactiva el schedule de `.github/workflows/shorts.yml` y deja solo `workflow_dispatch`.
+Antes de activar el Schedule de n8n, en GitHub ve a:
+
+`Settings > Secrets and variables > Actions > Variables > New repository variable`
+
+Crea:
+
+- Name: `N8N_PRIMARY`
+- Value: `true`
+
+El workflow de GitHub ya está preparado para omitir sus propios horarios cuando esta variable vale `true`, evitando publicaciones duplicadas. Las ejecuciones manuales/dispatch enviadas por n8n siguen funcionando.
+
+Si después querés volver a los horarios internos de GitHub, cambia `N8N_PRIMARY` a `false` o elimina la variable.
 
 ## YouTube
 
@@ -52,6 +63,10 @@ La subida real sigue usando OAuth de YouTube en GitHub mediante secretos separad
 - `YOUTUBE_TOKEN_DINEROCLARO`
 
 Nunca pegues esos tokens en este JSON ni los publiques en el repositorio.
+
+### Alternativa futura: YouTube directo desde n8n
+
+n8n tiene un nodo oficial de YouTube con operación `Upload a video`. En n8n Cloud, Google OAuth puede conectarse con `Sign in with Google`; en self-hosted hay que configurar el OAuth Client y el redirect URI. Este repositorio conserva por ahora la subida en GitHub para no duplicar el manejo del archivo de video ni exponer credenciales en dos lugares.
 
 ## Seguridad
 
