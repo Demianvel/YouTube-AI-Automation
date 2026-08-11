@@ -7,14 +7,13 @@ Automatización para dos canales de YouTube Shorts:
 
 ## Qué hace
 
-1. Gemini genera un concepto, hook, título, descripción SEO, hashtags, tags y 3 escenas.
+1. Gemini genera un concepto, hook, título, descripción SEO, hashtags, tags y escenas.
 2. El sistema compara el concepto con el historial reciente y vuelve a generar si es demasiado parecido.
-3. El motor de video genera las escenas verticales 9:16.
-4. FFmpeg une las escenas en un Short de ~24 segundos.
-5. YouTube Data API lo sube al canal correcto con su OAuth independiente.
-6. Se guarda el historial para evitar duplicados futuros.
-7. Si un workflow falla, GitHub Actions abre un issue de alerta.
-8. n8n puede usarse como orquestador externo de horarios y control.
+3. El renderer gratuito local crea el Short vertical 9:16 usando Pillow + FFmpeg; para DineroClaro también genera visuales educativos y narración local con eSpeak. Para BrotaVida anima el crecimiento progresivo de una planta con variaciones determinísticas.
+4. YouTube Data API lo sube al canal correcto con su OAuth independiente.
+5. Se guarda el historial para evitar duplicados futuros.
+6. Si un workflow falla, GitHub Actions abre un issue de alerta.
+7. n8n puede usarse como orquestador externo de horarios y control.
 
 ## Frecuencia inicial
 
@@ -43,7 +42,9 @@ Nunca subas esos valores como archivos al repositorio.
 
 ## Gemini / video
 
-El pipeline usa por defecto `gemini-3.6-flash` para estrategia/SEO. El renderer actual del código sigue teniendo disponible Veo 3.1, que requiere facturación/cuota suficiente. La capa n8n no obliga a usar Veo; el motor de video puede reemplazarse sin cambiar el sistema de SEO, anti-duplicados o subida.
+El pipeline usa `gemini-3.6-flash` para estrategia, SEO y variedad de contenido. El renderer predeterminado es `VIDEO_PROVIDER=procedural`, por lo que la generación visual no llama a Veo ni consume una API de video paga. Veo 3.1 permanece como proveedor opcional si en el futuro se configura `VIDEO_PROVIDER=veo`.
+
+El renderer gratuito sirve para automatización y pruebas, pero su calidad visual es de animación generada por código, no equivalente a un modelo generativo cinematográfico.
 
 ## n8n
 
