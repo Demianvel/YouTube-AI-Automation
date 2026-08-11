@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+.venv/
+output/
+client_secret.json
+*.token.json
+.env
