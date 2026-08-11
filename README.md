@@ -9,11 +9,12 @@ Automatización para dos canales de YouTube Shorts:
 
 1. Gemini genera un concepto, hook, título, descripción SEO, hashtags, tags y 3 escenas.
 2. El sistema compara el concepto con el historial reciente y vuelve a generar si es demasiado parecido.
-3. Veo genera 3 escenas verticales 9:16 de 8 segundos con audio nativo.
+3. El motor de video genera las escenas verticales 9:16.
 4. FFmpeg une las escenas en un Short de ~24 segundos.
 5. YouTube Data API lo sube al canal correcto con su OAuth independiente.
 6. Se guarda el historial para evitar duplicados futuros.
 7. Si un workflow falla, GitHub Actions abre un issue de alerta.
+8. n8n puede usarse como orquestador externo de horarios y control.
 
 ## Frecuencia inicial
 
@@ -36,12 +37,25 @@ Nunca subas esos valores como archivos al repositorio.
 3. Instala dependencias: `pip install -r requirements.txt`.
 4. Ejecuta: `python scripts/authorize_channel.py --client-secrets client_secret.json`.
 5. Abre la URL que muestra el script, inicia sesión y selecciona el canal correcto.
-6. Copia el JSON final como `YOUTUBE_TOKEN_BROTAVIDA` o `YOUTUBE_TOKEN_DINEROCLARO`.
-7. Repite el consentimiento para el segundo canal.
+6. El script muestra el canal autorizado para verificar que no se mezclen cuentas.
+7. Copia el JSON final como `YOUTUBE_TOKEN_BROTAVIDA` o `YOUTUBE_TOKEN_DINEROCLARO`.
+8. Repite el consentimiento para el segundo canal.
 
-## Gemini / Veo
+## Gemini / video
 
-El pipeline usa por defecto `gemini-3.6-flash` para estrategia/SEO y `veo-3.1-generate-preview` para video. Requiere una API key con acceso y facturación/cuota suficiente para Veo.
+El pipeline usa por defecto `gemini-3.6-flash` para estrategia/SEO. El renderer actual del código sigue teniendo disponible Veo 3.1, que requiere facturación/cuota suficiente. La capa n8n no obliga a usar Veo; el motor de video puede reemplazarse sin cambiar el sistema de SEO, anti-duplicados o subida.
+
+## n8n
+
+Se agregó un workflow importable en:
+
+`n8n/workflows/youtube-ai-orchestrator.json`
+
+Y la guía en:
+
+`n8n/README.md`
+
+El workflow se importa desactivado y dispara GitHub Actions mediante un token de alcance mínimo. Si n8n pasa a ser el programador principal, crea la Repository Variable `N8N_PRIMARY=true`; el schedule interno de GitHub se desactiva automáticamente para evitar duplicados.
 
 ## Prueba segura
 
