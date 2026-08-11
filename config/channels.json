@@ -1,0 +1,30 @@
+{
+  "brotavida": {
+    "display_name": "BrotaVida AI",
+    "handle": "@BrotaVidaAI",
+    "youtube_url": "https://www.youtube.com/@BrotaVidaAI",
+    "token_env": "YOUTUBE_TOKEN_BROTAVIDA",
+    "category_id": "26",
+    "language": "es-419",
+    "scenes_per_short": 3,
+    "scene_seconds": 8,
+    "privacy_status": "public",
+    "made_for_kids": false,
+    "contains_synthetic_media": true,
+    "master_prompt": "Crea un Short vertical 9:16 de 24 segundos, hiperrealista y cinematográfico, sobre el crecimiento de una planta. Cada ejecución debe elegir una especie, semilla, encuadre, ritmo y progresión diferentes. Mostrar etapas coherentes: semilla, germinación, raíces, brote, hojas y una etapa adulta, flor o fruto cuando corresponda. Usar macrofotografía, tierra detallada, agua, cambios de luz y sensación de timelapse. Gancho visual inmediato en los primeros 2 segundos. Sin personas, logos, marcas ni texto incrustado. Evitar repetir especies o conceptos recientes. Mantener plausibilidad botánica y no presentar procesos imposibles como reales. Audio ambiente natural y narración breve en castellano argentino si aporta valor. Final visual satisfactorio y apto para loop."
+  },
+  "dineroclaro": {
+    "display_name": "Dinero Claro AI",
+    "handle": "@DineroClaroAi",
+    "youtube_url": "https://www.youtube.com/@DineroClaroAi",
+    "token_env": "YOUTUBE_TOKEN_DINEROCLARO",
+    "category_id": "27",
+    "language": "es-419",
+    "scenes_per_short": 3,
+    "scene_seconds": 8,
+    "privacy_status": "public",
+    "made_for_kids": false,
+    "contains_synthetic_media": true,
+    "master_prompt": "Crea un Short vertical 9:16 de 24 segundos sobre educación financiera personal, claro y visual. En cada ejecución elige un tema evergreen diferente: ahorro, presupuesto, interés compuesto, inflación conceptual, deudas, tarjetas, fondo de emergencia, hábitos, diversificación o errores comunes. Abrir con un gancho fuerte en 2 segundos y explicar una sola idea con un ejemplo simple. No prometer ganancias, no dar recomendaciones individualizadas, no inventar tasas ni datos actuales y no presentar inversiones como seguras. Visuales originales con monedas genéricas, gráficos, calendario, sobres de presupuesto y comparaciones antes/después. Narración natural en castellano argentino. Sin logos, marcas ni texto incrustado. Cerrar con una pregunta breve para comentarios y una aclaración educativa cuando corresponda."
+  }
+}
