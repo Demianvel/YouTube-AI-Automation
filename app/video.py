@@ -11,6 +11,7 @@ from PIL import Image, ImageDraw, ImageFont
 from .audio import apply_audio
 from .botanical import draw_plant
 from .pexels_video import generate_pexels_short
+from .pollinations_image import generate_pollinations_kids_short
 from .wikimedia_video import generate_wikimedia_short
 
 VIDEO_PROVIDER = os.getenv("VIDEO_PROVIDER", "real_stock").lower().strip()
@@ -75,12 +76,48 @@ def _finance(frame: Image.Image, progress: float, meta: dict) -> None:
         y += 62
 
 
+def _kids(frame: Image.Image, progress: float, meta: dict, seed: int) -> None:
+    """Bright local fallback; primary EnViKids path uses generated images."""
+    draw = ImageDraw.Draw(frame)
+    t = progress * math.tau
+    # soft clouds
+    for i in range(5):
+        cx = int((80 + i * 150 + progress * 100) % (W + 180)) - 90
+        cy = 130 + (i % 2) * 85
+        for dx, dy, r in [(-35, 8, 34), (0, -7, 45), (40, 9, 31)]:
+            draw.ellipse((cx + dx - r, cy + dy - r, cx + dx + r, cy + dy + r), fill=(248, 251, 255))
+    # ground
+    draw.rectangle((0, H - 330, W, H), fill=(109, 199, 106))
+    # cute fictional round character
+    bounce = int(math.sin(t * 2) * 20)
+    cx, cy = W // 2, H - 520 + bounce
+    draw.ellipse((cx - 145, cy - 135, cx + 145, cy + 145), fill=(255, 202, 79), outline=(239, 161, 51), width=8)
+    draw.ellipse((cx - 72, cy - 35, cx - 30, cy + 7), fill=(35, 47, 64))
+    draw.ellipse((cx + 30, cy - 35, cx + 72, cy + 7), fill=(35, 47, 64))
+    smile_y = cy + 45
+    draw.arc((cx - 55, smile_y - 30, cx + 55, smile_y + 45), 10, 170, fill=(120, 70, 55), width=7)
+    # moving stars/sparkles
+    for i in range(8):
+        angle = t + i * math.tau / 8
+        sx = int(cx + math.cos(angle) * (210 + (i % 3) * 18))
+        sy = int(cy + math.sin(angle) * (185 + (i % 2) * 15))
+        r = 7 + (i % 3) * 2
+        draw.ellipse((sx-r, sy-r, sx+r, sy+r), fill=(255, 245, 150))
+
+
 def _procedural(channel: dict, meta: dict, out: Path) -> None:
-    """Local CI fallback only. Production uses real stock footage/media."""
+    """Local fallback. Production prefers real stock or generated media."""
     duration = int(channel["scenes_per_short"]) * int(channel["scene_seconds"])
     frames, seed = duration * FPS, _seed(meta)
-    botanical = "botanical" in channel.get("visual_mode", "")
-    base = _gradient((150, 211, 229), (229, 242, 210)) if botanical else _gradient((17, 27, 40), (9, 16, 27))
+    visual_mode = channel.get("visual_mode", "")
+    botanical = "botanical" in visual_mode
+    kids = "kids" in visual_mode
+    if botanical:
+        base = _gradient((150, 211, 229), (229, 242, 210))
+    elif kids:
+        base = _gradient((108, 196, 255), (237, 249, 255))
+    else:
+        base = _gradient((17, 27, 40), (9, 16, 27))
     silent = out.with_name("visual_only.mp4")
     command = [
         "ffmpeg", "-y", "-loglevel", "error",
@@ -95,6 +132,8 @@ def _procedural(channel: dict, meta: dict, out: Path) -> None:
             frame = base.copy()
             if botanical:
                 draw_plant(frame, progress, seed, n, meta, W, H)
+            elif kids:
+                _kids(frame, progress, meta, seed)
             else:
                 _finance(frame, progress, meta)
             if not proc.stdin:
@@ -111,10 +150,18 @@ def _procedural(channel: dict, meta: dict, out: Path) -> None:
 def generate_short(channel: dict, metadata: dict, workdir: Path) -> Path:
     workdir.mkdir(parents=True, exist_ok=True)
     final = workdir / "short.mp4"
+    visual_mode = channel.get("visual_mode", "")
+
+    if "kids" in visual_mode:
+        try:
+            generate_pollinations_kids_short(channel, metadata, workdir, final, apply_audio)
+            return final
+        except Exception as exc:
+            print(f"Generacion 3D externa no disponible ({exc}); usando fallback infantil local.")
+            _procedural(channel, metadata, final)
+            return final
 
     if VIDEO_PROVIDER == "real_stock":
-        # Pexels gives the best stock selection when a free API key is available.
-        # Without a key, Wikimedia Commons works automatically and needs no secret.
         if os.getenv("PEXELS_API_KEY", "").strip():
             try:
                 generate_pexels_short(channel, metadata, workdir, final, apply_audio)
