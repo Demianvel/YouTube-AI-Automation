@@ -16,8 +16,9 @@ on:
         default: true
         type: boolean
   schedule:
-    # Fallback interno de GitHub. Si Repository variable N8N_PRIMARY=true,
-    # estos schedules se omiten y n8n pasa a ser el programador principal.
+    # Fallback interno de GitHub. El modo premium usa API paga de Google.
+    # Solo se ejecutan estos horarios si Repository variable ENABLE_PREMIUM_AUTO=true
+    # y N8N_PRIMARY no esta activado.
     # Argentina UTC-3. BrotaVida: 00,06,12,18. DineroClaro: 08,13,17,21.
     - cron: "0 3,9,15,21 * * *"
     - cron: "0 0,11,16,20 * * *"
@@ -32,17 +33,19 @@ concurrency:
 
 jobs:
   publish:
-    if: ${{ github.event_name != 'schedule' || vars.N8N_PRIMARY != 'true' }}
+    if: ${{ github.event_name != 'schedule' || (vars.N8N_PRIMARY != 'true' && vars.ENABLE_PREMIUM_AUTO == 'true') }}
     runs-on: ubuntu-latest
     timeout-minutes: 90
     env:
       GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
       GEMINI_TEXT_MODEL: gemini-3.6-flash
-      GEMINI_VIDEO_MODEL: veo-3.1-generate-preview
+      GEMINI_VIDEO_MODEL: veo-3.1-fast-generate-preview
       VIDEO_PROVIDER: veo
       VIDEO_RESOLUTION: 1080p
       GEMINI_TTS_MODEL: gemini-3.1-flash-tts-preview
-      GEMINI_TTS_VOICE: Sadaltager
+      GEMINI_TTS_VOICE: Sulafat
+      MUSIC_PROVIDER: lyria
+      LYRIA_MODEL: lyria-3-clip-preview
       YOUTUBE_TOKEN_BROTAVIDA: ${{ secrets.YOUTUBE_TOKEN_BROTAVIDA }}
       YOUTUBE_TOKEN_DINEROCLARO: ${{ secrets.YOUTUBE_TOKEN_DINEROCLARO }}
     steps:
@@ -91,9 +94,9 @@ jobs:
           fi
           echo "ready=$READY" >> "$GITHUB_OUTPUT"
           if [ "$READY" = "true" ]; then
-            echo "Token de YouTube disponible: se permite publicación si no es dry-run."
+            echo "Token de YouTube disponible: se permite publicacion si no es dry-run."
           else
-            echo "Token de YouTube ausente: se generará contenido en modo seguro sin publicar."
+            echo "Token de YouTube ausente: se generara contenido sin publicar."
           fi
 
       - uses: actions/setup-python@v5
@@ -102,7 +105,7 @@ jobs:
           python-version: "3.12"
           cache: pip
 
-      - name: Install renderer and Python dependencies
+      - name: Install premium renderer dependencies
         if: steps.readiness.outputs.ready == 'true'
         run: |
           sudo apt-get update
@@ -110,7 +113,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Generate and optionally upload
+      - name: Generate premium Short and optionally upload
         if: steps.readiness.outputs.ready == 'true'
         shell: bash
         run: |
@@ -148,7 +151,7 @@ jobs:
               echo "Historial guardado correctamente."
               exit 0
             fi
-            echo "Otro cambio llegó a main; reintentando historial ($attempt/5)."
+            echo "Otro cambio llego a main; reintentando historial ($attempt/5)."
           done
 
           echo "No se pudo guardar el historial tras 5 intentos." >&2
