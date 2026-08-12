@@ -66,6 +66,49 @@ def _video_titles(youtube, ids: list[str]) -> dict[str, dict[str, Any]]:
     return out
 
 
+def _recent_public_videos(youtube, channel_item: dict, limit: int = 50) -> list[dict[str, Any]]:
+    uploads = ((channel_item.get("contentDetails") or {}).get("relatedPlaylists") or {}).get("uploads")
+    if not uploads:
+        return []
+    ids: list[str] = []
+    token = None
+    while len(ids) < limit:
+        response = youtube.playlistItems().list(
+            part="contentDetails",
+            playlistId=uploads,
+            maxResults=min(50, limit - len(ids)),
+            pageToken=token,
+        ).execute()
+        for item in response.get("items", []):
+            video_id = (item.get("contentDetails") or {}).get("videoId")
+            if video_id:
+                ids.append(str(video_id))
+        token = response.get("nextPageToken")
+        if not token:
+            break
+    details = _video_titles(youtube, ids)
+    rows = []
+    for video_id in ids:
+        info = details.get(video_id) or {}
+        views = int(info.get("public_views") or 0)
+        likes = int(info.get("public_likes") or 0)
+        comments = int(info.get("public_comments") or 0)
+        rows.append({
+            "video": video_id,
+            "title": info.get("title", ""),
+            "publishedAt": info.get("publishedAt", ""),
+            "duration": info.get("duration", ""),
+            "views": views,
+            "likes": likes,
+            "comments": comments,
+            "like_rate": round(likes / max(1, views), 5),
+            "comment_rate": round(comments / max(1, views), 5),
+            "source": "youtube_data_api_public",
+        })
+    rows.sort(key=lambda row: (int(row.get("views") or 0), int(row.get("likes") or 0), int(row.get("comments") or 0)), reverse=True)
+    return rows
+
+
 def collect_channel_analytics(channel: dict, days: int = 90) -> dict[str, Any]:
     creds = _credentials(channel)
     youtube = build("youtube", "v3", credentials=creds, cache_discovery=False)
@@ -75,16 +118,21 @@ def collect_channel_analytics(channel: dict, days: int = 90) -> dict[str, Any]:
     start_date = end_date - timedelta(days=max(7, days) - 1)
     start, end = start_date.isoformat(), end_date.isoformat()
 
-    channel_response = youtube.channels().list(part="id,snippet,statistics", mine=True).execute()
+    channel_response = youtube.channels().list(part="id,snippet,statistics,contentDetails", mine=True).execute()
     channels = channel_response.get("items") or []
     if not channels:
         raise RuntimeError("YouTube no devolvio el canal autenticado.")
     ch = channels[0]
+    snippet = ch.get("snippet") or {}
+    actual_handle = (snippet.get("customUrl") or "").lower().lstrip("/")
+    expected_handle = str(channel.get("handle") or "").lower().lstrip("/")
+    if actual_handle and expected_handle and actual_handle != expected_handle:
+        raise RuntimeError(f"Token de canal incorrecto: esperado {expected_handle}, recibido {actual_handle}.")
     ch_stats = ch.get("statistics") or {}
 
     result: dict[str, Any] = {
         "channel_id": ch.get("id"),
-        "channel_title": (ch.get("snippet") or {}).get("title", ""),
+        "channel_title": snippet.get("title", ""),
         "handle": channel.get("handle"),
         "period": {"start": start, "end": end, "days": days},
         "channel_totals_public": {
@@ -94,7 +142,10 @@ def collect_channel_analytics(channel: dict, days: int = 90) -> dict[str, Any]:
         },
         "reports": {},
         "warnings": [],
+        "analytics_api_available": True,
     }
+
+    result["reports"]["public_recent_videos"] = _recent_public_videos(youtube, ch, limit=50)
 
     report_specs = {
         "top_videos": dict(
@@ -141,7 +192,10 @@ def collect_channel_analytics(channel: dict, days: int = 90) -> dict[str, Any]:
             result["reports"][name] = _query(analytics, start=start, end=end, **spec)
         except Exception as exc:
             result["reports"][name] = []
-            result["warnings"].append(f"{name}: {type(exc).__name__}: {exc}")
+            message = f"{name}: {type(exc).__name__}: {exc}"
+            result["warnings"].append(message)
+            if "accessNotConfigured" in str(exc) or "has not been used" in str(exc) or "disabled" in str(exc):
+                result["analytics_api_available"] = False
 
     top = result["reports"].get("top_videos") or []
     ids = [str(row.get("video") or "") for row in top if row.get("video")]
@@ -155,6 +209,8 @@ def collect_channel_analytics(channel: dict, days: int = 90) -> dict[str, Any]:
         row["share_rate"] = round(float(row.get("shares") or 0) / views, 5)
         row["subscriber_gain_rate"] = round(float(row.get("subscribersGained") or 0) / views, 5)
 
+    if not top:
+        result["reports"]["top_videos"] = [dict(row) for row in result["reports"]["public_recent_videos"]]
     return result
 
 
@@ -167,41 +223,40 @@ def analytics_digest(snapshot: dict[str, Any], max_videos: int = 12) -> str:
 
     top = reports.get("top_videos") or []
     if top:
-        lines.append("Videos con mejor rendimiento reciente:")
+        lines.append("Videos con mejor rendimiento disponible:")
         for row in top[:max_videos]:
-            lines.append(
-                "- "
-                + f"{row.get('title') or row.get('video')}: views={row.get('views', 0)}, "
-                + f"watch_min={round(float(row.get('estimatedMinutesWatched') or 0), 1)}, "
-                + f"avg_pct={round(float(row.get('averageViewPercentage') or 0), 1)}, "
-                + f"likes={row.get('likes', 0)}, comments={row.get('comments', 0)}, shares={row.get('shares', 0)}, "
-                + f"subs+={row.get('subscribersGained', 0)}, share_rate={row.get('share_rate', 0)}, sub_rate={row.get('subscriber_gain_rate', 0)}"
-            )
+            if "estimatedMinutesWatched" in row:
+                lines.append(
+                    "- "
+                    + f"{row.get('title') or row.get('video')}: views={row.get('views', 0)}, "
+                    + f"watch_min={round(float(row.get('estimatedMinutesWatched') or 0), 1)}, "
+                    + f"avg_pct={round(float(row.get('averageViewPercentage') or 0), 1)}, "
+                    + f"likes={row.get('likes', 0)}, comments={row.get('comments', 0)}, shares={row.get('shares', 0)}, "
+                    + f"subs+={row.get('subscribersGained', 0)}, share_rate={row.get('share_rate', 0)}, sub_rate={row.get('subscriber_gain_rate', 0)}"
+                )
+            else:
+                lines.append(
+                    f"- {row.get('title') or row.get('video')}: views={row.get('views', 0)}, likes={row.get('likes', 0)}, comments={row.get('comments', 0)}, like_rate={row.get('like_rate', 0)}, comment_rate={row.get('comment_rate', 0)}"
+                )
 
     countries = reports.get("countries") or []
     if countries:
         lines.append("Principales paises por tiempo de visualizacion: " + ", ".join(str(x.get("country")) for x in countries[:8]))
-
     demo = reports.get("demographics") or []
     if demo:
         strongest = sorted(demo, key=lambda x: float(x.get("viewerPercentage") or 0), reverse=True)[:6]
-        lines.append(
-            "Demografia disponible: "
-            + ", ".join(f"{x.get('ageGroup')}/{x.get('gender')}={round(float(x.get('viewerPercentage') or 0),1)}%" for x in strongest)
-        )
-
+        lines.append("Demografia disponible: " + ", ".join(f"{x.get('ageGroup')}/{x.get('gender')}={round(float(x.get('viewerPercentage') or 0),1)}%" for x in strongest))
     traffic = reports.get("traffic_sources") or []
     if traffic:
         lines.append("Fuentes de trafico principales: " + ", ".join(str(x.get("insightTrafficSourceType")) for x in traffic[:6]))
-
     devices = reports.get("devices") or []
     if devices:
         lines.append("Dispositivos principales: " + ", ".join(str(x.get("deviceType")) for x in devices[:5]))
-
     shares = reports.get("sharing_services") or []
     if shares:
         lines.append("Servicios de compartido principales: " + ", ".join(str(x.get("sharingService")) for x in shares[:5]))
-
-    if snapshot.get("warnings"):
+    if not snapshot.get("analytics_api_available", True):
+        lines.append("YouTube Analytics API no esta habilitada: usar solo vistas/likes/comentarios publicos y no inventar retencion, shares, subs ganados, paises o edades.")
+    elif snapshot.get("warnings"):
         lines.append("Algunos reportes no estuvieron disponibles; no inventar esos datos.")
     return "\n".join(lines)
