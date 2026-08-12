@@ -108,10 +108,17 @@ jobs:
 
           python -m app.long_pipeline --channel "${{ matrix.channel }}" $EXTRA
 
-      - name: Upload 5-minute artifact
+      - name: Upload compact 5-minute artifact
         if: steps.gate.outputs.run == 'true' && always()
         uses: actions/upload-artifact@v4
         with:
           name: long5min-${{ matrix.channel }}-${{ github.run_id }}
-          path: output/long5min/${{ matrix.channel }}/
+          path: |
+            output/long5min/${{ matrix.channel }}/**/video_5min.mp4
+            output/long5min/${{ matrix.channel }}/**/metadata.json
+            output/long5min/${{ matrix.channel }}/**/result.json
+            output/long5min/${{ matrix.channel }}/**/thumbnail_1.jpg
+            output/long5min/${{ matrix.channel }}/**/thumbnail_2.jpg
+            output/long5min/${{ matrix.channel }}/**/thumbnail_3.jpg
+          if-no-files-found: warn
           retention-days: 3
