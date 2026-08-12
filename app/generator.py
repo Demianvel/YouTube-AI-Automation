@@ -23,12 +23,19 @@ def _history_digest(previous: list[dict]) -> str:
 
 def _prompt(channel: dict, previous: list[dict], attempt: int) -> str:
     audio_mode = channel.get("audio_mode", "voice_music")
-    botanical = "botanical" in channel.get("visual_mode", "")
+    visual_mode = channel.get("visual_mode", "")
+    botanical = "botanical" in visual_mode
+    kids_3d = "kids" in visual_mode
 
     if audio_mode == "music_only":
         audio_rule = (
             "REGLA ABSOLUTA: no generes narracion. El campo narration debe ser una cadena vacia. "
             "Todo el gancho y la retencion deben ser visuales."
+        )
+    elif kids_3d:
+        audio_rule = (
+            "REGLA DE AUDIO INFANTIL: cada escena debe incluir una narracion muy breve en castellano claro, alegre y natural. "
+            "Usa palabras simples, tono calido y positivo, sin gritos, amenazas, miedo ni frases adultas."
         )
     else:
         audio_rule = (
@@ -37,18 +44,30 @@ def _prompt(channel: dict, previous: list[dict], attempt: int) -> str:
         )
 
     if botanical:
-        stock_rule = (
-            "FUENTE VISUAL REAL: cada escena debe incluir stock_query EN INGLES para buscar METRAJE O FOTOGRAFIA REAL DE CAMARA "
+        visual_rule = (
+            "FUENTE VISUAL REAL: cada escena debe incluir stock_query EN INGLES para buscar METRAJE REAL DE CAMARA "
             "en bancos de medios libres. Usa frases cortas como 'sunflower growth timelapse', 'seed germination timelapse' o "
-            "'plant growing macro'. No pidas CGI, 3D, animation, illustration ni AI. No afirmes una especie concreta en titulo o descripcion "
-            "si el material visual disponible no puede garantizarla; prioriza verdad y coherencia entre metraje y texto."
+            "'plant growing macro'. No pidas CGI, 3D, animation, illustration ni AI."
+        )
+    elif kids_3d:
+        visual_rule = (
+            "VISUAL GENERATIVO 3D: visual_prompt debe describir una escena infantil 3D completa y autocontenida, vertical 9:16, "
+            "con personajes ficticios tiernos, expresiones claras, luz cinematografica suave, colores vivos y composicion profesional. "
+            "No uses personas reales, logos, texto ni marcas. stock_query debe ser una frase corta en ingles que resuma la escena; "
+            "se usa solo como identificador auxiliar y no como banco de metraje."
         )
     else:
-        stock_rule = (
+        visual_rule = (
             "FUENTE VISUAL REAL: cada escena debe incluir stock_query EN INGLES, de 3 a 8 palabras, para buscar B-roll REAL DE CAMARA "
             "en bancos de medios libres. Describe algo filmable: 'small business owner calculator', 'budget planning desk' o "
-            "'packing online orders'. Evita marcas, logos, pantallas de marcas y terminos CGI, 3D, animation o AI."
+            "'packing online orders'. Evita marcas, logos y terminos CGI, 3D, animation o AI."
         )
+
+    channel_value = (
+        "transformacion visual clara y verificable" if botanical else
+        "mini historia infantil segura, entretenida y visualmente distinta" if kids_3d else
+        "aprendizaje concreto y aplicable"
+    )
 
     return f"""
 Eres estratega senior de YouTube Shorts, retencion, SEO natural, CTR honesto y valor autentico.
@@ -58,11 +77,11 @@ PROMPT MAESTRO DEL CANAL:
 {channel['master_prompt']}
 
 {audio_rule}
-{stock_rule}
+{visual_rule}
 
 Genera UN concepto nuevo para un Short de {channel['scenes_per_short'] * channel['scene_seconds']} segundos.
 Debe ser claramente diferente del historial reciente. El titulo debe generar curiosidad real, describir correctamente el contenido y evitar clickbait enganoso.
-El Short debe aportar una razon real para verlo: transformacion visual clara en BrotaVida o aprendizaje concreto en Dinero Claro.
+El Short debe aportar una razon real para verlo: {channel_value}.
 
 HISTORIAL RECIENTE A EVITAR:
 {_history_digest(previous)}
@@ -81,7 +100,7 @@ Devuelve SOLO JSON valido:
   "scenes": [
     {{
       "visual_prompt": "descripcion visual precisa y autocontenida",
-      "stock_query": "short English query for real camera footage",
+      "stock_query": "short English helper query",
       "narration": "frase breve o cadena vacia segun el canal"
     }}
   ]
@@ -90,7 +109,7 @@ Devuelve SOLO JSON valido:
 Reglas:
 - scenes debe contener exactamente {channel['scenes_per_short']} elementos.
 - Cada escena dura {channel['scene_seconds']} segundos.
-- stock_query es obligatorio, en ingles, concreto y orientado a material real.
+- visual_prompt y stock_query son obligatorios.
 - Hashtags: 3 a 5, solo relevantes.
 - Tags: 8 a 15, relevantes y variados.
 - Titulo: maximo 90 caracteres, sin mayusculas abusivas ni afirmaciones falsas.
@@ -113,6 +132,9 @@ def generate_metadata(channel: dict, previous: list[dict], retries: int = 5) -> 
 
         if len(scenes) != channel["scenes_per_short"]:
             last_reason = "cantidad incorrecta de escenas"
+            continue
+        if any(not (scene.get("visual_prompt") or "").strip() for scene in scenes):
+            last_reason = "falta visual_prompt para una escena"
             continue
         if any(not (scene.get("stock_query") or "").strip() for scene in scenes):
             last_reason = "falta stock_query para una escena"
@@ -141,6 +163,7 @@ def generate_metadata(channel: dict, previous: list[dict], retries: int = 5) -> 
         data["cta"] = (data.get("cta") or "").strip()
         for scene in scenes:
             scene["stock_query"] = " ".join(str(scene["stock_query"]).strip().split())[:100]
+            scene["visual_prompt"] = " ".join(str(scene["visual_prompt"]).strip().split())[:1200]
         return data
 
     raise RuntimeError(f"No se pudo generar un concepto suficientemente distinto: {last_reason}")
