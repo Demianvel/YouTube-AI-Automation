@@ -17,7 +17,9 @@ def _history_digest(previous: list[dict]) -> str:
         return "Aun no hay historial."
     rows = []
     for item in previous[-50:]:
-        rows.append(f"- tema={item.get('topic','')} | titulo={item.get('title','')}")
+        rows.append(
+            f"- formato={item.get('content_mode','')} | tema={item.get('topic','')} | titulo={item.get('title','')}"
+        )
     return "\n".join(rows)
 
 
@@ -29,8 +31,15 @@ def _prompt(channel: dict, previous: list[dict], attempt: int) -> str:
 
     if audio_mode == "music_only":
         audio_rule = (
-            "REGLA ABSOLUTA: no generes narracion. El campo narration debe ser una cadena vacia. "
-            "Todo el gancho y la retencion deben ser visuales."
+            "FORMATO MUSICA: no generes narracion. El campo narration debe ser cadena vacia. "
+            "La retencion debe venir del cambio visual real de la planta. Se agregara musica instrumental original del sistema, "
+            "sin usar canciones comerciales de terceros."
+        )
+    elif audio_mode == "asmr":
+        audio_rule = (
+            "FORMATO ASMR: no generes narracion. El campo narration debe ser cadena vacia. "
+            "No se usara musica: el montaje llevara un paisaje ASMR suave de tierra, agua, hojas y pequenos sonidos naturales. "
+            "El visual debe sentirse cercano, macro, relajante y satisfactorio."
         )
     elif kids_3d:
         audio_rule = (
@@ -38,10 +47,19 @@ def _prompt(channel: dict, previous: list[dict], attempt: int) -> str:
             "Usa palabras simples, tono calido y positivo, sin gritos, amenazas, miedo ni frases adultas."
         )
     else:
-        audio_rule = (
-            "REGLA DE AUDIO: cada escena debe incluir una narracion breve, natural y clara en castellano argentino/rioplatense suave. "
-            "Debe sonar conversacional, educativa y humana; no uses promesas ni frases exageradas."
-        )
+        if botanical:
+            audio_rule = (
+                "FORMATO VOZ: cada escena debe incluir una frase breve en castellano natural, clara y serena, "
+                "explicando lo que sucede en la germinacion o crecimiento. Debe sonar humana y documental, no robotica."
+            )
+        else:
+            audio_rule = (
+                "FORMATO INFLUENCER DIGITAL: cada escena debe incluir narracion en castellano natural. "
+                "Habla con seguridad, excelente parla, energia controlada, ritmo agil, pausas humanas y frases faciles de recordar. "
+                "Usa un gancho inmediato, una idea concreta y un cierre que deje una accion o aprendizaje. "
+                "Acento argentino/rioplatense suave, comprensible para toda Hispanoamerica. No imites ni copies a ningun creador real. "
+                "No prometas dinero facil ni resultados garantizados."
+            )
 
     if botanical:
         visual_rule = (
@@ -66,7 +84,7 @@ def _prompt(channel: dict, previous: list[dict], attempt: int) -> str:
     channel_value = (
         "transformacion visual clara y verificable" if botanical else
         "mini historia infantil segura, entretenida y visualmente distinta" if kids_3d else
-        "aprendizaje concreto y aplicable"
+        "aprendizaje concreto y aplicable explicado con personalidad"
     )
 
     return f"""
@@ -81,6 +99,7 @@ PROMPT MAESTRO DEL CANAL:
 
 Genera UN concepto nuevo para un Short de {channel['scenes_per_short'] * channel['scene_seconds']} segundos.
 Debe ser claramente diferente del historial reciente. El titulo debe generar curiosidad real, describir correctamente el contenido y evitar clickbait enganoso.
+El primer segundo debe mostrar o decir algo que haga evidente por que vale la pena seguir viendo.
 El Short debe aportar una razon real para verlo: {channel_value}.
 
 HISTORIAL RECIENTE A EVITAR:
@@ -101,7 +120,7 @@ Devuelve SOLO JSON valido:
     {{
       "visual_prompt": "descripcion visual precisa y autocontenida",
       "stock_query": "short English helper query",
-      "narration": "frase breve o cadena vacia segun el canal"
+      "narration": "frase breve o cadena vacia segun el formato"
     }}
   ]
 }}
@@ -140,7 +159,7 @@ def generate_metadata(channel: dict, previous: list[dict], retries: int = 5) -> 
             last_reason = "falta stock_query para una escena"
             continue
 
-        if channel.get("audio_mode") == "music_only":
+        if channel.get("audio_mode") in {"music_only", "asmr"}:
             for scene in scenes:
                 scene["narration"] = ""
         elif any(not (scene.get("narration") or "").strip() for scene in scenes):
