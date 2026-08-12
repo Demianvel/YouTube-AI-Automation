@@ -27,6 +27,15 @@ def _credentials(token_json: str) -> Credentials:
     return Credentials.from_authorized_user_info(info, scopes=YOUTUBE_SCOPES)
 
 
+def _youtube_for_channel(channel: dict):
+    token_json = os.getenv(channel["token_env"])
+    if not token_json:
+        raise RuntimeError(f"Falta el secret {channel['token_env']}")
+    youtube = build("youtube", "v3", credentials=_credentials(token_json), cache_discovery=False)
+    _verify_channel(youtube, channel)
+    return youtube
+
+
 def _verify_channel(youtube, channel: dict) -> None:
     response = youtube.channels().list(part="id,snippet", mine=True).execute()
     items = response.get("items", [])
@@ -127,13 +136,7 @@ def _description(metadata: dict) -> str:
 
 
 def _upload(channel: dict, metadata: dict, video_path: Path) -> str:
-    token_json = os.getenv(channel["token_env"])
-    if not token_json:
-        raise RuntimeError(f"Falta el secret {channel['token_env']}")
-
-    youtube = build("youtube", "v3", credentials=_credentials(token_json), cache_discovery=False)
-    _verify_channel(youtube, channel)
-
+    youtube = _youtube_for_channel(channel)
     body = {
         "snippet": {
             "title": metadata["title"],
@@ -171,11 +174,24 @@ def _upload(channel: dict, metadata: dict, video_path: Path) -> str:
     return video_id
 
 
+def set_custom_thumbnail(channel: dict, video_id: str, thumbnail_path: Path) -> None:
+    if not thumbnail_path.exists() or thumbnail_path.stat().st_size <= 0:
+        raise RuntimeError("La miniatura personalizada no existe o esta vacia.")
+    youtube = _youtube_for_channel(channel)
+    youtube.thumbnails().set(
+        videoId=video_id,
+        media_body=MediaFileUpload(str(thumbnail_path), mimetype="image/jpeg", resumable=False),
+    ).execute()
+
+
 def upload_video(channel: dict, metadata: dict, video_path: Path) -> str:
     _enforce_short_only(video_path)
     return _upload(channel, metadata, video_path)
 
 
-def upload_long_video(channel: dict, metadata: dict, video_path: Path) -> str:
+def upload_long_video(channel: dict, metadata: dict, video_path: Path, thumbnail_path: Path | None = None) -> str:
     _enforce_five_minute_long(video_path)
-    return _upload(channel, metadata, video_path)
+    video_id = _upload(channel, metadata, video_path)
+    if thumbnail_path is not None:
+        set_custom_thumbnail(channel, video_id, thumbnail_path)
+    return video_id
