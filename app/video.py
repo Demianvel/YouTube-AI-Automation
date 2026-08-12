@@ -11,8 +11,9 @@ from PIL import Image, ImageDraw, ImageFont
 from .audio import apply_audio
 from .botanical import draw_plant
 from .pexels_video import generate_pexels_short
+from .wikimedia_video import generate_wikimedia_short
 
-VIDEO_PROVIDER = os.getenv("VIDEO_PROVIDER", "pexels").lower().strip()
+VIDEO_PROVIDER = os.getenv("VIDEO_PROVIDER", "real_stock").lower().strip()
 W, H, FPS = 720, 1280, 15
 
 
@@ -75,7 +76,7 @@ def _finance(frame: Image.Image, progress: float, meta: dict) -> None:
 
 
 def _procedural(channel: dict, meta: dict, out: Path) -> None:
-    """Local CI fallback only. Production workflow uses Pexels real footage."""
+    """Local CI fallback only. Production uses real stock footage/media."""
     duration = int(channel["scenes_per_short"]) * int(channel["scene_seconds"])
     frames, seed = duration * FPS, _seed(meta)
     botanical = "botanical" in channel.get("visual_mode", "")
@@ -111,12 +112,22 @@ def generate_short(channel: dict, metadata: dict, workdir: Path) -> Path:
     workdir.mkdir(parents=True, exist_ok=True)
     final = workdir / "short.mp4"
 
-    if VIDEO_PROVIDER == "pexels":
+    if VIDEO_PROVIDER == "real_stock":
+        # Pexels gives the best stock selection when a free API key is available.
+        # Without a key, Wikimedia Commons works automatically and needs no secret.
+        if os.getenv("PEXELS_API_KEY", "").strip():
+            try:
+                generate_pexels_short(channel, metadata, workdir, final, apply_audio)
+                return final
+            except Exception as exc:
+                print(f"Pexels no disponible ({exc}); usando Wikimedia Commons.")
+        generate_wikimedia_short(channel, metadata, workdir, final, apply_audio)
+    elif VIDEO_PROVIDER == "pexels":
         generate_pexels_short(channel, metadata, workdir, final, apply_audio)
+    elif VIDEO_PROVIDER == "wikimedia":
+        generate_wikimedia_short(channel, metadata, workdir, final, apply_audio)
     elif VIDEO_PROVIDER == "procedural":
         _procedural(channel, metadata, final)
     else:
-        raise ValueError(
-            f"VIDEO_PROVIDER no soportado: {VIDEO_PROVIDER}. Usa 'pexels' para produccion real o 'procedural' solo para CI."
-        )
+        raise ValueError(f"VIDEO_PROVIDER no soportado: {VIDEO_PROVIDER}")
     return final
