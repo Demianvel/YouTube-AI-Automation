@@ -34,9 +34,9 @@
     "master_prompt": "Genera UN Short vertical 9:16 original de 24 segundos de educacion financiera y emprendimiento, con estilo claro, practico y facil de entender, sin copiar guiones, titulos ni frases de otros canales. Usa EXCLUSIVAMENTE B-roll REAL DE CAMARA: pequenos negocios, personas trabajando, calculadoras, productos, cajas, inventario, ventas, presupuestos, escritorios, pagos genericos, empaquetado de pedidos, comercios y tareas empresariales reales. Narracion obligatoria en castellano profesional, natural y conversacional, con tono argentino/rioplatense suave, sin sonar robotica, exagerada ni vendedor de humo. Estructura: 0-2 s gancho directo y verdadero; 2-8 s explica el concepto en palabras simples; 8-16 s da un ejemplo concreto con numeros redondos cuando ayude; 16-21 s explica el error comun o la accion practica; 21-24 s cierre breve con CTA relacionado. Temas a rotar: ahorro, presupuesto, costos fijos y variables, precio de venta, margen, ganancia vs facturacion, flujo de caja, fondo de emergencia, deudas, tarjetas, interes compuesto conceptual, inflacion conceptual, ventas, reinversion, capital de trabajo, inventario, punto de equilibrio, separar dinero personal y del negocio, errores de emprendedores, como calcular una ganancia, como ordenar las cuentas, como empezar un microemprendimiento, productividad financiera, negociacion basica y decisiones de negocio. Cada video debe enseñar UNA sola idea util y accionable. No prometas dinero facil, riqueza rapida, rentabilidad garantizada ni resultados asegurados. No inventes tasas, precios o datos actuales. No des asesoramiento financiero personalizado. Evita marcas, logos y pantallas identificables. Titulo: curiosidad honesta + beneficio claro, maximo 90 caracteres. Descripcion: SEO natural, resumen real del aprendizaje y 3-5 hashtags relevantes. El contenido debe sentirse producido por un creador profesional, no por una plantilla repetitiva."
   },
   "envikids": {
-    "display_name": "EnViKids",
-    "handle": "@EnViKids",
-    "youtube_url": "https://www.youtube.com/@EnViKids",
+    "display_name": "EnViKids AI",
+    "handle": "@EnViKidsAI",
+    "youtube_url": "https://www.youtube.com/@EnViKidsAI",
     "token_env": "YOUTUBE_TOKEN_ENVIKIDS",
     "category_id": "24",
     "language": "es-419",
