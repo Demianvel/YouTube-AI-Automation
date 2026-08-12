@@ -67,7 +67,6 @@ def _kokoro_voice(path: Path, text: str) -> None:
     speed = float(os.getenv("KOKORO_SPEED", "0.95"))
     pipeline = KPipeline(lang_code="e")
     chunks: list[np.ndarray] = []
-
     for _graphemes, _phonemes, audio in pipeline(
         text,
         voice=voice,
@@ -76,10 +75,8 @@ def _kokoro_voice(path: Path, text: str) -> None:
     ):
         if audio is not None and len(audio):
             chunks.append(np.asarray(audio, dtype=np.float32))
-
     if not chunks:
         raise RuntimeError("Kokoro no genero audio en español.")
-
     pause = np.zeros(int(24000 * 0.16), dtype=np.float32)
     joined: list[np.ndarray] = []
     for index, chunk in enumerate(chunks):
@@ -94,14 +91,14 @@ def _kokoro_voice(path: Path, text: str) -> None:
 
 
 def _chatterbox_voice(path: Path, text: str) -> None:
-    """Optional higher-expression multilingual TTS. CPU-compatible but much heavier than Kokoro."""
+    """Chatterbox Multilingual V3, official CPU/CUDA API."""
     import torch
     import torchaudio as ta
     from chatterbox.mtl_tts import ChatterboxMultilingualTTS
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
     model = ChatterboxMultilingualTTS.from_pretrained(device=device, t3_model="v3")
-    kwargs = {"language_id": "es"}
+    kwargs: dict = {"language_id": "es"}
     ref = os.getenv("CHATTERBOX_REFERENCE_AUDIO", "").strip()
     if ref:
         if not Path(ref).exists():
@@ -111,17 +108,28 @@ def _chatterbox_voice(path: Path, text: str) -> None:
     ta.save(str(path), wav.cpu(), model.sr)
 
 
-def make_natural_spanish_voice(path: Path, text: str) -> None:
-    provider = os.getenv("TTS_PROVIDER", "kokoro").lower().strip()
-    if provider == "kokoro":
+def make_natural_spanish_voice(path: Path, text: str) -> str:
+    """Returns the provider actually used. Chatterbox can fall back to Kokoro."""
+    provider = os.getenv("TTS_PROVIDER", "chatterbox").lower().strip()
+    if provider == "chatterbox":
+        try:
+            _chatterbox_voice(path, text)
+            used = "chatterbox-v3"
+        except Exception as exc:
+            if os.getenv("TTS_FALLBACK_KOKORO", "true").lower() != "true":
+                raise
+            print(f"Chatterbox V3 no disponible ({exc}); usando Kokoro como respaldo.")
+            _kokoro_voice(path, text)
+            used = "kokoro-fallback"
+    elif provider == "kokoro":
         _kokoro_voice(path, text)
-    elif provider == "chatterbox":
-        _chatterbox_voice(path, text)
+        used = "kokoro"
     else:
         raise RuntimeError(f"TTS_PROVIDER no soportado: {provider}")
 
     if not path.exists() or path.stat().st_size < 1000:
-        raise RuntimeError(f"{provider} genero un archivo de voz invalido.")
+        raise RuntimeError(f"{used} genero un archivo de voz invalido.")
+    return used
 
 
 def apply_audio(video: Path, out: Path, channel: dict, meta: dict, duration: int, seed: int) -> None:
@@ -142,6 +150,7 @@ def apply_audio(video: Path, out: Path, channel: dict, meta: dict, duration: int
             "-c:v", "copy", "-c:a", "aac", "-b:a", "192k",
             "-movflags", "+faststart", str(out),
         ], check=True)
+        meta["tts_provider_used"] = "none"
         return
 
     text = " ".join(
@@ -152,12 +161,13 @@ def apply_audio(video: Path, out: Path, channel: dict, meta: dict, duration: int
     if not text:
         raise RuntimeError("El canal requiere narracion y no se genero texto.")
 
-    provider = os.getenv("TTS_PROVIDER", "kokoro").lower().strip()
-    voice_path = out.with_name(f"narration_{provider}.wav")
-    make_natural_spanish_voice(voice_path, text)
+    requested = os.getenv("TTS_PROVIDER", "chatterbox").lower().strip()
+    voice_path = out.with_name(f"narration_{requested}.wav")
+    used = make_natural_spanish_voice(voice_path, text)
+    meta["tts_provider_used"] = used
+
     music = out.with_name("soft_music.wav")
     make_pleasant_original_music(music, duration, seed ^ 0xD1E0)
-
     music_volume = "0.035" if "kids" in channel.get("visual_mode", "") else "0.045"
     subprocess.run([
         "ffmpeg", "-y", "-loglevel", "error",
