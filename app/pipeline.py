@@ -19,7 +19,14 @@ def run(channel_slug: str, dry_run: bool = False) -> dict:
     stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     workdir = OUTPUT_DIR / channel_slug / stamp
     workdir.mkdir(parents=True, exist_ok=True)
-    (workdir / "metadata.json").write_text(json.dumps(metadata, ensure_ascii=False, indent=2), encoding="utf-8")
+    (workdir / "metadata.json").write_text(
+        json.dumps(metadata, ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
+
+    pinned_comment = (metadata.get("pinned_comment") or "").strip()
+    if pinned_comment:
+        (workdir / "pinned_comment.txt").write_text(pinned_comment + "\n", encoding="utf-8")
 
     video_path = generate_short(channel, metadata, workdir)
     video_id = None
