@@ -13,7 +13,7 @@ from googleapiclient.discovery import build
 
 REPO = "Demianvel/YouTube-AI-Automation"
 SECRET_NAME = "YOUTUBE_TOKEN_ENVIKIDS"
-EXPECTED_HANDLE = "@envikids"
+EXPECTED_HANDLE = "@envikidsai"
 SCOPES = [
     "https://www.googleapis.com/auth/youtube.upload",
     "https://www.googleapis.com/auth/youtube.readonly",
@@ -50,8 +50,8 @@ def _verify_channel(credentials: Credentials) -> tuple[str, str]:
     title = str(snippet.get("title") or "")
     if handle.lower().lstrip("/") != EXPECTED_HANDLE:
         raise RuntimeError(
-            f"Canal incorrecto. Se esperaba @EnViKids y Google devolvio {handle or title}. "
-            "No se guardo ningun token. Volve a ejecutar y elegi la cuenta/canal EnViKids."
+            f"Canal incorrecto. Se esperaba @EnViKidsAI y Google devolvio {handle or title}. "
+            "No se guardo ningun token. Volve a ejecutar y elegi la cuenta/canal EnViKidsAI."
         )
     return handle, title
 
@@ -76,7 +76,7 @@ def shutil_which(name: str) -> str | None:
 def main() -> None:
     client_file = _find_client_secret()
     print(f"Usando cliente OAuth: {client_file}")
-    print("Se abrira un enlace de Google. Elegi la cuenta que administra @EnViKids y acepta los permisos.")
+    print("Se abrira un enlace de Google. Elegi la cuenta que administra @EnViKidsAI y acepta los permisos.")
     print("El token NO se imprimira ni se guardara en el repositorio.")
 
     flow = InstalledAppFlow.from_client_secrets_file(str(client_file), SCOPES)
@@ -94,8 +94,7 @@ def main() -> None:
     token_json = credentials.to_json()
     _save_github_secret(token_json)
 
-    # Keep only a temporary local verification file during this process and remove it immediately.
-    with tempfile.NamedTemporaryFile("w", delete=False, prefix="envikids-token-check-", suffix=".json") as fh:
+    with tempfile.NamedTemporaryFile("w", delete=False, prefix="envikidsai-token-check-", suffix=".json") as fh:
         fh.write(json.dumps({"channel": handle, "title": title, "secret": SECRET_NAME}, ensure_ascii=False))
         temp_name = fh.name
     Path(temp_name).unlink(missing_ok=True)
