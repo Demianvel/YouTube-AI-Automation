@@ -1,0 +1,48 @@
+name: Validate Chatterbox V3
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'requirements-chatterbox.txt'
+      - 'app/audio.py'
+      - '.github/workflows/validate-chatterbox.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  validate-chatterbox:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+      - name: Install Chatterbox Multilingual V3
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg libsndfile1
+          python -m pip install --upgrade pip
+          pip install -r requirements-chatterbox.txt
+      - name: Generate Spanish WAV with V3
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import torch
+          import torchaudio as ta
+          from chatterbox.mtl_tts import ChatterboxMultilingualTTS
+
+          device = 'cuda' if torch.cuda.is_available() else 'cpu'
+          model = ChatterboxMultilingualTTS.from_pretrained(device=device, t3_model='v3')
+          text = 'Hola. Esta es una prueba de voz natural y expresiva en castellano para nuestros Shorts.'
+          wav = model.generate(text, language_id='es')
+          out = Path('/tmp/chatterbox-v3-es.wav')
+          ta.save(str(out), wav.cpu(), model.sr)
+          if not out.exists() or out.stat().st_size < 5000:
+              raise RuntimeError('Chatterbox V3 produjo un audio invalido.')
+          print('Chatterbox V3 Spanish OK:', out.stat().st_size, 'bytes', 'device=', device)
+          PY
