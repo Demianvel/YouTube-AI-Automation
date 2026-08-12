@@ -26,9 +26,13 @@ jobs:
           from pathlib import Path
           data = json.loads(Path('config/channels.json').read_text(encoding='utf-8'))
           assert set(data) == {'brotavida', 'dineroclaro'}
-          for slug, cfg in data.items():
-              assert cfg['scenes_per_short'] == 3
-              assert cfg['scene_seconds'] == 8
+          assert data['brotavida']['scenes_per_short'] == 1
+          assert data['brotavida']['scene_seconds'] == 8
+          assert data['brotavida']['audio_mode'] == 'music_only'
+          assert data['dineroclaro']['scenes_per_short'] == 3
+          assert data['dineroclaro']['scene_seconds'] == 8
+          assert data['dineroclaro']['audio_mode'] == 'voice_music'
+          for cfg in data.values():
               assert cfg['token_env'].startswith('YOUTUBE_TOKEN_')
           print('configuration OK')
           PY
@@ -40,15 +44,37 @@ jobs:
           python - <<'PY'
           from pathlib import Path
           from app.video import generate_short
-          channel = {'handle': '@DineroClaroAi', 'scenes_per_short': 1, 'scene_seconds': 1}
-          metadata = {
-              'topic': 'prueba',
-              'title': 'Prueba de renderer',
-              'hook': 'Una prueba simple',
-              'scenes': [{'narration': 'Esto es una prueba tecnica.'}],
+
+          finance = {
+              'handle': '@DineroClaroAi',
+              'scenes_per_short': 1,
+              'scene_seconds': 1,
+              'audio_mode': 'voice_music',
+              'visual_mode': 'finance_education',
           }
-          out = Path('/tmp/short-smoke')
-          result = generate_short(channel, metadata, out)
+          finance_meta = {
+              'topic': 'ahorro y presupuesto',
+              'title': 'Prueba financiera',
+              'hook': 'Ordena tu dinero',
+              'scenes': [{'narration': 'Separá primero tus gastos esenciales.'}],
+          }
+          result = generate_short(finance, finance_meta, Path('/tmp/finance-smoke'))
           assert result.exists() and result.stat().st_size > 1000
-          print(result, result.stat().st_size)
+
+          plant = {
+              'handle': '@BrotaVidaAI',
+              'scenes_per_short': 1,
+              'scene_seconds': 1,
+              'audio_mode': 'music_only',
+              'visual_mode': 'botanical_growth',
+          }
+          plant_meta = {
+              'topic': 'girasol desde semilla hasta planta adulta',
+              'title': 'Así despierta un girasol',
+              'hook': 'La semilla comienza a abrirse',
+              'scenes': [{'narration': ''}],
+          }
+          result = generate_short(plant, plant_meta, Path('/tmp/plant-smoke'))
+          assert result.exists() and result.stat().st_size > 1000
+          print('renderers OK')
           PY
