@@ -18,8 +18,6 @@ YOUTUBE_SCOPES = [
 ]
 RETRIABLE = {500, 502, 503, 504}
 MAX_SHORT_SECONDS = 180.0
-LONG_MIN_SECONDS = 240.0
-LONG_MAX_SECONDS = 360.0
 
 
 def _credentials(token_json: str) -> Credentials:
@@ -41,7 +39,6 @@ def _verify_channel(youtube, channel: dict) -> None:
     items = response.get("items", [])
     if not items:
         raise RuntimeError("No se pudo identificar el canal autorizado antes de publicar.")
-
     snippet = items[0].get("snippet", {})
     actual = (snippet.get("customUrl") or "").lower().lstrip("/")
     expected = channel["handle"].lower().lstrip("/")
@@ -55,15 +52,10 @@ def _verify_channel(youtube, channel: dict) -> None:
 def _probe_video(path: Path) -> tuple[float, int, int]:
     result = subprocess.run(
         [
-            "ffprobe", "-v", "error",
-            "-select_streams", "v:0",
-            "-show_entries", "stream=width,height:format=duration",
-            "-of", "json",
-            str(path),
+            "ffprobe", "-v", "error", "-select_streams", "v:0",
+            "-show_entries", "stream=width,height:format=duration", "-of", "json", str(path),
         ],
-        capture_output=True,
-        text=True,
-        check=True,
+        capture_output=True, text=True, check=True,
     )
     data = json.loads(result.stdout)
     streams = data.get("streams") or []
@@ -71,9 +63,7 @@ def _probe_video(path: Path) -> tuple[float, int, int]:
         raise RuntimeError("El archivo no contiene un stream de video valido.")
     stream = streams[0]
     duration = float((data.get("format") or {}).get("duration") or 0)
-    width = int(stream.get("width") or 0)
-    height = int(stream.get("height") or 0)
-    return duration, width, height
+    return duration, int(stream.get("width") or 0), int(stream.get("height") or 0)
 
 
 def _enforce_short_only(video_path: Path) -> None:
@@ -93,17 +83,19 @@ def _enforce_short_only(video_path: Path) -> None:
     print(f"Short validation OK: {duration:.2f}s, {width}x{height}")
 
 
-def _enforce_five_minute_long(video_path: Path) -> None:
+def _enforce_long(video_path: Path, expected_minutes: int) -> None:
     duration, width, height = _probe_video(video_path)
-    if not (LONG_MIN_SECONDS <= duration <= LONG_MAX_SECONDS):
+    target = expected_minutes * 60.0
+    tolerance = max(30.0, target * 0.12)
+    if not (target - tolerance <= duration <= target + tolerance):
         raise RuntimeError(
-            f"BLOQUEADO: el uploader long-form espera aproximadamente 5 minutos. Duracion detectada: {duration:.2f}s."
+            f"BLOQUEADO: se esperaban ~{expected_minutes} minutos. Duracion detectada: {duration:.2f}s."
         )
     if width <= height:
         raise RuntimeError(
             f"BLOQUEADO: el video largo debe ser horizontal 16:9. Resolucion detectada: {width}x{height}."
         )
-    print(f"Long-form validation OK: {duration:.2f}s, {width}x{height}")
+    print(f"Long-form validation OK: {duration:.2f}s, {width}x{height}, target={expected_minutes}min")
 
 
 def _description(metadata: dict) -> str:
@@ -111,11 +103,9 @@ def _description(metadata: dict) -> str:
     base = (metadata.get("description") or "").strip()
     if base:
         parts.append(base)
-
     hashtags = " ".join(metadata.get("hashtags", [])[:5]).strip()
     if hashtags:
         parts.append(hashtags)
-
     credits = metadata.get("source_credits") or []
     if credits:
         lines = ["Fuentes visuales reales utilizadas y editadas para este video:"]
@@ -131,7 +121,6 @@ def _description(metadata: dict) -> str:
                 label += f": {source_url}"
             lines.append(label)
         parts.append("\n".join(lines))
-
     return "\n\n".join(parts)[:4900].strip()
 
 
@@ -156,7 +145,6 @@ def _upload(channel: dict, metadata: dict, video_path: Path) -> str:
         body=body,
         media_body=MediaFileUpload(str(video_path), chunksize=8 * 1024 * 1024, resumable=True),
     )
-
     response = None
     retries = 0
     while response is None:
@@ -167,7 +155,6 @@ def _upload(channel: dict, metadata: dict, video_path: Path) -> str:
                 raise
             retries += 1
             time.sleep(random.uniform(1, 2 ** retries))
-
     video_id = response.get("id")
     if not video_id:
         raise RuntimeError(f"Respuesta inesperada de YouTube: {response}")
@@ -189,14 +176,12 @@ def upload_video(channel: dict, metadata: dict, video_path: Path) -> str:
     return _upload(channel, metadata, video_path)
 
 
-def upload_long_video(channel: dict, metadata: dict, video_path: Path, thumbnail_path: Path | None = None) -> str:
-    _enforce_five_minute_long(video_path)
+def upload_long_video(channel: dict, metadata: dict, video_path: Path, thumbnail_path: Path | None = None, expected_minutes: int = 5) -> str:
+    _enforce_long(video_path, expected_minutes=expected_minutes)
     video_id = _upload(channel, metadata, video_path)
     metadata["thumbnail_upload_status"] = "not_requested"
     if thumbnail_path is not None:
         try:
-            # Thumbnail setup is secondary. Never turn an already successful video upload
-            # into a workflow failure that could cause a duplicate re-upload.
             time.sleep(2)
             set_custom_thumbnail(channel, video_id, thumbnail_path)
             metadata["thumbnail_upload_status"] = "set"
