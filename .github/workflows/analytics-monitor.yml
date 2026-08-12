@@ -65,6 +65,7 @@ jobs:
         if: steps.token.outputs.ready == 'true'
         shell: bash
         run: |
+          # This run also verifies whether the YouTube Analytics API is now enabled in Google Cloud.
           python scripts/analytics_snapshot.py \
             --channel "${{ matrix.channel }}" \
             --days 90 \
