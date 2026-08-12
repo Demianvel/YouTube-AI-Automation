@@ -26,8 +26,6 @@ permissions:
   contents: write
   issues: write
 
-# Los disparos manuales de BrotaVida y Dinero Claro usan colas separadas.
-# Así un canal no cancela al otro si ambos se inician casi al mismo tiempo.
 concurrency:
   group: youtube-ai-publisher-${{ github.event_name == 'workflow_dispatch' && inputs.channel || 'schedule' }}
   cancel-in-progress: false
@@ -40,7 +38,11 @@ jobs:
     env:
       GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
       GEMINI_TEXT_MODEL: gemini-3.6-flash
-      VIDEO_PROVIDER: procedural
+      GEMINI_VIDEO_MODEL: veo-3.1-generate-preview
+      VIDEO_PROVIDER: veo
+      VIDEO_RESOLUTION: 1080p
+      GEMINI_TTS_MODEL: gemini-3.1-flash-tts-preview
+      GEMINI_TTS_VOICE: Sadaltager
       YOUTUBE_TOKEN_BROTAVIDA: ${{ secrets.YOUTUBE_TOKEN_BROTAVIDA }}
       YOUTUBE_TOKEN_DINEROCLARO: ${{ secrets.YOUTUBE_TOKEN_DINEROCLARO }}
     steps:
@@ -104,7 +106,7 @@ jobs:
         if: steps.readiness.outputs.ready == 'true'
         run: |
           sudo apt-get update
-          sudo apt-get install -y ffmpeg espeak-ng fonts-dejavu-core
+          sudo apt-get install -y ffmpeg fonts-dejavu-core
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
@@ -126,33 +128,26 @@ jobs:
         run: |
           git config user.name "youtube-ai-bot"
           git config user.email "actions@users.noreply.github.com"
-
-          # Conserva exactamente el registro generado por este job antes de
-          # sincronizar con main. Así evitamos conflictos de rebase sobre JSONL.
           NEW_RECORD="$(tail -n 1 state/history.jsonl)"
 
           for attempt in 1 2 3 4 5; do
             git fetch origin main
             git reset --hard origin/main
-
             mkdir -p state
             touch state/history.jsonl
             if ! grep -Fqx "$NEW_RECORD" state/history.jsonl; then
               printf '%s\n' "$NEW_RECORD" >> state/history.jsonl
             fi
-
             git add state/history.jsonl
             if git diff --cached --quiet; then
               echo "El registro ya existe en el historial."
               exit 0
             fi
-
             git commit -m "chore: update Shorts history"
             if git push origin HEAD:main; then
               echo "Historial guardado correctamente."
               exit 0
             fi
-
             echo "Otro cambio llegó a main; reintentando historial ($attempt/5)."
           done
 
