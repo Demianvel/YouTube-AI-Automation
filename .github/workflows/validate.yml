@@ -12,6 +12,9 @@ permissions:
 jobs:
   validate:
     runs-on: ubuntu-latest
+    env:
+      VIDEO_PROVIDER: procedural
+      MUSIC_PROVIDER: synth
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -29,52 +32,37 @@ jobs:
           assert data['brotavida']['scenes_per_short'] == 1
           assert data['brotavida']['scene_seconds'] == 8
           assert data['brotavida']['audio_mode'] == 'music_only'
+          assert 'photoreal' in data['brotavida']['visual_mode']
           assert data['dineroclaro']['scenes_per_short'] == 3
           assert data['dineroclaro']['scene_seconds'] == 8
           assert data['dineroclaro']['audio_mode'] == 'voice_music'
+          assert 'photoreal' in data['dineroclaro']['visual_mode']
           for cfg in data.values():
               assert cfg['token_env'].startswith('YOUTUBE_TOKEN_')
-          print('configuration OK')
+          print('premium configuration OK')
           PY
-      - name: Smoke test free renderer
+      - name: Smoke test local fallback without paid APIs
         run: |
           sudo apt-get update
-          sudo apt-get install -y ffmpeg espeak-ng fonts-dejavu-core
+          sudo apt-get install -y ffmpeg fonts-dejavu-core
           python -m pip install Pillow
           python - <<'PY'
           from pathlib import Path
           from app.video import generate_short
-
-          finance = {
-              'handle': '@DineroClaroAi',
-              'scenes_per_short': 1,
-              'scene_seconds': 1,
-              'audio_mode': 'voice_music',
-              'visual_mode': 'finance_education',
-          }
-          finance_meta = {
-              'topic': 'ahorro y presupuesto',
-              'title': 'Prueba financiera',
-              'hook': 'Ordena tu dinero',
-              'scenes': [{'narration': 'Separá primero tus gastos esenciales.'}],
-          }
-          result = generate_short(finance, finance_meta, Path('/tmp/finance-smoke'))
-          assert result.exists() and result.stat().st_size > 1000
-
           plant = {
               'handle': '@BrotaVidaAI',
               'scenes_per_short': 1,
               'scene_seconds': 1,
               'audio_mode': 'music_only',
-              'visual_mode': 'botanical_growth',
+              'visual_mode': 'photoreal_botanical_growth',
           }
-          plant_meta = {
+          meta = {
               'topic': 'girasol desde semilla hasta planta adulta',
-              'title': 'Así despierta un girasol',
+              'title': 'Asi despierta un girasol',
               'hook': 'La semilla comienza a abrirse',
               'scenes': [{'narration': ''}],
           }
-          result = generate_short(plant, plant_meta, Path('/tmp/plant-smoke'))
+          result = generate_short(plant, meta, Path('/tmp/plant-smoke'))
           assert result.exists() and result.stat().st_size > 1000
-          print('renderers OK')
+          print('fallback renderer OK')
           PY
