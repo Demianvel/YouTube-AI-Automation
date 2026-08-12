@@ -192,6 +192,15 @@ def upload_video(channel: dict, metadata: dict, video_path: Path) -> str:
 def upload_long_video(channel: dict, metadata: dict, video_path: Path, thumbnail_path: Path | None = None) -> str:
     _enforce_five_minute_long(video_path)
     video_id = _upload(channel, metadata, video_path)
+    metadata["thumbnail_upload_status"] = "not_requested"
     if thumbnail_path is not None:
-        set_custom_thumbnail(channel, video_id, thumbnail_path)
+        try:
+            # Thumbnail setup is secondary. Never turn an already successful video upload
+            # into a workflow failure that could cause a duplicate re-upload.
+            time.sleep(2)
+            set_custom_thumbnail(channel, video_id, thumbnail_path)
+            metadata["thumbnail_upload_status"] = "set"
+        except Exception as exc:
+            metadata["thumbnail_upload_status"] = f"failed_nonfatal: {type(exc).__name__}"
+            print(f"Video {video_id} ya fue subido. La miniatura personalizada fallo sin reintentar el video: {exc}")
     return video_id
