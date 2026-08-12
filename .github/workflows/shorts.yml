@@ -16,8 +16,7 @@ on:
         default: true
         type: boolean
   schedule:
-    # Fallback interno de GitHub. Si N8N_PRIMARY=true, n8n controla los horarios.
-    # Si no, ENABLE_FREE_AUTO=true habilita estos horarios en Argentina (UTC-3).
+    # Argentina UTC-3. Si N8N_PRIMARY=true, n8n controla los horarios y GitHub no duplica.
     # BrotaVida: 00,06,12,18. DineroClaro: 08,13,17,21.
     - cron: "0 3,9,15,21 * * *"
     - cron: "0 0,11,16,20 * * *"
@@ -32,16 +31,17 @@ concurrency:
 
 jobs:
   publish:
-    if: ${{ github.event_name != 'schedule' || (vars.N8N_PRIMARY != 'true' && vars.ENABLE_FREE_AUTO == 'true') }}
+    if: ${{ github.event_name != 'schedule' || vars.N8N_PRIMARY != 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 90
     env:
       GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
       GEMINI_TEXT_MODEL: gemini-3.6-flash
-      GEMINI_TTS_MODEL: gemini-3.1-flash-tts-preview
-      GEMINI_TTS_VOICE: Sulafat
-      VIDEO_PROVIDER: pexels
+      VIDEO_PROVIDER: real_stock
       PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
+      TTS_PROVIDER: kokoro
+      KOKORO_VOICE: ef_dora
+      KOKORO_SPEED: "0.96"
       MUSIC_PROVIDER: local
       YOUTUBE_TOKEN_BROTAVIDA: ${{ secrets.YOUTUBE_TOKEN_BROTAVIDA }}
       YOUTUBE_TOKEN_DINEROCLARO: ${{ secrets.YOUTUBE_TOKEN_DINEROCLARO }}
@@ -66,22 +66,21 @@ jobs:
           echo "channel=$CHANNEL" >> "$GITHUB_OUTPUT"
           echo "CHANNEL=$CHANNEL" >> "$GITHUB_ENV"
 
-      - name: Check free generation credentials
+      - name: Check generation credentials
         id: readiness
         if: env.CHANNEL != ''
         shell: bash
         run: |
-          READY=true
-          if ! python scripts/check_ready.py --generation-only; then
-            echo "Falta GEMINI_API_KEY."
-            READY=false
-          fi
-          if [ -z "$PEXELS_API_KEY" ]; then
-            echo "Falta PEXELS_API_KEY para descargar metraje real."
-            READY=false
-          fi
-          echo "ready=$READY" >> "$GITHUB_OUTPUT"
-          if [ "$READY" != "true" ]; then
+          if python scripts/check_ready.py --generation-only; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+            if [ -n "$PEXELS_API_KEY" ]; then
+              echo "Pexels disponible como fuente preferida."
+            else
+              echo "Sin Pexels API key: se usara Wikimedia Commons sin clave."
+            fi
+          else
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "Falta GEMINI_API_KEY para crear tema, titulo y descripcion."
             exit 1
           fi
 
@@ -109,15 +108,15 @@ jobs:
           python-version: "3.12"
           cache: pip
 
-      - name: Install real-footage renderer dependencies
+      - name: Install free real-media and natural-voice dependencies
         if: steps.readiness.outputs.ready == 'true'
         run: |
           sudo apt-get update
-          sudo apt-get install -y ffmpeg fonts-dejavu-core
+          sudo apt-get install -y ffmpeg espeak-ng libsndfile1 fonts-dejavu-core
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Generate real-footage Short and optionally upload
+      - name: Generate real-media Short and optionally upload
         if: steps.readiness.outputs.ready == 'true'
         shell: bash
         run: |
