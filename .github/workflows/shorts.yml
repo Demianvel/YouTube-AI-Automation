@@ -34,7 +34,7 @@ jobs:
   publish:
     if: ${{ github.event_name != 'schedule' || vars.N8N_PRIMARY != 'true' }}
     runs-on: ubuntu-latest
-    timeout-minutes: 90
+    timeout-minutes: 120
     env:
       GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
       GEMINI_TEXT_MODEL: gemini-3.6-flash
@@ -42,7 +42,8 @@ jobs:
       PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
       POLLINATIONS_API_KEY: ${{ secrets.POLLINATIONS_API_KEY }}
       POLLINATIONS_IMAGE_MODEL: flux
-      TTS_PROVIDER: kokoro
+      TTS_PROVIDER: chatterbox
+      TTS_FALLBACK_KOKORO: "true"
       KOKORO_VOICE: em_alex
       KOKORO_SPEED: "0.95"
       MUSIC_PROVIDER: local
@@ -54,7 +55,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Select channel and voice
+      - name: Select channel and fallback voice
         id: select
         shell: bash
         run: |
@@ -85,13 +86,6 @@ jobs:
         run: |
           if python scripts/check_ready.py --generation-only; then
             echo "ready=true" >> "$GITHUB_OUTPUT"
-            if [ "$CHANNEL" = "envikids" ]; then
-              echo "EnViKids: visuales 3D generados; Pollinations key es opcional."
-            elif [ -n "$PEXELS_API_KEY" ]; then
-              echo "Pexels disponible como fuente preferida de metraje real."
-            else
-              echo "Sin Pexels API key: se usara Wikimedia Commons con video real obligatorio."
-            fi
           else
             echo "ready=false" >> "$GITHUB_OUTPUT"
             echo "Falta GEMINI_API_KEY para crear tema, titulo y descripcion."
@@ -121,16 +115,43 @@ jobs:
       - uses: actions/setup-python@v5
         if: steps.readiness.outputs.ready == 'true'
         with:
-          python-version: "3.12"
+          python-version: "3.11"
           cache: pip
 
-      - name: Install and verify Kokoro Spanish TTS
+      - name: Install base media and Python dependencies
         if: steps.readiness.outputs.ready == 'true'
         run: |
           sudo apt-get update
           sudo apt-get install -y ffmpeg espeak-ng libsndfile1 fonts-dejavu-core
           python -m pip install --upgrade pip
           pip install -r requirements.txt
+
+      - name: Install and verify Chatterbox Multilingual V3
+        if: steps.readiness.outputs.ready == 'true' && env.CHANNEL != 'brotavida'
+        run: |
+          pip install -r requirements-chatterbox.txt
+          python - <<'PY'
+          import torch
+          import torchaudio as ta
+          from pathlib import Path
+          from chatterbox.mtl_tts import ChatterboxMultilingualTTS
+
+          device = 'cuda' if torch.cuda.is_available() else 'cpu'
+          model = ChatterboxMultilingualTTS.from_pretrained(device=device, t3_model='v3')
+          wav = model.generate(
+              'Hola. Esta es una prueba de voz natural en español para el canal.',
+              language_id='es',
+          )
+          out = Path('/tmp/chatterbox_v3_spanish_test.wav')
+          ta.save(str(out), wav.cpu(), model.sr)
+          if not out.exists() or out.stat().st_size < 5000:
+              raise RuntimeError('Chatterbox V3 no produjo audio valido.')
+          print('Chatterbox Multilingual V3 Spanish OK - device:', device, '- bytes:', out.stat().st_size)
+          PY
+
+      - name: Verify Kokoro fallback
+        if: steps.readiness.outputs.ready == 'true' && env.CHANNEL != 'brotavida'
+        run: |
           python - <<'PY'
           import os
           import numpy as np
@@ -142,17 +163,14 @@ jobs:
           voice = os.getenv('KOKORO_VOICE', 'em_alex')
           speed = float(os.getenv('KOKORO_SPEED', '0.95'))
           parts = []
-          text = 'Hola. Esta es una prueba clara de voz natural en castellano.'
-          for _g, _p, audio in pipeline(text, voice=voice, speed=speed):
+          for _g, _p, audio in pipeline('Prueba de respaldo en castellano.', voice=voice, speed=speed):
               if audio is not None and len(audio):
                   parts.append(np.asarray(audio, dtype=np.float32))
           if not parts:
-              raise RuntimeError('Kokoro se instalo pero no genero audio en español.')
-          out = Path('/tmp/kokoro_spanish_test.wav')
+              raise RuntimeError('Kokoro fallback no genero audio.')
+          out = Path('/tmp/kokoro_fallback_test.wav')
           sf.write(out, np.concatenate(parts), 24000, subtype='PCM_16')
-          if not out.exists() or out.stat().st_size < 5000:
-              raise RuntimeError('La prueba de Kokoro produjo audio invalido.')
-          print('Kokoro Spanish OK -', voice, '- bytes:', out.stat().st_size)
+          print('Kokoro fallback OK -', voice, '- bytes:', out.stat().st_size)
           PY
 
       - name: Generate Short and optionally upload
