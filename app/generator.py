@@ -23,6 +23,8 @@ def _history_digest(previous: list[dict]) -> str:
 
 def _prompt(channel: dict, previous: list[dict], attempt: int) -> str:
     audio_mode = channel.get("audio_mode", "voice_music")
+    botanical = "botanical" in channel.get("visual_mode", "")
+
     if audio_mode == "music_only":
         audio_rule = (
             "REGLA ABSOLUTA: no generes narracion. El campo narration debe ser una cadena vacia. "
@@ -30,21 +32,37 @@ def _prompt(channel: dict, previous: list[dict], attempt: int) -> str:
         )
     else:
         audio_rule = (
-            "REGLA DE AUDIO: cada escena debe incluir narracion breve, natural y clara en castellano argentino. "
-            "No uses promesas ni frases exageradas."
+            "REGLA DE AUDIO: cada escena debe incluir una narracion breve, natural y clara en castellano argentino/rioplatense suave. "
+            "Debe sonar conversacional, educativa y humana; no uses promesas ni frases exageradas."
+        )
+
+    if botanical:
+        stock_rule = (
+            "FUENTE VISUAL REAL: cada escena debe incluir stock_query EN INGLES para buscar METRAJE REAL DE CAMARA en Pexels. "
+            "Usa frases cortas como 'sunflower growth timelapse', 'seed germination timelapse' o 'plant growing macro'. "
+            "No pidas CGI, 3D, animation, illustration ni AI. El titulo y la descripcion NO deben afirmar una especie concreta "
+            "si no es esencial; prioriza lenguaje verdadero y generico sobre germinacion/crecimiento para que el metraje real coincida."
+        )
+    else:
+        stock_rule = (
+            "FUENTE VISUAL REAL: cada escena debe incluir stock_query EN INGLES, de 3 a 8 palabras, para buscar B-roll REAL en Pexels. "
+            "Describe una escena filmable y concreta: por ejemplo 'small business owner calculator', 'budget planning desk' o "
+            "'packing online orders'. Evita marcas, logos, pantallas con marcas y terminos como CGI, 3D, animation o AI."
         )
 
     return f"""
-Eres estratega senior de YouTube Shorts, retencion y SEO natural.
+Eres estratega senior de YouTube Shorts, retencion, SEO natural, CTR honesto y valor autentico.
 Trabajas para {channel['display_name']} ({channel['handle']}).
 
 PROMPT MAESTRO DEL CANAL:
 {channel['master_prompt']}
 
 {audio_rule}
+{stock_rule}
 
 Genera UN concepto nuevo para un Short de {channel['scenes_per_short'] * channel['scene_seconds']} segundos.
 Debe ser claramente diferente del historial reciente. El titulo debe generar curiosidad real, describir correctamente el contenido y evitar clickbait enganoso.
+El Short debe aportar una razon real para verlo: transformacion visual clara en BrotaVida o aprendizaje concreto en Dinero Claro.
 
 HISTORIAL RECIENTE A EVITAR:
 {_history_digest(previous)}
@@ -61,13 +79,18 @@ Devuelve SOLO JSON valido:
   "tags": ["palabra clave", "..."],
   "cta": "CTA breve y relacionado",
   "scenes": [
-    {{"visual_prompt": "descripcion visual precisa y autocontenida", "narration": "frase breve o cadena vacia segun el canal"}}
+    {{
+      "visual_prompt": "descripcion visual precisa y autocontenida",
+      "stock_query": "short English query for real camera footage",
+      "narration": "frase breve o cadena vacia segun el canal"
+    }}
   ]
 }}
 
 Reglas:
 - scenes debe contener exactamente {channel['scenes_per_short']} elementos.
 - Cada escena dura {channel['scene_seconds']} segundos.
+- stock_query es obligatorio, en ingles, concreto y orientado a video real.
 - Hashtags: 3 a 5, solo relevantes.
 - Tags: 8 a 15, relevantes y variados.
 - Titulo: maximo 90 caracteres, sin mayusculas abusivas ni afirmaciones falsas.
@@ -92,6 +115,10 @@ def generate_metadata(channel: dict, previous: list[dict], retries: int = 5) -> 
             last_reason = "cantidad incorrecta de escenas"
             continue
 
+        if any(not (scene.get("stock_query") or "").strip() for scene in scenes):
+            last_reason = "falta stock_query para una escena"
+            continue
+
         if channel.get("audio_mode") == "music_only":
             for scene in scenes:
                 scene["narration"] = ""
@@ -113,6 +140,8 @@ def generate_metadata(channel: dict, previous: list[dict], retries: int = 5) -> 
         data["hashtags"] = [str(x).strip() for x in (data.get("hashtags") or []) if str(x).strip()][:5]
         data["tags"] = [str(x).strip() for x in (data.get("tags") or []) if str(x).strip()][:15]
         data["cta"] = (data.get("cta") or "").strip()
+        for scene in scenes:
+            scene["stock_query"] = " ".join(str(scene["stock_query"]).strip().split())[:100]
         return data
 
     raise RuntimeError(f"No se pudo generar un concepto suficientemente distinto: {last_reason}")
