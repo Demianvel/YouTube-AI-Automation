@@ -49,14 +49,12 @@ def _wrap(draw: ImageDraw.ImageDraw, text: str, font, max_width: int, max_lines:
     return lines[:max_lines]
 
 
-def _render(frame: Path, text: str, out: Path, variant: int) -> None:
+def _render(frame: Path, text: str, out: Path, variant: int, badge: str) -> None:
     img = Image.open(frame).convert("RGB")
     img = ImageEnhance.Contrast(img).enhance(1.08)
     img = ImageEnhance.Color(img).enhance(1.06)
     overlay = Image.new("RGBA", img.size, (0, 0, 0, 0))
     draw_overlay = ImageDraw.Draw(overlay)
-
-    # Strong but clean contrast block; each variant changes placement.
     if variant == 0:
         box = (35, 360, 880, 680)
     elif variant == 1:
@@ -77,9 +75,9 @@ def _render(frame: Path, text: str, out: Path, variant: int) -> None:
         draw.text((box[0] + 35, y), line, font=font, fill=(255, 255, 255), stroke_width=3, stroke_fill=(0, 0, 0))
         y += 88
 
-    # Tiny brand-neutral marker for visual hierarchy, not a logo.
-    draw.rounded_rectangle((W - 205, H - 72, W - 28, H - 24), radius=18, fill=(255, 255, 255))
-    draw.text((W - 186, H - 64), "VIDEO 5 MIN", font=small, fill=(18, 18, 18))
+    badge_w = 220 if len(badge) <= 12 else 280
+    draw.rounded_rectangle((W - badge_w - 28, H - 72, W - 28, H - 24), radius=18, fill=(255, 255, 255))
+    draw.text((W - badge_w - 8, H - 64), badge, font=small, fill=(18, 18, 18))
 
     img.save(out, "JPEG", quality=91, optimize=True)
     if out.stat().st_size > 1_900_000:
@@ -87,20 +85,26 @@ def _render(frame: Path, text: str, out: Path, variant: int) -> None:
 
 
 def generate_thumbnail_variants(video: Path, metadata: dict, workdir: Path) -> list[Path]:
-    texts = metadata.get("thumbnail_texts") or []
+    texts = list(metadata.get("thumbnail_texts") or [])
+    if not texts and metadata.get("thumbnail_text"):
+        texts = [metadata["thumbnail_text"]]
     title_variants = metadata.get("title_variants") or []
     fallback = metadata.get("title") or "Video nuevo"
     while len(texts) < 3:
         idx = len(texts)
         texts.append(title_variants[idx] if idx < len(title_variants) else fallback)
 
-    seconds = [38, 148, 258]
+    duration_minutes = int(metadata.get("duration_minutes") or round(float(metadata.get("duration_seconds") or 300) / 60))
+    badge = f"VIDEO {duration_minutes} MIN"
+    total_seconds = max(60, duration_minutes * 60)
+    seconds = [max(5, int(total_seconds * 0.13)), max(10, int(total_seconds * 0.50)), max(15, int(total_seconds * 0.86))]
+
     outputs: list[Path] = []
     for index in range(3):
         frame = workdir / f"thumbnail_frame_{index + 1}.jpg"
         out = workdir / f"thumbnail_{index + 1}.jpg"
         _extract(video, seconds[index], frame)
-        _render(frame, texts[index], out, index)
+        _render(frame, texts[index], out, index, badge)
         frame.unlink(missing_ok=True)
         outputs.append(out)
     metadata["thumbnail_variants"] = [str(p) for p in outputs]
