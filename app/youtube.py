@@ -18,6 +18,8 @@ YOUTUBE_SCOPES = [
 ]
 RETRIABLE = {500, 502, 503, 504}
 MAX_SHORT_SECONDS = 180.0
+LONG_MIN_SECONDS = 240.0
+LONG_MAX_SECONDS = 360.0
 
 
 def _credentials(token_json: str) -> Credentials:
@@ -82,6 +84,19 @@ def _enforce_short_only(video_path: Path) -> None:
     print(f"Short validation OK: {duration:.2f}s, {width}x{height}")
 
 
+def _enforce_five_minute_long(video_path: Path) -> None:
+    duration, width, height = _probe_video(video_path)
+    if not (LONG_MIN_SECONDS <= duration <= LONG_MAX_SECONDS):
+        raise RuntimeError(
+            f"BLOQUEADO: el uploader long-form espera aproximadamente 5 minutos. Duracion detectada: {duration:.2f}s."
+        )
+    if width <= height:
+        raise RuntimeError(
+            f"BLOQUEADO: el video largo debe ser horizontal 16:9. Resolucion detectada: {width}x{height}."
+        )
+    print(f"Long-form validation OK: {duration:.2f}s, {width}x{height}")
+
+
 def _description(metadata: dict) -> str:
     parts: list[str] = []
     base = (metadata.get("description") or "").strip()
@@ -94,8 +109,8 @@ def _description(metadata: dict) -> str:
 
     credits = metadata.get("source_credits") or []
     if credits:
-        lines = ["Fuentes visuales reales utilizadas y editadas para este Short:"]
-        for item in credits[:8]:
+        lines = ["Fuentes visuales reales utilizadas y editadas para este video:"]
+        for item in credits[:20]:
             provider = (item.get("provider") or "Fuente visual").strip()
             creator = (item.get("creator") or "colaborador").strip()
             license_name = (item.get("license") or "").strip()
@@ -111,10 +126,7 @@ def _description(metadata: dict) -> str:
     return "\n\n".join(parts)[:4900].strip()
 
 
-def upload_video(channel: dict, metadata: dict, video_path: Path) -> str:
-    # Hard safety gate: this repository's automatic uploader is Shorts-only.
-    _enforce_short_only(video_path)
-
+def _upload(channel: dict, metadata: dict, video_path: Path) -> str:
     token_json = os.getenv(channel["token_env"])
     if not token_json:
         raise RuntimeError(f"Falta el secret {channel['token_env']}")
@@ -126,7 +138,7 @@ def upload_video(channel: dict, metadata: dict, video_path: Path) -> str:
         "snippet": {
             "title": metadata["title"],
             "description": _description(metadata),
-            "tags": metadata.get("tags", [])[:15],
+            "tags": metadata.get("tags", [])[:18],
             "categoryId": channel["category_id"],
             "defaultLanguage": channel.get("language", "es-419"),
         },
@@ -157,3 +169,13 @@ def upload_video(channel: dict, metadata: dict, video_path: Path) -> str:
     if not video_id:
         raise RuntimeError(f"Respuesta inesperada de YouTube: {response}")
     return video_id
+
+
+def upload_video(channel: dict, metadata: dict, video_path: Path) -> str:
+    _enforce_short_only(video_path)
+    return _upload(channel, metadata, video_path)
+
+
+def upload_long_video(channel: dict, metadata: dict, video_path: Path) -> str:
+    _enforce_five_minute_long(video_path)
+    return _upload(channel, metadata, video_path)
