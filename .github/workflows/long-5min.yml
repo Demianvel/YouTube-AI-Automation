@@ -1,0 +1,117 @@
+name: Generate 5-minute videos
+
+on:
+  workflow_dispatch:
+    inputs:
+      channel:
+        description: Canal largo a generar
+        required: true
+        default: both
+        type: choice
+        options:
+          - both
+          - brotavida
+          - dineroclaro
+      publish:
+        description: Publicar como video normal en YouTube
+        required: true
+        default: false
+        type: boolean
+  push:
+    branches: [main]
+    paths:
+      - triggers/long5min.txt
+
+permissions:
+  contents: read
+
+concurrency:
+  group: youtube-long5min-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    strategy:
+      fail-fast: false
+      matrix:
+        channel: [brotavida, dineroclaro]
+    env:
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      GEMINI_TEXT_MODEL: gemini-3.6-flash
+      PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
+      TTS_PROVIDER: chatterbox
+      TTS_FALLBACK_KOKORO: "true"
+      KOKORO_VOICE: em_alex
+      KOKORO_SPEED: "0.95"
+      YOUTUBE_TOKEN_BROTAVIDA: ${{ secrets.YOUTUBE_TOKEN_BROTAVIDA }}
+      YOUTUBE_TOKEN_DINEROCLARO: ${{ secrets.YOUTUBE_TOKEN_DINEROCLARO }}
+    steps:
+      - name: Decide whether this matrix job should run
+        id: gate
+        shell: bash
+        run: |
+          RUN=false
+          if [ "${{ github.event_name }}" = "push" ]; then
+            RUN=true
+          elif [ "${{ inputs.channel }}" = "both" ] || [ "${{ inputs.channel }}" = "${{ matrix.channel }}" ]; then
+            RUN=true
+          fi
+          echo "run=$RUN" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/checkout@v4
+        if: steps.gate.outputs.run == 'true'
+
+      - uses: actions/setup-python@v5
+        if: steps.gate.outputs.run == 'true'
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install media, Kokoro and Chatterbox V3
+        if: steps.gate.outputs.run == 'true'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg espeak-ng libsndfile1 fonts-dejavu-core git
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install torch==2.6.0 torchaudio==2.6.0 --index-url https://download.pytorch.org/whl/cpu
+          pip install -r requirements-chatterbox.txt
+
+      - name: Verify credentials and channel token
+        if: steps.gate.outputs.run == 'true'
+        shell: bash
+        run: |
+          test -n "$GEMINI_API_KEY" || { echo "Falta GEMINI_API_KEY"; exit 1; }
+          if [ "${{ matrix.channel }}" = "brotavida" ]; then
+            test -n "$YOUTUBE_TOKEN_BROTAVIDA" || { echo "Falta YOUTUBE_TOKEN_BROTAVIDA"; exit 1; }
+          else
+            test -n "$YOUTUBE_TOKEN_DINEROCLARO" || { echo "Falta YOUTUBE_TOKEN_DINEROCLARO"; exit 1; }
+          fi
+
+      - name: Generate and optionally publish 5-minute video
+        if: steps.gate.outputs.run == 'true'
+        shell: bash
+        run: |
+          PUBLISH=false
+          if [ "${{ github.event_name }}" = "push" ]; then
+            PUBLISH=true
+          elif [ "${{ inputs.publish }}" = "true" ]; then
+            PUBLISH=true
+          fi
+
+          EXTRA=""
+          if [ "$PUBLISH" = "true" ]; then
+            EXTRA="--publish"
+          fi
+
+          python -m app.long_pipeline --channel "${{ matrix.channel }}" $EXTRA
+
+      - name: Upload 5-minute artifact
+        if: steps.gate.outputs.run == 'true' && always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: long5min-${{ matrix.channel }}-${{ github.run_id }}
+          path: output/long5min/${{ matrix.channel }}/
+          retention-days: 3
