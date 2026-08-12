@@ -25,59 +25,53 @@ def _prompt(channel: dict, previous: list[dict], attempt: int) -> str:
     audio_mode = channel.get("audio_mode", "voice_music")
     if audio_mode == "music_only":
         audio_rule = (
-            "REGLA ABSOLUTA DE AUDIO: NO escribas narracion. El campo narration de TODAS las escenas "
-            "debe ser una cadena vacia. El gancho debe ser 100% visual."
+            "REGLA ABSOLUTA: no generes narracion. El campo narration debe ser una cadena vacia. "
+            "Todo el gancho y la retencion deben ser visuales."
         )
     else:
         audio_rule = (
-            "REGLA DE AUDIO: cada escena debe incluir una narracion breve, natural y clara en castellano argentino. "
-            "No uses frases grandilocuentes ni promesas."
+            "REGLA DE AUDIO: cada escena debe incluir narracion breve, natural y clara en castellano argentino. "
+            "No uses promesas ni frases exageradas."
         )
 
     return f"""
-Eres estratega senior de YouTube Shorts especializado en retencion, busqueda, SEO natural, CTR honesto y engagement autentico.
-Trabajas para el canal {channel['display_name']} ({channel['handle']}).
+Eres estratega senior de YouTube Shorts, retencion y SEO natural.
+Trabajas para {channel['display_name']} ({channel['handle']}).
 
-PROMPT MAESTRO UNICO DEL CANAL:
+PROMPT MAESTRO DEL CANAL:
 {channel['master_prompt']}
 
 {audio_rule}
 
-OBJETIVO:
 Genera UN concepto nuevo para un Short de {channel['scenes_per_short'] * channel['scene_seconds']} segundos.
-Debe ser claramente distinto del historial reciente y aportar valor visual o educativo real.
-Optimiza el primer segundo para detener el scroll, el titulo para curiosidad verdadera y claridad, y el cierre para una accion natural.
-No uses clickbait enganoso, no prometas resultados inexistentes, no inventes datos y no copies frases completas del historial.
+Debe ser claramente diferente del historial reciente. El titulo debe generar curiosidad real, describir correctamente el contenido y evitar clickbait enganoso.
 
-HISTORIAL RECIENTE QUE DEBES EVITAR:
+HISTORIAL RECIENTE A EVITAR:
 {_history_digest(previous)}
 
 INTENTO: {attempt}
 
-Devuelve SOLO JSON valido con esta estructura exacta:
+Devuelve SOLO JSON valido:
 {{
   "topic": "tema especifico y unico",
-  "hook": "gancho de los primeros 2 segundos",
-  "title": "titulo para YouTube, maximo 90 caracteres",
-  "description": "descripcion SEO natural de 2 a 4 lineas que explique realmente el contenido",
+  "hook": "gancho inicial",
+  "title": "titulo viral natural, maximo 90 caracteres",
+  "description": "descripcion SEO natural de 2 a 4 lineas",
   "hashtags": ["#Shorts", "#..."],
   "tags": ["palabra clave", "..."],
-  "cta": "CTA breve y natural, sin manipulacion",
-  "pinned_comment": "comentario breve para fijar manualmente y generar conversacion autentica",
+  "cta": "CTA breve y relacionado",
   "scenes": [
-    {{"visual_prompt": "descripcion visual autocontenida y concreta de la escena", "narration": "frase breve o cadena vacia segun la regla de audio"}}
+    {{"visual_prompt": "descripcion visual precisa y autocontenida", "narration": "frase breve o cadena vacia segun el canal"}}
   ]
 }}
 
-Reglas tecnicas:
-- scenes debe tener exactamente {channel['scenes_per_short']} elementos.
+Reglas:
+- scenes debe contener exactamente {channel['scenes_per_short']} elementos.
 - Cada escena dura {channel['scene_seconds']} segundos.
-- visual_prompt debe describir sujeto, accion, entorno, encuadre, iluminacion y continuidad con la escena anterior.
-- Hashtags: 3 a 5, relevantes; no rellenar con tendencias no relacionadas.
+- Hashtags: 3 a 5, solo relevantes.
 - Tags: 8 a 15, relevantes y variados.
-- Titulo: maximo 90 caracteres, sin MAYUSCULAS abusivas ni afirmaciones falsas.
-- pinned_comment: una sola pregunta o invitacion relevante, no spam.
-- No menciones marcas registradas ni agregues markdown.
+- Titulo: maximo 90 caracteres, sin mayusculas abusivas ni afirmaciones falsas.
+- No agregues markdown ni comentarios fuera del JSON.
 """.strip()
 
 
@@ -101,10 +95,9 @@ def generate_metadata(channel: dict, previous: list[dict], retries: int = 5) -> 
         if channel.get("audio_mode") == "music_only":
             for scene in scenes:
                 scene["narration"] = ""
-        else:
-            if any(not (scene.get("narration") or "").strip() for scene in scenes):
-                last_reason = "falta narracion en una escena"
-                continue
+        elif any(not (scene.get("narration") or "").strip() for scene in scenes):
+            last_reason = "falta narracion en una escena"
+            continue
 
         is_similar, reason = too_similar(data, previous)
         if is_similar:
@@ -120,7 +113,6 @@ def generate_metadata(channel: dict, previous: list[dict], retries: int = 5) -> 
         data["hashtags"] = [str(x).strip() for x in (data.get("hashtags") or []) if str(x).strip()][:5]
         data["tags"] = [str(x).strip() for x in (data.get("tags") or []) if str(x).strip()][:15]
         data["cta"] = (data.get("cta") or "").strip()
-        data["pinned_comment"] = (data.get("pinned_comment") or "").strip()[:400]
         return data
 
     raise RuntimeError(f"No se pudo generar un concepto suficientemente distinto: {last_reason}")
