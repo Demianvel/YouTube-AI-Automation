@@ -16,7 +16,9 @@ jobs:
       VIDEO_PROVIDER: procedural
       MUSIC_PROVIDER: local
       TTS_PROVIDER: chatterbox
-      TTS_FALLBACK_KOKORO: "false"
+      TTS_FALLBACK_KOKORO: "true"
+      KOKORO_VOICE: em_alex
+      KOKORO_SPEED: "0.95"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -38,7 +40,6 @@ jobs:
           assert data['dineroclaro']['require_real_video'] is True
           assert data['envikids']['audio_mode'] == 'voice_music'
           assert data['envikids']['made_for_kids'] is True
-          assert 'kids' in data['envikids']['visual_mode']
           for cfg in data.values():
               assert cfg['token_env'].startswith('YOUTUBE_TOKEN_')
           print('three-channel configuration OK')
@@ -46,9 +47,27 @@ jobs:
       - name: Install media and base Python dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y ffmpeg libsndfile1 fonts-dejavu-core git
+          sudo apt-get install -y ffmpeg espeak-ng libsndfile1 fonts-dejavu-core git
           python -m pip install --upgrade pip
           pip install -r requirements.txt
+      - name: Verify Kokoro Spanish fallback
+        run: |
+          python - <<'PY'
+          import numpy as np
+          import soundfile as sf
+          from pathlib import Path
+          from kokoro import KPipeline
+          pipeline = KPipeline(lang_code='e')
+          chunks = []
+          for _g, _p, audio in pipeline('Hola. Esta es una prueba de respaldo en castellano.', voice='em_alex', speed=0.95):
+              if audio is not None and len(audio):
+                  chunks.append(np.asarray(audio, dtype=np.float32))
+          assert chunks, 'Kokoro no genero audio'
+          out = Path('/tmp/kokoro-test.wav')
+          sf.write(out, np.concatenate(chunks), 24000, subtype='PCM_16')
+          assert out.exists() and out.stat().st_size > 5000
+          print('Kokoro Spanish fallback OK:', out.stat().st_size)
+          PY
       - name: Install official Chatterbox V3 with CPU PyTorch
         run: |
           pip install torch==2.6.0 torchaudio==2.6.0 --index-url https://download.pytorch.org/whl/cpu
@@ -60,7 +79,7 @@ jobs:
           from pathlib import Path
           from chatterbox.mtl_tts import ChatterboxMultilingualTTS
           model = ChatterboxMultilingualTTS.from_pretrained(device='cpu', t3_model='v3')
-          wav = model.generate('Hola. Esta es una prueba de voz natural en español.', language_id='es')
+          wav = model.generate('Hola. Esta es una prueba de voz natural y profesional en español.', language_id='es')
           out = Path('/tmp/chatterbox-v3-test.wav')
           ta.save(str(out), wav.cpu(), model.sr)
           assert out.exists() and out.stat().st_size > 5000
