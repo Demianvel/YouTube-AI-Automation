@@ -10,6 +10,7 @@ on:
         options:
           - brotavida
           - dineroclaro
+          - envikids
       dry_run:
         description: Generar sin subir a YouTube
         required: true
@@ -17,7 +18,7 @@ on:
         type: boolean
   schedule:
     # Argentina UTC-3. Si N8N_PRIMARY=true, n8n controla los horarios y GitHub no duplica.
-    # BrotaVida: 00,06,12,18. DineroClaro: 08,13,17,21.
+    # BrotaVida: 00,06,12,18. DineroClaro: 08,13,17,21. EnViKids: manual hasta autorizar OAuth.
     - cron: "0 3,9,15,21 * * *"
     - cron: "0 0,11,16,20 * * *"
 
@@ -39,18 +40,21 @@ jobs:
       GEMINI_TEXT_MODEL: gemini-3.6-flash
       VIDEO_PROVIDER: real_stock
       PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
+      POLLINATIONS_API_KEY: ${{ secrets.POLLINATIONS_API_KEY }}
+      POLLINATIONS_IMAGE_MODEL: flux
       TTS_PROVIDER: kokoro
       KOKORO_VOICE: em_alex
       KOKORO_SPEED: "0.95"
       MUSIC_PROVIDER: local
       YOUTUBE_TOKEN_BROTAVIDA: ${{ secrets.YOUTUBE_TOKEN_BROTAVIDA }}
       YOUTUBE_TOKEN_DINEROCLARO: ${{ secrets.YOUTUBE_TOKEN_DINEROCLARO }}
+      YOUTUBE_TOKEN_ENVIKIDS: ${{ secrets.YOUTUBE_TOKEN_ENVIKIDS }}
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Select channel
+      - name: Select channel and voice
         id: select
         shell: bash
         run: |
@@ -66,6 +70,14 @@ jobs:
           echo "channel=$CHANNEL" >> "$GITHUB_OUTPUT"
           echo "CHANNEL=$CHANNEL" >> "$GITHUB_ENV"
 
+          if [ "$CHANNEL" = "envikids" ]; then
+            echo "KOKORO_VOICE=ef_dora" >> "$GITHUB_ENV"
+            echo "KOKORO_SPEED=1.02" >> "$GITHUB_ENV"
+          elif [ "$CHANNEL" = "dineroclaro" ]; then
+            echo "KOKORO_VOICE=em_alex" >> "$GITHUB_ENV"
+            echo "KOKORO_SPEED=0.95" >> "$GITHUB_ENV"
+          fi
+
       - name: Check generation credentials
         id: readiness
         if: env.CHANNEL != ''
@@ -73,10 +85,12 @@ jobs:
         run: |
           if python scripts/check_ready.py --generation-only; then
             echo "ready=true" >> "$GITHUB_OUTPUT"
-            if [ -n "$PEXELS_API_KEY" ]; then
+            if [ "$CHANNEL" = "envikids" ]; then
+              echo "EnViKids: visuales 3D generados; Pollinations key es opcional."
+            elif [ -n "$PEXELS_API_KEY" ]; then
               echo "Pexels disponible como fuente preferida de metraje real."
             else
-              echo "Sin Pexels API key: se usara Wikimedia Commons como fuente real de respaldo."
+              echo "Sin Pexels API key: se usara Wikimedia Commons con video real obligatorio."
             fi
           else
             echo "ready=false" >> "$GITHUB_OUTPUT"
@@ -94,12 +108,14 @@ jobs:
             READY=true
           elif [ "$CHANNEL" = "dineroclaro" ] && [ -n "$YOUTUBE_TOKEN_DINEROCLARO" ]; then
             READY=true
+          elif [ "$CHANNEL" = "envikids" ] && [ -n "$YOUTUBE_TOKEN_ENVIKIDS" ]; then
+            READY=true
           fi
           echo "ready=$READY" >> "$GITHUB_OUTPUT"
           if [ "$READY" = "true" ]; then
-            echo "Token de YouTube disponible."
+            echo "Token de YouTube disponible para $CHANNEL."
           else
-            echo "Token de YouTube ausente: se generara sin publicar."
+            echo "Token de YouTube ausente para $CHANNEL: se generara sin publicar."
           fi
 
       - uses: actions/setup-python@v5
@@ -116,15 +132,18 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
           python - <<'PY'
+          import os
           import numpy as np
           import soundfile as sf
           from pathlib import Path
           from kokoro import KPipeline
 
           pipeline = KPipeline(lang_code='e')
+          voice = os.getenv('KOKORO_VOICE', 'em_alex')
+          speed = float(os.getenv('KOKORO_SPEED', '0.95'))
           parts = []
-          text = 'Hola. Esta es una prueba de voz natural en castellano para Dinero Claro.'
-          for _g, _p, audio in pipeline(text, voice='em_alex', speed=0.95):
+          text = 'Hola. Esta es una prueba clara de voz natural en castellano.'
+          for _g, _p, audio in pipeline(text, voice=voice, speed=speed):
               if audio is not None and len(audio):
                   parts.append(np.asarray(audio, dtype=np.float32))
           if not parts:
@@ -133,10 +152,10 @@ jobs:
           sf.write(out, np.concatenate(parts), 24000, subtype='PCM_16')
           if not out.exists() or out.stat().st_size < 5000:
               raise RuntimeError('La prueba de Kokoro produjo audio invalido.')
-          print('Kokoro Spanish OK - em_alex - bytes:', out.stat().st_size)
+          print('Kokoro Spanish OK -', voice, '- bytes:', out.stat().st_size)
           PY
 
-      - name: Generate real-footage Short and optionally upload
+      - name: Generate Short and optionally upload
         if: steps.readiness.outputs.ready == 'true'
         shell: bash
         run: |
