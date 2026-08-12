@@ -37,10 +37,11 @@ jobs:
     env:
       GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
       GEMINI_TEXT_MODEL: gemini-3.6-flash
-      GEMINI_TTS_MODEL: gemini-3.1-flash-tts-preview
-      GEMINI_TTS_VOICE: Sulafat
       VIDEO_PROVIDER: real_stock
       PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
+      TTS_PROVIDER: kokoro
+      KOKORO_VOICE: em_alex
+      KOKORO_SPEED: "0.95"
       MUSIC_PROVIDER: local
       YOUTUBE_TOKEN_BROTAVIDA: ${{ secrets.YOUTUBE_TOKEN_BROTAVIDA }}
       YOUTUBE_TOKEN_DINEROCLARO: ${{ secrets.YOUTUBE_TOKEN_DINEROCLARO }}
@@ -107,13 +108,18 @@ jobs:
           python-version: "3.12"
           cache: pip
 
-      - name: Install real-footage dependencies
+      - name: Install real-footage and Kokoro Spanish dependencies
         if: steps.readiness.outputs.ready == 'true'
         run: |
           sudo apt-get update
-          sudo apt-get install -y ffmpeg fonts-dejavu-core
+          sudo apt-get install -y ffmpeg espeak-ng libsndfile1 fonts-dejavu-core
           python -m pip install --upgrade pip
           pip install -r requirements.txt
+          python - <<'PY'
+          from kokoro import KPipeline
+          KPipeline(lang_code='e')
+          print('Kokoro Spanish listo. Voz:', 'em_alex')
+          PY
 
       - name: Generate real-footage Short and optionally upload
         if: steps.readiness.outputs.ready == 'true'
