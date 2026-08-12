@@ -124,12 +124,38 @@ jobs:
         run: |
           git config user.name "youtube-ai-bot"
           git config user.email "actions@users.noreply.github.com"
-          git add state/history.jsonl
-          if ! git diff --cached --quiet; then
+
+          # Conserva exactamente el registro generado por este job antes de
+          # sincronizar con main. Así evitamos conflictos de rebase sobre JSONL.
+          NEW_RECORD="$(tail -n 1 state/history.jsonl)"
+
+          for attempt in 1 2 3 4 5; do
+            git fetch origin main
+            git reset --hard origin/main
+
+            mkdir -p state
+            touch state/history.jsonl
+            if ! grep -Fqx "$NEW_RECORD" state/history.jsonl; then
+              printf '%s\n' "$NEW_RECORD" >> state/history.jsonl
+            fi
+
+            git add state/history.jsonl
+            if git diff --cached --quiet; then
+              echo "El registro ya existe en el historial."
+              exit 0
+            fi
+
             git commit -m "chore: update Shorts history"
-            git pull --rebase origin main
-            git push origin HEAD:main
-          fi
+            if git push origin HEAD:main; then
+              echo "Historial guardado correctamente."
+              exit 0
+            fi
+
+            echo "Otro cambio llegó a main; reintentando historial ($attempt/5)."
+          done
+
+          echo "No se pudo guardar el historial tras 5 intentos." >&2
+          exit 1
 
       - name: Upload generated artifact for inspection
         if: steps.readiness.outputs.ready == 'true' && always()
