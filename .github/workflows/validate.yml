@@ -15,14 +15,15 @@ jobs:
     env:
       VIDEO_PROVIDER: procedural
       MUSIC_PROVIDER: local
-      TTS_PROVIDER: kokoro
+      TTS_PROVIDER: chatterbox
+      TTS_FALLBACK_KOKORO: "true"
       KOKORO_VOICE: em_alex
       KOKORO_SPEED: "0.95"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
+          python-version: "3.11"
           cache: pip
       - name: Compile Python
         run: python -m compileall -q app scripts
@@ -32,26 +33,41 @@ jobs:
           import json
           from pathlib import Path
           data = json.loads(Path('config/channels.json').read_text(encoding='utf-8'))
-          assert set(data) == {'brotavida', 'dineroclaro'}
-          assert data['brotavida']['scenes_per_short'] == 1
-          assert data['brotavida']['scene_seconds'] == 8
+          assert set(data) == {'brotavida', 'dineroclaro', 'envikids'}
           assert data['brotavida']['audio_mode'] == 'music_only'
-          assert 'botanical' in data['brotavida']['visual_mode']
-          assert data['dineroclaro']['scenes_per_short'] == 3
-          assert data['dineroclaro']['scene_seconds'] == 8
+          assert data['brotavida']['require_real_video'] is True
           assert data['dineroclaro']['audio_mode'] == 'voice_music'
-          assert 'finance' in data['dineroclaro']['visual_mode']
+          assert data['dineroclaro']['require_real_video'] is True
+          assert data['envikids']['audio_mode'] == 'voice_music'
+          assert data['envikids']['made_for_kids'] is True
+          assert 'kids' in data['envikids']['visual_mode']
           for cfg in data.values():
               assert cfg['token_env'].startswith('YOUTUBE_TOKEN_')
-          print('channel configuration OK')
+          print('three-channel configuration OK')
           PY
-      - name: Install test dependencies
+      - name: Install media and Python dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y ffmpeg espeak-ng libsndfile1 fonts-dejavu-core
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-      - name: Verify Kokoro Spanish voice generation
+          pip install -r requirements-chatterbox.txt
+      - name: Verify Chatterbox Multilingual V3 Spanish
+        run: |
+          python - <<'PY'
+          import torch
+          import torchaudio as ta
+          from pathlib import Path
+          from chatterbox.mtl_tts import ChatterboxMultilingualTTS
+          device = 'cuda' if torch.cuda.is_available() else 'cpu'
+          model = ChatterboxMultilingualTTS.from_pretrained(device=device, t3_model='v3')
+          wav = model.generate('Hola. Esta es una prueba de voz natural en español.', language_id='es')
+          out = Path('/tmp/chatterbox-v3-test.wav')
+          ta.save(str(out), wav.cpu(), model.sr)
+          assert out.exists() and out.stat().st_size > 5000
+          print('Chatterbox V3 Spanish OK:', device, out.stat().st_size)
+          PY
+      - name: Verify Kokoro fallback
         run: |
           python - <<'PY'
           import numpy as np
@@ -60,16 +76,16 @@ jobs:
           from kokoro import KPipeline
           pipeline = KPipeline(lang_code='e')
           chunks = []
-          for _g, _p, audio in pipeline('Hola. Esta es una prueba clara de voz en castellano para Dinero Claro.', voice='em_alex', speed=0.95):
+          for _g, _p, audio in pipeline('Prueba de respaldo en castellano.', voice='em_alex', speed=0.95):
               if audio is not None and len(audio):
                   chunks.append(np.asarray(audio, dtype=np.float32))
-          assert chunks, 'Kokoro no genero audio'
-          out = Path('/tmp/kokoro-test.wav')
+          assert chunks
+          out = Path('/tmp/kokoro-fallback.wav')
           sf.write(out, np.concatenate(chunks), 24000, subtype='PCM_16')
           assert out.exists() and out.stat().st_size > 5000
-          print('Kokoro Spanish OK:', out.stat().st_size, 'bytes')
+          print('Kokoro fallback OK:', out.stat().st_size)
           PY
-      - name: Smoke test local plant renderer
+      - name: Smoke test local BrotaVida fallback renderer
         run: |
           python - <<'PY'
           from pathlib import Path
@@ -85,7 +101,7 @@ jobs:
               'topic': 'crecimiento real de una planta',
               'title': 'Asi despierta una semilla',
               'hook': 'La semilla comienza a abrirse',
-              'scenes': [{'stock_query': 'seed germination timelapse', 'narration': ''}],
+              'scenes': [{'visual_prompt': 'seed sprouting', 'stock_query': 'seed germination timelapse', 'narration': ''}],
           }
           result = generate_short(plant, meta, Path('/tmp/plant-smoke'))
           assert result.exists() and result.stat().st_size > 1000
