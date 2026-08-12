@@ -108,7 +108,7 @@ jobs:
           python-version: "3.12"
           cache: pip
 
-      - name: Install real-footage and Kokoro Spanish dependencies
+      - name: Install and verify Kokoro Spanish TTS
         if: steps.readiness.outputs.ready == 'true'
         run: |
           sudo apt-get update
@@ -116,9 +116,24 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
           python - <<'PY'
+          import numpy as np
+          import soundfile as sf
+          from pathlib import Path
           from kokoro import KPipeline
-          KPipeline(lang_code='e')
-          print('Kokoro Spanish listo. Voz:', 'em_alex')
+
+          pipeline = KPipeline(lang_code='e')
+          parts = []
+          text = 'Hola. Esta es una prueba de voz natural en castellano para Dinero Claro.'
+          for _g, _p, audio in pipeline(text, voice='em_alex', speed=0.95):
+              if audio is not None and len(audio):
+                  parts.append(np.asarray(audio, dtype=np.float32))
+          if not parts:
+              raise RuntimeError('Kokoro se instalo pero no genero audio en español.')
+          out = Path('/tmp/kokoro_spanish_test.wav')
+          sf.write(out, np.concatenate(parts), 24000, subtype='PCM_16')
+          if not out.exists() or out.stat().st_size < 5000:
+              raise RuntimeError('La prueba de Kokoro produjo audio invalido.')
+          print('Kokoro Spanish OK - em_alex - bytes:', out.stat().st_size)
           PY
 
       - name: Generate real-footage Short and optionally upload
