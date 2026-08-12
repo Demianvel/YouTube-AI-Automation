@@ -16,9 +16,7 @@ jobs:
       VIDEO_PROVIDER: procedural
       MUSIC_PROVIDER: local
       TTS_PROVIDER: chatterbox
-      TTS_FALLBACK_KOKORO: "true"
-      KOKORO_VOICE: em_alex
-      KOKORO_SPEED: "0.95"
+      TTS_FALLBACK_KOKORO: "false"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -45,45 +43,28 @@ jobs:
               assert cfg['token_env'].startswith('YOUTUBE_TOKEN_')
           print('three-channel configuration OK')
           PY
-      - name: Install media and Python dependencies
+      - name: Install media and base Python dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y ffmpeg espeak-ng libsndfile1 fonts-dejavu-core
+          sudo apt-get install -y ffmpeg libsndfile1 fonts-dejavu-core git
           python -m pip install --upgrade pip
           pip install -r requirements.txt
+      - name: Install official Chatterbox V3 with CPU PyTorch
+        run: |
+          pip install torch==2.6.0 torchaudio==2.6.0 --index-url https://download.pytorch.org/whl/cpu
           pip install -r requirements-chatterbox.txt
       - name: Verify Chatterbox Multilingual V3 Spanish
         run: |
           python - <<'PY'
-          import torch
           import torchaudio as ta
           from pathlib import Path
           from chatterbox.mtl_tts import ChatterboxMultilingualTTS
-          device = 'cuda' if torch.cuda.is_available() else 'cpu'
-          model = ChatterboxMultilingualTTS.from_pretrained(device=device, t3_model='v3')
+          model = ChatterboxMultilingualTTS.from_pretrained(device='cpu', t3_model='v3')
           wav = model.generate('Hola. Esta es una prueba de voz natural en español.', language_id='es')
           out = Path('/tmp/chatterbox-v3-test.wav')
           ta.save(str(out), wav.cpu(), model.sr)
           assert out.exists() and out.stat().st_size > 5000
-          print('Chatterbox V3 Spanish OK:', device, out.stat().st_size)
-          PY
-      - name: Verify Kokoro fallback
-        run: |
-          python - <<'PY'
-          import numpy as np
-          import soundfile as sf
-          from pathlib import Path
-          from kokoro import KPipeline
-          pipeline = KPipeline(lang_code='e')
-          chunks = []
-          for _g, _p, audio in pipeline('Prueba de respaldo en castellano.', voice='em_alex', speed=0.95):
-              if audio is not None and len(audio):
-                  chunks.append(np.asarray(audio, dtype=np.float32))
-          assert chunks
-          out = Path('/tmp/kokoro-fallback.wav')
-          sf.write(out, np.concatenate(chunks), 24000, subtype='PCM_16')
-          assert out.exists() and out.stat().st_size > 5000
-          print('Kokoro fallback OK:', out.stat().st_size)
+          print('Chatterbox V3 Spanish OK: CPU', out.stat().st_size)
           PY
       - name: Smoke test local BrotaVida fallback renderer
         run: |
