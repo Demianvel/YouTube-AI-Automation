@@ -37,11 +37,10 @@ jobs:
     env:
       GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
       GEMINI_TEXT_MODEL: gemini-3.6-flash
+      GEMINI_TTS_MODEL: gemini-3.1-flash-tts-preview
+      GEMINI_TTS_VOICE: Sulafat
       VIDEO_PROVIDER: real_stock
       PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
-      TTS_PROVIDER: kokoro
-      KOKORO_VOICE: ef_dora
-      KOKORO_SPEED: "0.96"
       MUSIC_PROVIDER: local
       YOUTUBE_TOKEN_BROTAVIDA: ${{ secrets.YOUTUBE_TOKEN_BROTAVIDA }}
       YOUTUBE_TOKEN_DINEROCLARO: ${{ secrets.YOUTUBE_TOKEN_DINEROCLARO }}
@@ -74,9 +73,9 @@ jobs:
           if python scripts/check_ready.py --generation-only; then
             echo "ready=true" >> "$GITHUB_OUTPUT"
             if [ -n "$PEXELS_API_KEY" ]; then
-              echo "Pexels disponible como fuente preferida."
+              echo "Pexels disponible como fuente preferida de metraje real."
             else
-              echo "Sin Pexels API key: se usara Wikimedia Commons sin clave."
+              echo "Sin Pexels API key: se usara Wikimedia Commons como fuente real de respaldo."
             fi
           else
             echo "ready=false" >> "$GITHUB_OUTPUT"
@@ -108,15 +107,15 @@ jobs:
           python-version: "3.12"
           cache: pip
 
-      - name: Install free real-media and natural-voice dependencies
+      - name: Install real-footage dependencies
         if: steps.readiness.outputs.ready == 'true'
         run: |
           sudo apt-get update
-          sudo apt-get install -y ffmpeg espeak-ng libsndfile1 fonts-dejavu-core
+          sudo apt-get install -y ffmpeg fonts-dejavu-core
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Generate real-media Short and optionally upload
+      - name: Generate real-footage Short and optionally upload
         if: steps.readiness.outputs.ready == 'true'
         shell: bash
         run: |
