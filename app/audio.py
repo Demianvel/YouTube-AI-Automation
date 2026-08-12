@@ -10,12 +10,12 @@ import wave
 from pathlib import Path
 
 
-def make_original_music(path: Path, duration: int, seed: int) -> None:
-    """Create an original instrumental bed from synthesized tones."""
+def make_pleasant_fallback_music(path: Path, duration: int, seed: int) -> None:
+    """Pleasant original fallback bed: warm major-pentatonic tones, no dark drones."""
     sample_rate = 22050
     total = int(duration * sample_rate)
     rng = random.Random(seed ^ 0xB70A)
-    roots = rng.sample([196.00, 220.00, 246.94, 261.63, 293.66], 4)
+    roots = [220.00, 246.94, 293.66, 329.63]
     phases = [rng.random() * math.tau for _ in range(4)]
 
     with wave.open(str(path), "wb") as wf:
@@ -25,17 +25,16 @@ def make_original_music(path: Path, duration: int, seed: int) -> None:
         chunk = bytearray()
         for i in range(total):
             t = i / sample_rate
-            root = roots[int(t // 4) % len(roots)]
-            chord = (
-                math.sin(math.tau * root * t + phases[0]) * .42
-                + math.sin(math.tau * root * 1.25 * t + phases[1]) * .25
-                + math.sin(math.tau * root * 1.50 * t + phases[2]) * .20
-                + math.sin(math.tau * (root / 2) * t + phases[3]) * .18
+            root = roots[int(t // 2.0) % len(roots)]
+            pad = (
+                math.sin(math.tau * root * t + phases[0]) * .33
+                + math.sin(math.tau * root * 1.25 * t + phases[1]) * .18
+                + math.sin(math.tau * root * 1.50 * t + phases[2]) * .14
             )
-            pulse_phase = t % 2.0
-            pulse = math.exp(-4.0 * pulse_phase) * math.sin(math.tau * (root / 4) * t) * .12
-            fade = min(1.0, t / 1.0, max(0.0, (duration - t) / 1.0))
-            sample = max(-1.0, min(1.0, (chord + pulse) * .20 * fade))
+            bell_env = math.exp(-3.8 * (t % 1.0))
+            bell = math.sin(math.tau * root * 2.0 * t + phases[3]) * bell_env * .08
+            fade = min(1.0, t / .7, max(0.0, (duration - t) / .7))
+            sample = max(-1.0, min(1.0, (pad + bell) * .17 * fade))
             chunk += struct.pack("<h", int(sample * 32767))
             if len(chunk) >= 65536:
                 wf.writeframes(chunk)
@@ -44,8 +43,41 @@ def make_original_music(path: Path, duration: int, seed: int) -> None:
             wf.writeframes(chunk)
 
 
+def make_lyria_music(path: Path) -> bool:
+    """Generate a premium, pleasant instrumental clip with Lyria 3."""
+    from google import genai
+
+    if os.getenv("MUSIC_PROVIDER", "lyria").lower() != "lyria":
+        return False
+
+    api_key = os.environ.get("GEMINI_API_KEY")
+    if not api_key:
+        return False
+
+    model = os.getenv("LYRIA_MODEL", "lyria-3-clip-preview")
+    client = genai.Client(api_key=api_key)
+    prompt = (
+        "Instrumental only, absolutely no vocals and no spoken words. "
+        "Create a beautiful, warm, uplifting nature soundtrack for a photorealistic plant-growth timelapse. "
+        "Soft felt piano, delicate marimba, airy acoustic textures, gentle sparkling bells and subtle warm pads. "
+        "Major-key feeling, peaceful, fresh, optimistic and pleasant to the ear. "
+        "No ominous drones, no horror mood, no dissonance, no aggressive bass, no distorted synths, no dark cinematic tension. "
+        "Premium clean production, elegant and relaxing, suitable for a short nature documentary."
+    )
+    try:
+        interaction = client.interactions.create(model=model, input=prompt)
+        output_audio = getattr(interaction, "output_audio", None)
+        data = getattr(output_audio, "data", None) if output_audio is not None else None
+        if not data:
+            return False
+        path.write_bytes(base64.b64decode(data))
+        return path.exists() and path.stat().st_size > 1000
+    except Exception:
+        return False
+
+
 def make_natural_spanish_voice(path: Path, text: str) -> None:
-    """Generate natural Spanish narration with Gemini TTS."""
+    """Generate warm, natural Castilian/Argentine Spanish narration with Gemini TTS."""
     from google import genai
 
     api_key = os.environ.get("GEMINI_API_KEY")
@@ -53,14 +85,14 @@ def make_natural_spanish_voice(path: Path, text: str) -> None:
         raise RuntimeError("Falta GEMINI_API_KEY para generar la voz natural de Dinero Claro.")
 
     model = os.getenv("GEMINI_TTS_MODEL", "gemini-3.1-flash-tts-preview")
-    voice = os.getenv("GEMINI_TTS_VOICE", "Sadaltager")
+    voice = os.getenv("GEMINI_TTS_VOICE", "Sulafat")
     client = genai.Client(api_key=api_key)
 
     prompt = (
-        "Voz adulta, humana y natural. Castellano argentino claro y neutro, sin exagerar el acento. "
-        "Tono educativo, cercano y confiable, ritmo conversacional, pausas naturales, buena diccion. "
-        "No sonar como locutor comercial ni como robot. No agregues palabras ni cambies el contenido. "
-        "Lee exactamente este texto:\n\n" + text
+        "Sintetiza voz en castellano natural. Voz adulta, calida, humana y cercana; acento argentino/rioplatense leve y entendible. "
+        "Tono educativo y confiable, como una persona explicando finanzas a un amigo. Ritmo conversacional, respiracion y pausas naturales, "
+        "sin tono de robot, sin voz de GPS, sin exageracion publicitaria, sin gritar. Pronuncia numeros y conceptos financieros con claridad. "
+        "No agregues palabras ni cambies el contenido. TRANSCRIPCION A LEER EXACTAMENTE:\n\n" + text
     )
 
     interaction = client.interactions.create(
@@ -82,19 +114,28 @@ def make_natural_spanish_voice(path: Path, text: str) -> None:
         wf.writeframes(pcm)
 
 
+def _music_file(out: Path, duration: int, seed: int, premium: bool) -> Path:
+    if premium:
+        mp3 = out.with_name("premium_music.mp3")
+        if make_lyria_music(mp3):
+            return mp3
+    wav = out.with_name("pleasant_original_music.wav")
+    make_pleasant_fallback_music(wav, duration, seed)
+    return wav
+
+
 def apply_audio(video: Path, out: Path, channel: dict, meta: dict, duration: int, seed: int) -> None:
     mode = channel.get("audio_mode", "voice_music")
-    music = out.with_name("original_music.wav")
-    make_original_music(music, duration, seed)
+    music = _music_file(out, duration, seed, premium=(mode == "music_only"))
 
     if mode == "music_only":
         subprocess.run(
             [
                 "ffmpeg", "-y", "-loglevel", "error",
-                "-i", str(video), "-i", str(music),
-                "-filter_complex", "[1:a]volume=0.72[a]",
+                "-i", str(video), "-stream_loop", "-1", "-i", str(music),
+                "-filter_complex", "[1:a]afade=t=in:st=0:d=.35,afade=t=out:st=7.2:d=.8,volume=0.70[a]",
                 "-map", "0:v:0", "-map", "[a]", "-t", str(duration),
-                "-c:v", "copy", "-c:a", "aac", "-b:a", "128k",
+                "-c:v", "copy", "-c:a", "aac", "-b:a", "192k",
                 "-movflags", "+faststart", str(out),
             ],
             check=True,
@@ -114,10 +155,10 @@ def apply_audio(video: Path, out: Path, channel: dict, meta: dict, duration: int
     subprocess.run(
         [
             "ffmpeg", "-y", "-loglevel", "error",
-            "-i", str(video), "-i", str(music), "-i", str(voice_path),
+            "-i", str(video), "-i", str(voice_path),
             "-filter_complex",
-            f"[1:a]volume=0.08[m];[2:a]highpass=f=80,lowpass=f=8000,acompressor,volume=1.08,apad=pad_dur={duration}[v];[m][v]amix=inputs=2:duration=first[a]",
-            "-map", "0:v:0", "-map", "[a]", "-t", str(duration),
+            f"[1:a]highpass=f=70,lowpass=f=8500,acompressor=threshold=-18dB:ratio=2.2:attack=15:release=180,volume=1.05,apad=pad_dur={duration}[v]",
+            "-map", "0:v:0", "-map", "[v]", "-t", str(duration),
             "-c:v", "copy", "-c:a", "aac", "-b:a", "192k",
             "-movflags", "+faststart", str(out),
         ],
