@@ -51,17 +51,20 @@ def _description(metadata: dict) -> str:
 
     credits = metadata.get("source_credits") or []
     if credits:
-        lines = ["Visuales base provistos por Pexels y editados para este Short:"]
-        for item in credits[:5]:
-            creator = (item.get("creator") or "Pexels contributor").strip()
+        lines = ["Fuentes visuales reales utilizadas y editadas para este Short:"]
+        for item in credits[:8]:
+            provider = (item.get("provider") or "Fuente visual").strip()
+            creator = (item.get("creator") or "colaborador").strip()
+            license_name = (item.get("license") or "").strip()
             source_url = (item.get("source_url") or item.get("creator_url") or "").strip()
+            label = f"- {provider} — {creator}"
+            if license_name:
+                label += f" — {license_name}"
             if source_url:
-                lines.append(f"- {creator}: {source_url}")
-            else:
-                lines.append(f"- {creator} / Pexels")
+                label += f": {source_url}"
+            lines.append(label)
         parts.append("\n".join(lines))
 
-    # YouTube descriptions allow up to 5000 characters; leave a small safety margin.
     return "\n\n".join(parts)[:4900].strip()
 
 
