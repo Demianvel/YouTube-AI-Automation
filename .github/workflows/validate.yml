@@ -34,7 +34,7 @@ jobs:
           from pathlib import Path
           data = json.loads(Path('config/channels.json').read_text(encoding='utf-8'))
           assert set(data) == {'brotavida', 'dineroclaro', 'envikids'}
-          assert data['brotavida']['audio_mode'] == 'music_only'
+          assert data['brotavida']['audio_mode'] == 'voice_music'
           assert data['brotavida']['require_real_video'] is True
           assert data['dineroclaro']['audio_mode'] == 'voice_music'
           assert data['dineroclaro']['require_real_video'] is True
