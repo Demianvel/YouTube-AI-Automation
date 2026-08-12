@@ -17,8 +17,14 @@ def _history_digest(previous: list[dict]) -> str:
         return "Aun no hay historial."
     rows = []
     for item in previous[-50:]:
+        performance = ""
+        if "views" in item:
+            performance = (
+                f" | views={item.get('views', 0)} | vph={item.get('vph', 0)}"
+                f" | like_rate={item.get('like_rate', 0)} | comment_rate={item.get('comment_rate', 0)}"
+            )
         rows.append(
-            f"- formato={item.get('content_mode','')} | tema={item.get('topic','')} | titulo={item.get('title','')}"
+            f"- formato={item.get('content_mode','')} | tema={item.get('topic','')} | titulo={item.get('title','')}{performance}"
         )
     return "\n".join(rows)
 
@@ -102,7 +108,13 @@ Debe ser claramente diferente del historial reciente. El titulo debe generar cur
 El primer segundo debe mostrar o decir algo que haga evidente por que vale la pena seguir viendo.
 El Short debe aportar una razon real para verlo: {channel_value}.
 
-HISTORIAL RECIENTE A EVITAR:
+USA LOS DATOS DE RENDIMIENTO CON CRITERIO:
+- Si el historial incluye views, VPH, like_rate o comment_rate, identifica patrones de temas/formatos que rindieron mejor.
+- Inspírate en esos patrones, pero NO repitas titulo, guion, tema exacto ni metraje.
+- Un video con pocas vistas no significa automaticamente que el tema sea malo; evita conclusiones fuertes con muestras pequenas.
+- Prioriza satisfaccion, claridad y retencion real por encima de clickbait o trucos.
+
+HISTORIAL RECIENTE A EVITAR Y APRENDER:
 {_history_digest(previous)}
 
 INTENTO: {attempt}
