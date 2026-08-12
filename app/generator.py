@@ -22,6 +22,8 @@ def _history_digest(previous: list[dict]) -> str:
             performance = (
                 f" | views={item.get('views', 0)} | vph={item.get('vph', 0)}"
                 f" | like_rate={item.get('like_rate', 0)} | comment_rate={item.get('comment_rate', 0)}"
+                f" | share_rate={item.get('share_rate', 0)} | sub_rate={item.get('subscriber_gain_rate', 0)}"
+                f" | avg_view_pct={item.get('averageViewPercentage', 0)}"
             )
         rows.append(
             f"- formato={item.get('content_mode','')} | tema={item.get('topic','')} | titulo={item.get('title','')}{performance}"
@@ -34,6 +36,7 @@ def _prompt(channel: dict, previous: list[dict], attempt: int) -> str:
     visual_mode = channel.get("visual_mode", "")
     botanical = "botanical" in visual_mode
     kids_3d = "kids" in visual_mode
+    analytics_summary = channel.get("_analytics_digest") or "No hay Analytics detallado disponible en esta ejecucion."
 
     if audio_mode == "music_only":
         audio_rule = (
@@ -108,11 +111,15 @@ Debe ser claramente diferente del historial reciente. El titulo debe generar cur
 El primer segundo debe mostrar o decir algo que haga evidente por que vale la pena seguir viendo.
 El Short debe aportar una razon real para verlo: {channel_value}.
 
-USA LOS DATOS DE RENDIMIENTO CON CRITERIO:
-- Si el historial incluye views, VPH, like_rate o comment_rate, identifica patrones de temas/formatos que rindieron mejor.
-- Inspírate en esos patrones, pero NO repitas titulo, guion, tema exacto ni metraje.
-- Un video con pocas vistas no significa automaticamente que el tema sea malo; evita conclusiones fuertes con muestras pequenas.
-- Prioriza satisfaccion, claridad y retencion real por encima de clickbait o trucos.
+ANALYTICS DEL CANAL PARA ADAPTAR EL CONTENIDO:
+{analytics_summary}
+
+REGLAS PARA APRENDER DE LA AUDIENCIA:
+- Prioriza patrones presentes en videos que combinaron vistas, tiempo de visualizacion, porcentaje visto, compartidos, comentarios y suscriptores ganados.
+- Si ciertos paises o edades aparecen con mas fuerza, adapta ejemplos, vocabulario y temas sin excluir injustamente a otras audiencias.
+- Usa las fuentes de trafico y dispositivos como contexto para ritmo y claridad, no como excusa para clickbait.
+- Inspírate en temas y formatos que funcionaron, pero crea una idea NUEVA y original.
+- No inventes datos faltantes. Si demografia o compartidos no aparecen, ignoralos.
 
 HISTORIAL RECIENTE A EVITAR Y APRENDER:
 {_history_digest(previous)}
