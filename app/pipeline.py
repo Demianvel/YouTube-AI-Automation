@@ -29,7 +29,6 @@ def run(channel_slug: str, dry_run: bool = False) -> dict:
     _write_metadata(workdir, metadata)
 
     video_path = generate_short(channel, metadata, workdir)
-    # The real-footage provider adds source credits after selecting Pexels clips.
     _write_metadata(workdir, metadata)
 
     video_id = None
@@ -54,7 +53,7 @@ def run(channel_slug: str, dry_run: bool = False) -> dict:
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--channel", required=True, choices=["brotavida", "dineroclaro"])
+    parser.add_argument("--channel", required=True, choices=["brotavida", "dineroclaro", "envikids"])
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args()
     run(args.channel, dry_run=args.dry_run)
