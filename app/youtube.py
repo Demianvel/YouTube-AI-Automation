@@ -35,8 +35,34 @@ def _verify_channel(youtube, channel: dict) -> None:
     if actual != expected:
         title = snippet.get("title", "canal desconocido")
         raise RuntimeError(
-            f"Token asociado al canal incorrecto: se esperaba {channel['handle']} y Google devolvió {actual or title}."
+            f"Token asociado al canal incorrecto: se esperaba {channel['handle']} y Google devolvio {actual or title}."
         )
+
+
+def _description(metadata: dict) -> str:
+    parts: list[str] = []
+    base = (metadata.get("description") or "").strip()
+    if base:
+        parts.append(base)
+
+    hashtags = " ".join(metadata.get("hashtags", [])[:5]).strip()
+    if hashtags:
+        parts.append(hashtags)
+
+    credits = metadata.get("source_credits") or []
+    if credits:
+        lines = ["Visuales base provistos por Pexels y editados para este Short:"]
+        for item in credits[:5]:
+            creator = (item.get("creator") or "Pexels contributor").strip()
+            source_url = (item.get("source_url") or item.get("creator_url") or "").strip()
+            if source_url:
+                lines.append(f"- {creator}: {source_url}")
+            else:
+                lines.append(f"- {creator} / Pexels")
+        parts.append("\n".join(lines))
+
+    # YouTube descriptions allow up to 5000 characters; leave a small safety margin.
+    return "\n\n".join(parts)[:4900].strip()
 
 
 def upload_video(channel: dict, metadata: dict, video_path: Path) -> str:
@@ -47,12 +73,10 @@ def upload_video(channel: dict, metadata: dict, video_path: Path) -> str:
     youtube = build("youtube", "v3", credentials=_credentials(token_json), cache_discovery=False)
     _verify_channel(youtube, channel)
 
-    hashtags = " ".join(metadata.get("hashtags", [])[:5])
-    description = (metadata.get("description", "").strip() + "\n\n" + hashtags).strip()
     body = {
         "snippet": {
             "title": metadata["title"],
-            "description": description,
+            "description": _description(metadata),
             "tags": metadata.get("tags", [])[:15],
             "categoryId": channel["category_id"],
             "defaultLanguage": channel.get("language", "es-419"),
