@@ -14,6 +14,7 @@ CHAPTER_SECONDS = 30
 
 def _prompt(channel: dict) -> str:
     botanical = "botanical" in channel.get("visual_mode", "")
+    analytics_summary = channel.get("_analytics_digest") or "No hay Analytics detallado disponible; no inventar datos."
     if botanical:
         brief = """
 Crea un video educativo de 5 minutos sobre germinacion y crecimiento de plantas usando EXCLUSIVAMENTE B-roll REAL DE CAMARA.
@@ -41,6 +42,11 @@ Eres productor senior de YouTube, guionista educativo y editor de retencion.
 Canal: {channel['display_name']} ({channel['handle']}).
 
 {brief}
+
+ANALYTICS DEL CANAL:
+{analytics_summary}
+
+Usa Analytics para elegir un enfoque que tenga sentido para esta audiencia: toma en cuenta videos con mejor tiempo de visualizacion, porcentaje visto, compartidos, comentarios y suscriptores ganados. Adapta ejemplos o vocabulario a paises/edades solo si esos datos aparecen. No copies un video anterior ni inventes datos faltantes.
 
 Genera exactamente {CHAPTERS} capitulos consecutivos de {CHAPTER_SECONDS} segundos, total aproximado 5 minutos.
 Debe existir continuidad narrativa: introduccion fuerte, desarrollo ordenado y cierre claro.
