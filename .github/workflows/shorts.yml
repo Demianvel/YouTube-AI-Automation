@@ -27,7 +27,7 @@ on:
         default: true
         type: boolean
   schedule:
-    # Argentina UTC-3. Si N8N_PRIMARY=true, n8n controla los horarios y GitHub no duplica.
+    # Argentina UTC-3. BrotaVida/DineroClaro pueden quedar bajo n8n; EnViKids siempre conserva su agenda GitHub.
     # BrotaVida 00,06,12,18: formato elegido por rendimiento (ASMR/musica/voz).
     # DineroClaro 08,13,17,21: siempre voz castellana.
     # EnViKids 10:30 y 19:30: voz infantil agradable, solo si OAuth esta conectado.
@@ -45,7 +45,7 @@ concurrency:
 
 jobs:
   publish:
-    if: ${{ github.event_name != 'schedule' || vars.N8N_PRIMARY != 'true' }}
+    if: ${{ github.event_name != 'schedule' || github.event.schedule == '30 13,22 * * *' || vars.N8N_PRIMARY != 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 120
     env:
