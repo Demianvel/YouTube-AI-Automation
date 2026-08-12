@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import os
 import random
+import subprocess
 import time
 from pathlib import Path
 
@@ -16,6 +17,7 @@ YOUTUBE_SCOPES = [
     "https://www.googleapis.com/auth/youtube.readonly",
 ]
 RETRIABLE = {500, 502, 503, 504}
+MAX_SHORT_SECONDS = 180.0
 
 
 def _credentials(token_json: str) -> Credentials:
@@ -37,6 +39,47 @@ def _verify_channel(youtube, channel: dict) -> None:
         raise RuntimeError(
             f"Token asociado al canal incorrecto: se esperaba {channel['handle']} y Google devolvio {actual or title}."
         )
+
+
+def _probe_video(path: Path) -> tuple[float, int, int]:
+    result = subprocess.run(
+        [
+            "ffprobe", "-v", "error",
+            "-select_streams", "v:0",
+            "-show_entries", "stream=width,height:format=duration",
+            "-of", "json",
+            str(path),
+        ],
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    data = json.loads(result.stdout)
+    streams = data.get("streams") or []
+    if not streams:
+        raise RuntimeError("El archivo no contiene un stream de video valido.")
+    stream = streams[0]
+    duration = float((data.get("format") or {}).get("duration") or 0)
+    width = int(stream.get("width") or 0)
+    height = int(stream.get("height") or 0)
+    return duration, width, height
+
+
+def _enforce_short_only(video_path: Path) -> None:
+    duration, width, height = _probe_video(video_path)
+    if duration <= 0:
+        raise RuntimeError("No se pudo validar la duracion del Short.")
+    if duration > MAX_SHORT_SECONDS + 0.25:
+        raise RuntimeError(
+            f"BLOQUEADO: este workflow solo publica Shorts. Duracion detectada: {duration:.2f}s; maximo permitido: {MAX_SHORT_SECONDS:.0f}s."
+        )
+    if width <= 0 or height <= 0:
+        raise RuntimeError("No se pudo validar la relacion de aspecto del Short.")
+    if height < width:
+        raise RuntimeError(
+            f"BLOQUEADO: este workflow solo publica video vertical o cuadrado. Resolucion detectada: {width}x{height}."
+        )
+    print(f"Short validation OK: {duration:.2f}s, {width}x{height}")
 
 
 def _description(metadata: dict) -> str:
@@ -69,6 +112,9 @@ def _description(metadata: dict) -> str:
 
 
 def upload_video(channel: dict, metadata: dict, video_path: Path) -> str:
+    # Hard safety gate: this repository's automatic uploader is Shorts-only.
+    _enforce_short_only(video_path)
+
     token_json = os.getenv(channel["token_env"])
     if not token_json:
         raise RuntimeError(f"Falta el secret {channel['token_env']}")
