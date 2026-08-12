@@ -10,7 +10,7 @@ from pathlib import Path
 
 
 def make_pleasant_original_music(path: Path, duration: int, seed: int) -> None:
-    """Gentle original instrumental bed: bright, warm and non-ominous."""
+    """Gentle original instrumental bed generated locally; no third-party song source."""
     sample_rate = 32000
     total = int(duration * sample_rate)
     rng = random.Random(seed ^ 0xB70A)
@@ -50,6 +50,57 @@ def make_pleasant_original_music(path: Path, duration: int, seed: int) -> None:
 
             fade = min(1.0, t / 0.45, max(0.0, (duration - t) / 0.55))
             sample = max(-1.0, min(1.0, (pad + pluck + sparkle) * 0.30 * fade))
+            buffer += struct.pack("<h", int(sample * 32767))
+            if len(buffer) >= 65536:
+                wf.writeframes(buffer)
+                buffer.clear()
+        if buffer:
+            wf.writeframes(buffer)
+
+
+def make_botanical_asmr(path: Path, duration: int, seed: int) -> None:
+    """Soft synthetic foley: soil rustle, leaf texture and gentle water droplets; no music or voice."""
+    sample_rate = 32000
+    total = int(duration * sample_rate)
+    rng = random.Random(seed ^ 0xA55A)
+    drops = sorted(rng.uniform(0.35, max(0.5, duration - 0.25)) for _ in range(max(4, int(duration * 0.9))))
+    soil_lp = 0.0
+    leaf_lp = 0.0
+
+    with wave.open(str(path), "wb") as wf:
+        wf.setnchannels(1)
+        wf.setsampwidth(2)
+        wf.setframerate(sample_rate)
+        buffer = bytearray()
+        for i in range(total):
+            t = i / sample_rate
+            white = rng.uniform(-1.0, 1.0)
+            soil_lp += 0.012 * (white - soil_lp)
+            leaf_white = rng.uniform(-1.0, 1.0)
+            leaf_lp += 0.045 * (leaf_white - leaf_lp)
+
+            slow = 0.55 + 0.45 * math.sin(math.tau * 0.19 * t + 0.8)
+            soil = soil_lp * 0.18
+            leaves = (leaf_white - leaf_lp) * (0.045 + 0.025 * slow)
+
+            water = 0.0
+            for drop_time in drops:
+                dt = t - drop_time
+                if 0.0 <= dt < 0.16:
+                    env = math.exp(-25.0 * dt)
+                    freq = 980.0 - 280.0 * min(1.0, dt / 0.16)
+                    water += math.sin(math.tau * freq * dt) * env * 0.23
+                    water += math.sin(math.tau * freq * 1.8 * dt) * env * 0.065
+
+            micro = 0.0
+            local = t % 1.7
+            if local < 0.05:
+                env = math.exp(-65 * local)
+                micro = rng.uniform(-1.0, 1.0) * env * 0.035
+
+            fade = min(1.0, t / 0.25, max(0.0, (duration - t) / 0.35))
+            sample = (soil + leaves + water + micro) * fade
+            sample = max(-0.92, min(0.92, sample))
             buffer += struct.pack("<h", int(sample * 32767))
             if len(buffer) >= 65536:
                 wf.writeframes(buffer)
@@ -134,6 +185,22 @@ def make_natural_spanish_voice(path: Path, text: str) -> str:
 
 def apply_audio(video: Path, out: Path, channel: dict, meta: dict, duration: int, seed: int) -> None:
     mode = channel.get("audio_mode", "voice_music")
+    meta["audio_mode_used"] = mode
+
+    if mode == "asmr":
+        asmr = out.with_name("botanical_asmr.wav")
+        make_botanical_asmr(asmr, duration, seed)
+        subprocess.run([
+            "ffmpeg", "-y", "-loglevel", "error",
+            "-i", str(video), "-i", str(asmr),
+            "-filter_complex", "[1:a]highpass=f=45,lowpass=f=11000,loudnorm=I=-20:TP=-2:LRA=7[a]",
+            "-map", "0:v:0", "-map", "[a]", "-t", str(duration),
+            "-c:v", "copy", "-c:a", "aac", "-b:a", "192k",
+            "-movflags", "+faststart", str(out),
+        ], check=True)
+        meta["tts_provider_used"] = "none"
+        meta["audio_source"] = "original_synthetic_asmr_foley"
+        return
 
     if mode == "music_only":
         music = out.with_name("pleasant_original_music.wav")
@@ -151,6 +218,7 @@ def apply_audio(video: Path, out: Path, channel: dict, meta: dict, duration: int
             "-movflags", "+faststart", str(out),
         ], check=True)
         meta["tts_provider_used"] = "none"
+        meta["audio_source"] = "original_instrumental_generated_in_repo"
         return
 
     text = " ".join(
@@ -168,7 +236,7 @@ def apply_audio(video: Path, out: Path, channel: dict, meta: dict, duration: int
 
     music = out.with_name("soft_music.wav")
     make_pleasant_original_music(music, duration, seed ^ 0xD1E0)
-    music_volume = "0.035" if "kids" in channel.get("visual_mode", "") else "0.045"
+    music_volume = "0.035" if "kids" in channel.get("visual_mode", "") else "0.035"
     subprocess.run([
         "ffmpeg", "-y", "-loglevel", "error",
         "-i", str(video), "-i", str(voice_path), "-i", str(music),
@@ -179,3 +247,4 @@ def apply_audio(video: Path, out: Path, channel: dict, meta: dict, duration: int
         "-c:v", "copy", "-c:a", "aac", "-b:a", "192k",
         "-movflags", "+faststart", str(out),
     ], check=True)
+    meta["audio_source"] = "natural_spanish_voice_plus_original_instrumental"
