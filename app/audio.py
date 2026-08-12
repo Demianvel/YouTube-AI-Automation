@@ -6,78 +6,69 @@ import os
 import random
 import struct
 import subprocess
+import time
 import wave
 from pathlib import Path
 
 
-def make_pleasant_fallback_music(path: Path, duration: int, seed: int) -> None:
-    """Pleasant original fallback bed: warm major-pentatonic tones, no dark drones."""
-    sample_rate = 22050
+def make_pleasant_original_music(path: Path, duration: int, seed: int) -> None:
+    """Create a gentle original instrumental bed with warm major harmony."""
+    sample_rate = 32000
     total = int(duration * sample_rate)
     rng = random.Random(seed ^ 0xB70A)
-    roots = [220.00, 246.94, 293.66, 329.63]
-    phases = [rng.random() * math.tau for _ in range(4)]
+
+    # Warm major progression, chosen to avoid dark/ominous intervals.
+    chords = [
+        (261.63, 329.63, 392.00),  # C major
+        (196.00, 246.94, 293.66),  # G major-ish open voicing
+        (174.61, 220.00, 261.63),  # F major
+        (261.63, 329.63, 392.00),  # C major
+    ]
+    melody = [392.00, 440.00, 523.25, 440.00, 392.00, 329.63, 392.00, 523.25]
+    phases = [rng.random() * math.tau for _ in range(5)]
 
     with wave.open(str(path), "wb") as wf:
         wf.setnchannels(1)
         wf.setsampwidth(2)
         wf.setframerate(sample_rate)
-        chunk = bytearray()
+        buffer = bytearray()
+
         for i in range(total):
             t = i / sample_rate
-            root = roots[int(t // 2.0) % len(roots)]
-            pad = (
-                math.sin(math.tau * root * t + phases[0]) * .33
-                + math.sin(math.tau * root * 1.25 * t + phases[1]) * .18
-                + math.sin(math.tau * root * 1.50 * t + phases[2]) * .14
-            )
-            bell_env = math.exp(-3.8 * (t % 1.0))
-            bell = math.sin(math.tau * root * 2.0 * t + phases[3]) * bell_env * .08
-            fade = min(1.0, t / .7, max(0.0, (duration - t) / .7))
-            sample = max(-1.0, min(1.0, (pad + bell) * .17 * fade))
-            chunk += struct.pack("<h", int(sample * 32767))
-            if len(chunk) >= 65536:
-                wf.writeframes(chunk)
-                chunk.clear()
-        if chunk:
-            wf.writeframes(chunk)
+            chord_index = min(len(chords) - 1, int((t / max(duration, 0.01)) * len(chords)))
+            chord = chords[chord_index]
 
+            pad = 0.0
+            for j, freq in enumerate(chord):
+                pad += math.sin(math.tau * freq * t + phases[j]) * (0.20 - j * 0.025)
+                pad += math.sin(math.tau * freq * 2 * t + phases[j]) * 0.025
 
-def make_lyria_music(path: Path) -> bool:
-    """Generate a premium, pleasant instrumental clip with Lyria 3."""
-    if os.getenv("MUSIC_PROVIDER", "lyria").lower() != "lyria":
-        return False
+            beat = int(t / 0.75)
+            note = melody[beat % len(melody)]
+            local = t % 0.75
+            pluck_env = math.exp(-4.8 * local)
+            pluck = (
+                math.sin(math.tau * note * t + phases[3]) * 0.12
+                + math.sin(math.tau * note * 2 * t + phases[4]) * 0.035
+            ) * pluck_env
 
-    api_key = os.environ.get("GEMINI_API_KEY")
-    if not api_key:
-        return False
+            sparkle_env = math.exp(-8.0 * (t % 1.5))
+            sparkle = math.sin(math.tau * note * 3 * t) * sparkle_env * 0.018
 
-    from google import genai
+            fade = min(1.0, t / 0.45, max(0.0, (duration - t) / 0.55))
+            sample = max(-1.0, min(1.0, (pad + pluck + sparkle) * 0.30 * fade))
+            buffer += struct.pack("<h", int(sample * 32767))
 
-    model = os.getenv("LYRIA_MODEL", "lyria-3-clip-preview")
-    client = genai.Client(api_key=api_key)
-    prompt = (
-        "Instrumental only, absolutely no vocals and no spoken words. "
-        "Create a beautiful, warm, uplifting nature soundtrack for a photorealistic plant-growth timelapse. "
-        "Soft felt piano, delicate marimba, airy acoustic textures, gentle sparkling bells and subtle warm pads. "
-        "Major-key feeling, peaceful, fresh, optimistic and pleasant to the ear. "
-        "No ominous drones, no horror mood, no dissonance, no aggressive bass, no distorted synths, no dark cinematic tension. "
-        "Premium clean production, elegant and relaxing, suitable for a short nature documentary."
-    )
-    try:
-        interaction = client.interactions.create(model=model, input=prompt)
-        output_audio = getattr(interaction, "output_audio", None)
-        data = getattr(output_audio, "data", None) if output_audio is not None else None
-        if not data:
-            return False
-        path.write_bytes(base64.b64decode(data))
-        return path.exists() and path.stat().st_size > 1000
-    except Exception:
-        return False
+            if len(buffer) >= 65536:
+                wf.writeframes(buffer)
+                buffer.clear()
+
+        if buffer:
+            wf.writeframes(buffer)
 
 
 def make_natural_spanish_voice(path: Path, text: str) -> None:
-    """Generate warm, natural Castilian/Argentine Spanish narration with Gemini TTS."""
+    """Generate warm, natural Spanish narration with Gemini TTS free tier."""
     api_key = os.environ.get("GEMINI_API_KEY")
     if not api_key:
         raise RuntimeError("Falta GEMINI_API_KEY para generar la voz natural de Dinero Claro.")
@@ -89,52 +80,58 @@ def make_natural_spanish_voice(path: Path, text: str) -> None:
     client = genai.Client(api_key=api_key)
 
     prompt = (
-        "Sintetiza voz en castellano natural. Voz adulta, calida, humana y cercana; acento argentino/rioplatense leve y entendible. "
-        "Tono educativo y confiable, como una persona explicando finanzas a un amigo. Ritmo conversacional, respiracion y pausas naturales, "
-        "sin tono de robot, sin voz de GPS, sin exageracion publicitaria, sin gritar. Pronuncia numeros y conceptos financieros con claridad. "
-        "No agregues palabras ni cambies el contenido. TRANSCRIPCION A LEER EXACTAMENTE:\n\n" + text
+        "SINTESIS DE VOZ. Lee solamente la TRANSCRIPCION. "
+        "Perfil de voz: adulto, calido, humano, natural y cercano. Castellano claro con acento argentino/rioplatense suave, "
+        "comprensible en toda Hispanoamerica. Tono educativo y confiable, como una persona explicando finanzas a un amigo. "
+        "Ritmo conversacional, pausas naturales, diccion limpia, energia moderada. "
+        "Evita voz de GPS, cadencia robotica, locucion exagerada, gritos o tono artificial. "
+        "No agregues ni cambies palabras.\n\nTRANSCRIPCION:\n" + text
     )
 
-    interaction = client.interactions.create(
-        model=model,
-        input=prompt,
-        response_format={"type": "audio"},
-        generation_config={"speech_config": [{"voice": voice}]},
-    )
-    output_audio = getattr(interaction, "output_audio", None)
-    data = getattr(output_audio, "data", None) if output_audio is not None else None
-    if not data:
-        raise RuntimeError("Gemini TTS no devolvio audio.")
+    last_error: Exception | None = None
+    for attempt in range(1, 4):
+        try:
+            interaction = client.interactions.create(
+                model=model,
+                input=prompt,
+                response_format={"type": "audio"},
+                generation_config={"speech_config": [{"voice": voice}]},
+            )
+            output_audio = getattr(interaction, "output_audio", None)
+            data = getattr(output_audio, "data", None) if output_audio is not None else None
+            if not data:
+                raise RuntimeError("Gemini TTS no devolvio audio.")
 
-    pcm = base64.b64decode(data)
-    with wave.open(str(path), "wb") as wf:
-        wf.setnchannels(1)
-        wf.setsampwidth(2)
-        wf.setframerate(24000)
-        wf.writeframes(pcm)
+            pcm = base64.b64decode(data)
+            with wave.open(str(path), "wb") as wf:
+                wf.setnchannels(1)
+                wf.setsampwidth(2)
+                wf.setframerate(24000)
+                wf.writeframes(pcm)
+            if path.exists() and path.stat().st_size > 1000:
+                return
+            raise RuntimeError("Gemini TTS genero un archivo de audio invalido.")
+        except Exception as exc:
+            last_error = exc
+            if attempt < 3:
+                time.sleep(2 ** attempt)
 
-
-def _music_file(out: Path, duration: int, seed: int, premium: bool) -> Path:
-    if premium:
-        mp3 = out.with_name("premium_music.mp3")
-        if make_lyria_music(mp3):
-            return mp3
-    wav = out.with_name("pleasant_original_music.wav")
-    make_pleasant_fallback_music(wav, duration, seed)
-    return wav
+    raise RuntimeError(f"No se pudo generar voz natural tras 3 intentos: {last_error}")
 
 
 def apply_audio(video: Path, out: Path, channel: dict, meta: dict, duration: int, seed: int) -> None:
     mode = channel.get("audio_mode", "voice_music")
-    music = _music_file(out, duration, seed, premium=(mode == "music_only"))
 
     if mode == "music_only":
+        music = out.with_name("pleasant_original_music.wav")
+        make_pleasant_original_music(music, duration, seed)
         fade_out_start = max(0.0, duration - 0.8)
         subprocess.run(
             [
                 "ffmpeg", "-y", "-loglevel", "error",
-                "-i", str(video), "-stream_loop", "-1", "-i", str(music),
-                "-filter_complex", f"[1:a]afade=t=in:st=0:d=.35,afade=t=out:st={fade_out_start}:d=.8,volume=0.70[a]",
+                "-i", str(video), "-i", str(music),
+                "-filter_complex",
+                f"[1:a]afade=t=in:st=0:d=.30,afade=t=out:st={fade_out_start}:d=.75,volume=0.72[a]",
                 "-map", "0:v:0", "-map", "[a]", "-t", str(duration),
                 "-c:v", "copy", "-c:a", "aac", "-b:a", "192k",
                 "-movflags", "+faststart", str(out),
@@ -144,9 +141,9 @@ def apply_audio(video: Path, out: Path, channel: dict, meta: dict, duration: int
         return
 
     text = " ... ".join(
-        s.get("narration", "").strip()
-        for s in meta.get("scenes", [])
-        if s.get("narration", "").strip()
+        scene.get("narration", "").strip()
+        for scene in meta.get("scenes", [])
+        if scene.get("narration", "").strip()
     )
     if not text:
         raise RuntimeError("Dinero Claro requiere narracion y no se genero texto.")
@@ -158,7 +155,7 @@ def apply_audio(video: Path, out: Path, channel: dict, meta: dict, duration: int
             "ffmpeg", "-y", "-loglevel", "error",
             "-i", str(video), "-i", str(voice_path),
             "-filter_complex",
-            f"[1:a]highpass=f=70,lowpass=f=8500,acompressor=threshold=-18dB:ratio=2.2:attack=15:release=180,volume=1.05,apad=pad_dur={duration}[v]",
+            f"[1:a]highpass=f=70,lowpass=f=8500,acompressor=threshold=-18dB:ratio=2.1:attack=15:release=180,volume=1.06,apad=pad_dur={duration}[v]",
             "-map", "0:v:0", "-map", "[v]", "-t", str(duration),
             "-c:v", "copy", "-c:a", "aac", "-b:a", "192k",
             "-movflags", "+faststart", str(out),
