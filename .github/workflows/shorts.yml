@@ -43,9 +43,7 @@ jobs:
       POLLINATIONS_API_KEY: ${{ secrets.POLLINATIONS_API_KEY }}
       POLLINATIONS_IMAGE_MODEL: flux
       TTS_PROVIDER: chatterbox
-      TTS_FALLBACK_KOKORO: "true"
-      KOKORO_VOICE: em_alex
-      KOKORO_SPEED: "0.95"
+      TTS_FALLBACK_KOKORO: "false"
       MUSIC_PROVIDER: local
       YOUTUBE_TOKEN_BROTAVIDA: ${{ secrets.YOUTUBE_TOKEN_BROTAVIDA }}
       YOUTUBE_TOKEN_DINEROCLARO: ${{ secrets.YOUTUBE_TOKEN_DINEROCLARO }}
@@ -55,7 +53,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Select channel and fallback voice
+      - name: Select channel
         id: select
         shell: bash
         run: |
@@ -70,14 +68,6 @@ jobs:
           fi
           echo "channel=$CHANNEL" >> "$GITHUB_OUTPUT"
           echo "CHANNEL=$CHANNEL" >> "$GITHUB_ENV"
-
-          if [ "$CHANNEL" = "envikids" ]; then
-            echo "KOKORO_VOICE=ef_dora" >> "$GITHUB_ENV"
-            echo "KOKORO_SPEED=1.02" >> "$GITHUB_ENV"
-          elif [ "$CHANNEL" = "dineroclaro" ]; then
-            echo "KOKORO_VOICE=em_alex" >> "$GITHUB_ENV"
-            echo "KOKORO_SPEED=0.95" >> "$GITHUB_ENV"
-          fi
 
       - name: Check generation credentials
         id: readiness
@@ -118,17 +108,18 @@ jobs:
           python-version: "3.11"
           cache: pip
 
-      - name: Install base media and Python dependencies
+      - name: Install base media dependencies
         if: steps.readiness.outputs.ready == 'true'
         run: |
           sudo apt-get update
-          sudo apt-get install -y ffmpeg espeak-ng libsndfile1 fonts-dejavu-core
+          sudo apt-get install -y ffmpeg libsndfile1 fonts-dejavu-core git
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
       - name: Install and verify Chatterbox Multilingual V3
         if: steps.readiness.outputs.ready == 'true' && env.CHANNEL != 'brotavida'
         run: |
+          pip install torch==2.6.0 torchaudio==2.6.0 --index-url https://download.pytorch.org/whl/cpu
           pip install -r requirements-chatterbox.txt
           python - <<'PY'
           import torch
@@ -136,7 +127,7 @@ jobs:
           from pathlib import Path
           from chatterbox.mtl_tts import ChatterboxMultilingualTTS
 
-          device = 'cuda' if torch.cuda.is_available() else 'cpu'
+          device = 'cpu'
           model = ChatterboxMultilingualTTS.from_pretrained(device=device, t3_model='v3')
           wav = model.generate(
               'Hola. Esta es una prueba de voz natural en español para el canal.',
@@ -146,31 +137,7 @@ jobs:
           ta.save(str(out), wav.cpu(), model.sr)
           if not out.exists() or out.stat().st_size < 5000:
               raise RuntimeError('Chatterbox V3 no produjo audio valido.')
-          print('Chatterbox Multilingual V3 Spanish OK - device:', device, '- bytes:', out.stat().st_size)
-          PY
-
-      - name: Verify Kokoro fallback
-        if: steps.readiness.outputs.ready == 'true' && env.CHANNEL != 'brotavida'
-        run: |
-          python - <<'PY'
-          import os
-          import numpy as np
-          import soundfile as sf
-          from pathlib import Path
-          from kokoro import KPipeline
-
-          pipeline = KPipeline(lang_code='e')
-          voice = os.getenv('KOKORO_VOICE', 'em_alex')
-          speed = float(os.getenv('KOKORO_SPEED', '0.95'))
-          parts = []
-          for _g, _p, audio in pipeline('Prueba de respaldo en castellano.', voice=voice, speed=speed):
-              if audio is not None and len(audio):
-                  parts.append(np.asarray(audio, dtype=np.float32))
-          if not parts:
-              raise RuntimeError('Kokoro fallback no genero audio.')
-          out = Path('/tmp/kokoro_fallback_test.wav')
-          sf.write(out, np.concatenate(parts), 24000, subtype='PCM_16')
-          print('Kokoro fallback OK -', voice, '- bytes:', out.stat().st_size)
+          print('Chatterbox Multilingual V3 Spanish OK - CPU - bytes:', out.stat().st_size)
           PY
 
       - name: Generate Short and optionally upload
