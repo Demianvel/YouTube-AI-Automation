@@ -7,6 +7,7 @@ from datetime import datetime, timezone
 from .config import HISTORY_FILE, OUTPUT_DIR, load_channel
 from .generator import generate_metadata
 from .history import append_history, read_history
+from .performance import enrich_history_with_youtube_stats
 from .video import generate_short
 from .youtube import upload_video
 
@@ -46,6 +47,11 @@ def run(channel_slug: str, dry_run: bool = False, content_mode: str = "auto") ->
     channel = load_channel(channel_slug)
     resolved_mode = _apply_content_mode(channel_slug, channel, content_mode)
     previous = read_history(HISTORY_FILE, channel=channel_slug, limit=80)
+    try:
+        previous = enrich_history_with_youtube_stats(channel, previous)
+    except Exception as exc:
+        # Performance learning must never block content production.
+        print(f"No se pudieron leer estadisticas recientes; se continua con historial local: {exc}")
     metadata = generate_metadata(channel, previous)
     metadata["content_mode"] = resolved_mode
 
