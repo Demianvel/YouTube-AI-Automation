@@ -45,11 +45,49 @@ cp "$SRC" "$ROOT/client_secret.json"
 chmod 600 "$ROOT/client_secret.json"
 echo "OAuth client copiado de forma segura a: $ROOT/client_secret.json"
 
-if [ -d "$ROOT/.venv" ]; then
-  # shellcheck disable=SC1091
-  source "$ROOT/.venv/bin/activate"
-else
-  echo "No encontré .venv; usando el Python actual."
+# Salir de un entorno virtual anterior si hubiera quedado activo.
+deactivate 2>/dev/null || true
+
+# En Termux, usar cryptography compilado por Termux evita wheels ABI incompatibles.
+if ! python -c 'import cryptography' >/dev/null 2>&1; then
+  echo "Reparando Python/cryptography de Termux..."
+  pkg update -y
+  pkg upgrade -y
+  pkg install -y python python-pip python-cryptography
 fi
+
+if ! python -c 'import cryptography; print("cryptography nativo OK:", cryptography.__version__)'; then
+  echo "No se pudo cargar python-cryptography de Termux."
+  echo "Ejecuta: pkg update -y && pkg upgrade -y && pkg install -y python python-pip python-cryptography"
+  exit 1
+fi
+
+# Si el venv existente contiene un cryptography roto, recrearlo compartiendo
+# los paquetes nativos de Termux.
+if [ -d "$ROOT/.venv" ]; then
+  if ! "$ROOT/.venv/bin/python" -c 'import cryptography' >/dev/null 2>&1; then
+    echo "El entorno .venv contiene una librería binaria incompatible; recreándolo..."
+    rm -rf "$ROOT/.venv"
+  fi
+fi
+
+if [ ! -d "$ROOT/.venv" ]; then
+  echo "Creando entorno limpio compatible con Termux..."
+  python -m venv --system-site-packages "$ROOT/.venv"
+fi
+
+# shellcheck disable=SC1091
+source "$ROOT/.venv/bin/activate"
+
+# Si hubiera una copia local de cryptography dentro del venv y fallara,
+# quitarla para que se use python-cryptography del sistema Termux.
+if ! python -c 'import cryptography' >/dev/null 2>&1; then
+  python -m pip uninstall -y cryptography >/dev/null 2>&1 || true
+fi
+
+python -m pip install --upgrade pip setuptools wheel
+python -m pip install --upgrade google-auth google-auth-oauthlib google-api-python-client
+
+python -c 'import cryptography; from google_auth_oauthlib.flow import InstalledAppFlow; from googleapiclient.discovery import build; print("OAuth Python OK")'
 
 python "$ROOT/scripts/authorize_channel.py" --client-secrets "$ROOT/client_secret.json"
