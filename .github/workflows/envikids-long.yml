@@ -17,9 +17,8 @@ on:
         default: false
         type: boolean
   schedule:
-    # Argentina UTC-3: miercoles 15:30 -> 5 min, domingo 15:30 -> 10 min.
-    - cron: "30 18 * * 3"
-    - cron: "30 18 * * 0"
+    # Argentina UTC-3: 13:30 todos los dias. Alterna 5 y 10 minutos.
+    - cron: "30 16 * * *"
 
 permissions:
   contents: read
@@ -51,11 +50,14 @@ jobs:
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             MINUTES="${{ inputs.minutes }}"
             WANT_PUBLISH="${{ inputs.publish }}"
-          elif [ "${{ github.event.schedule }}" = "30 18 * * 3" ]; then
-            MINUTES="5"
-            WANT_PUBLISH="true"
           else
-            MINUTES="10"
+            DAY="$(date -u +%j)"
+            SLOT=$((10#$DAY % 2))
+            if [ "$SLOT" -eq 0 ]; then
+              MINUTES="5"
+            else
+              MINUTES="10"
+            fi
             WANT_PUBLISH="true"
           fi
 
