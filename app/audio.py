@@ -58,22 +58,16 @@ def make_pleasant_original_music(path: Path, duration: int, seed: int) -> None:
             wf.writeframes(buffer)
 
 
-def make_natural_spanish_voice(path: Path, text: str) -> None:
-    """Generate local Spanish narration with Kokoro-82M open weights."""
-    if os.getenv("TTS_PROVIDER", "kokoro").lower().strip() != "kokoro":
-        raise RuntimeError("TTS_PROVIDER debe ser 'kokoro' para la voz local gratuita.")
-
+def _kokoro_voice(path: Path, text: str) -> None:
     import numpy as np
     import soundfile as sf
     from kokoro import KPipeline
 
     voice = os.getenv("KOKORO_VOICE", "em_alex").strip() or "em_alex"
     speed = float(os.getenv("KOKORO_SPEED", "0.95"))
-
     pipeline = KPipeline(lang_code="e")
     chunks: list[np.ndarray] = []
 
-    # Kokoro suele rendir mejor con frases completas y no con fragmentos de pocas palabras.
     for _graphemes, _phonemes, audio in pipeline(
         text,
         voice=voice,
@@ -92,15 +86,42 @@ def make_natural_spanish_voice(path: Path, text: str) -> None:
         if index:
             joined.append(pause)
         joined.append(chunk)
-
     combined = np.concatenate(joined)
     peak = float(np.max(np.abs(combined))) if len(combined) else 0.0
     if peak > 0.98:
         combined = combined * (0.96 / peak)
-
     sf.write(str(path), combined, 24000, subtype="PCM_16")
+
+
+def _chatterbox_voice(path: Path, text: str) -> None:
+    """Optional higher-expression multilingual TTS. CPU-compatible but much heavier than Kokoro."""
+    import torch
+    import torchaudio as ta
+    from chatterbox.mtl_tts import ChatterboxMultilingualTTS
+
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    model = ChatterboxMultilingualTTS.from_pretrained(device=device, t3_model="v3")
+    kwargs = {"language_id": "es"}
+    ref = os.getenv("CHATTERBOX_REFERENCE_AUDIO", "").strip()
+    if ref:
+        if not Path(ref).exists():
+            raise RuntimeError("CHATTERBOX_REFERENCE_AUDIO no existe en el runner.")
+        kwargs["audio_prompt_path"] = ref
+    wav = model.generate(text, **kwargs)
+    ta.save(str(path), wav.cpu(), model.sr)
+
+
+def make_natural_spanish_voice(path: Path, text: str) -> None:
+    provider = os.getenv("TTS_PROVIDER", "kokoro").lower().strip()
+    if provider == "kokoro":
+        _kokoro_voice(path, text)
+    elif provider == "chatterbox":
+        _chatterbox_voice(path, text)
+    else:
+        raise RuntimeError(f"TTS_PROVIDER no soportado: {provider}")
+
     if not path.exists() or path.stat().st_size < 1000:
-        raise RuntimeError("Kokoro genero un archivo de voz invalido.")
+        raise RuntimeError(f"{provider} genero un archivo de voz invalido.")
 
 
 def apply_audio(video: Path, out: Path, channel: dict, meta: dict, duration: int, seed: int) -> None:
@@ -129,19 +150,21 @@ def apply_audio(video: Path, out: Path, channel: dict, meta: dict, duration: int
         if scene.get("narration", "").strip()
     )
     if not text:
-        raise RuntimeError("Dinero Claro requiere narracion y no se genero texto.")
+        raise RuntimeError("El canal requiere narracion y no se genero texto.")
 
-    voice_path = out.with_name("narration_kokoro.wav")
+    provider = os.getenv("TTS_PROVIDER", "kokoro").lower().strip()
+    voice_path = out.with_name(f"narration_{provider}.wav")
     make_natural_spanish_voice(voice_path, text)
-    music = out.with_name("finance_soft_music.wav")
+    music = out.with_name("soft_music.wav")
     make_pleasant_original_music(music, duration, seed ^ 0xD1E0)
 
+    music_volume = "0.035" if "kids" in channel.get("visual_mode", "") else "0.045"
     subprocess.run([
         "ffmpeg", "-y", "-loglevel", "error",
         "-i", str(video), "-i", str(voice_path), "-i", str(music),
         "-filter_complex",
         f"[1:a]highpass=f=70,lowpass=f=9000,acompressor=threshold=-18dB:ratio=1.9:attack=12:release=160,loudnorm=I=-16:TP=-1.5:LRA=8,apad=pad_dur={duration}[v];"
-        "[2:a]volume=0.045[m];[v][m]amix=inputs=2:duration=first:dropout_transition=1[a]",
+        f"[2:a]volume={music_volume}[m];[v][m]amix=inputs=2:duration=first:dropout_transition=1[a]",
         "-map", "0:v:0", "-map", "[a]", "-t", str(duration),
         "-c:v", "copy", "-c:a", "aac", "-b:a", "192k",
         "-movflags", "+faststart", str(out),
