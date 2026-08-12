@@ -1,0 +1,109 @@
+name: EnViKids 1-3 minute Shorts
+
+on:
+  workflow_dispatch:
+    inputs:
+      minutes:
+        description: Duracion del Short
+        required: true
+        default: "1"
+        type: choice
+        options:
+          - "1"
+          - "2"
+          - "3"
+      publish:
+        description: Publicar si OAuth de EnViKids esta conectado
+        required: true
+        default: false
+        type: boolean
+  schedule:
+    # Argentina UTC-3: 16:30 todos los dias. Rota 1, 2 y 3 minutos.
+    - cron: "30 19 * * *"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: envikids-extended-shorts
+  cancel-in-progress: false
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    env:
+      PYTHONPATH: .
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      GEMINI_TEXT_MODEL: gemini-3.6-flash
+      POLLINATIONS_API_KEY: ${{ secrets.POLLINATIONS_API_KEY }}
+      POLLINATIONS_IMAGE_MODEL: flux
+      KOKORO_KIDS_VOICE: ef_dora
+      KOKORO_KIDS_SPEED: "1.03"
+      YOUTUBE_TOKEN_ENVIKIDS: ${{ secrets.YOUTUBE_TOKEN_ENVIKIDS }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Select duration and publish mode
+        id: select
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            MINUTES="${{ inputs.minutes }}"
+            WANT_PUBLISH="${{ inputs.publish }}"
+          else
+            DAY="$(date -u +%j)"
+            SLOT=$((10#$DAY % 3))
+            if [ "$SLOT" -eq 0 ]; then MINUTES="1";
+            elif [ "$SLOT" -eq 1 ]; then MINUTES="2";
+            else MINUTES="3"; fi
+            WANT_PUBLISH="true"
+          fi
+
+          SHOULD_RUN=true
+          PUBLISH=false
+          if [ "${{ github.event_name }}" = "schedule" ] && [ -z "$YOUTUBE_TOKEN_ENVIKIDS" ]; then
+            SHOULD_RUN=false
+            echo "OAuth EnViKids ausente: ejecucion programada omitida para no gastar generacion."
+          elif [ "$WANT_PUBLISH" = "true" ] && [ -n "$YOUTUBE_TOKEN_ENVIKIDS" ]; then
+            PUBLISH=true
+          fi
+
+          echo "minutes=$MINUTES" >> "$GITHUB_OUTPUT"
+          echo "publish=$PUBLISH" >> "$GITHUB_OUTPUT"
+          echo "should_run=$SHOULD_RUN" >> "$GITHUB_OUTPUT"
+          echo "EnViKids Short ${MINUTES}min / run=${SHOULD_RUN} / publish=${PUBLISH}"
+
+      - uses: actions/setup-python@v5
+        if: steps.select.outputs.should_run == 'true'
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install generation dependencies
+        if: steps.select.outputs.should_run == 'true'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg espeak-ng libsndfile1 fonts-dejavu-core
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Generate EnViKids extended Short
+        if: steps.select.outputs.should_run == 'true'
+        shell: bash
+        run: |
+          EXTRA=""
+          if [ "${{ steps.select.outputs.publish }}" = "true" ]; then EXTRA="--publish"; fi
+          python -m app.kids_extended_pipeline --minutes "${{ steps.select.outputs.minutes }}" $EXTRA
+
+      - name: Upload compact artifact
+        if: steps.select.outputs.should_run == 'true' && always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: envikids-short-${{ steps.select.outputs.minutes }}min-${{ github.run_id }}
+          path: |
+            output/envikids-extended-shorts/**/envikids_short_*min.mp4
+            output/envikids-extended-shorts/**/metadata.json
+            output/envikids-extended-shorts/**/result.json
+          if-no-files-found: warn
+          retention-days: 3
