@@ -1,12 +1,10 @@
 from __future__ import annotations
 
-import base64
 import math
 import os
 import random
 import struct
 import subprocess
-import time
 import wave
 from pathlib import Path
 
@@ -61,56 +59,48 @@ def make_pleasant_original_music(path: Path, duration: int, seed: int) -> None:
 
 
 def make_natural_spanish_voice(path: Path, text: str) -> None:
-    """Generate natural Spanish narration using Gemini TTS with retries."""
-    api_key = os.environ.get("GEMINI_API_KEY", "").strip()
-    if not api_key:
-        raise RuntimeError("Falta GEMINI_API_KEY para generar la voz natural de Dinero Claro.")
+    """Generate local Spanish narration with Kokoro-82M open weights."""
+    if os.getenv("TTS_PROVIDER", "kokoro").lower().strip() != "kokoro":
+        raise RuntimeError("TTS_PROVIDER debe ser 'kokoro' para la voz local gratuita.")
 
-    from google import genai
+    import numpy as np
+    import soundfile as sf
+    from kokoro import KPipeline
 
-    model = os.getenv("GEMINI_TTS_MODEL", "gemini-3.1-flash-tts-preview")
-    voice = os.getenv("GEMINI_TTS_VOICE", "Sulafat")
-    client = genai.Client(api_key=api_key)
+    voice = os.getenv("KOKORO_VOICE", "em_alex").strip() or "em_alex"
+    speed = float(os.getenv("KOKORO_SPEED", "0.95"))
 
-    prompt = (
-        "SINTESIS DE VOZ EN ESPANOL. Lee solamente la transcripcion. "
-        "Voz adulta, calida, humana, natural y cercana. Castellano claro con acento argentino/rioplatense suave, "
-        "facil de entender en toda Hispanoamerica. Tono educativo y confiable, como una persona real explicando finanzas a un amigo. "
-        "Ritmo conversacional, pausas naturales, diccion limpia y energia moderada. "
-        "Evita voz de GPS, cadencia robotica, locucion exagerada, gritos o tono artificial. "
-        "No agregues ni cambies palabras.\n\nTRANSCRIPCION:\n" + text
-    )
+    pipeline = KPipeline(lang_code="e")
+    chunks: list[np.ndarray] = []
 
-    last_error: Exception | None = None
-    for attempt in range(1, 4):
-        try:
-            interaction = client.interactions.create(
-                model=model,
-                input=prompt,
-                response_format={"type": "audio"},
-                generation_config={"speech_config": [{"voice": voice}]},
-            )
-            output_audio = getattr(interaction, "output_audio", None)
-            data = getattr(output_audio, "data", None) if output_audio is not None else None
-            if not data:
-                raise RuntimeError("Gemini TTS no devolvio audio.")
+    # Kokoro suele rendir mejor con frases completas y no con fragmentos de pocas palabras.
+    for _graphemes, _phonemes, audio in pipeline(
+        text,
+        voice=voice,
+        speed=speed,
+        split_pattern=r"(?<=[.!?])\s+",
+    ):
+        if audio is not None and len(audio):
+            chunks.append(np.asarray(audio, dtype=np.float32))
 
-            pcm = base64.b64decode(data)
-            with wave.open(str(path), "wb") as wf:
-                wf.setnchannels(1)
-                wf.setsampwidth(2)
-                wf.setframerate(24000)
-                wf.writeframes(pcm)
+    if not chunks:
+        raise RuntimeError("Kokoro no genero audio en español.")
 
-            if path.exists() and path.stat().st_size > 1000:
-                return
-            raise RuntimeError("Gemini TTS genero un archivo de voz invalido.")
-        except Exception as exc:
-            last_error = exc
-            if attempt < 3:
-                time.sleep(2 ** attempt)
+    pause = np.zeros(int(24000 * 0.16), dtype=np.float32)
+    joined: list[np.ndarray] = []
+    for index, chunk in enumerate(chunks):
+        if index:
+            joined.append(pause)
+        joined.append(chunk)
 
-    raise RuntimeError(f"No se pudo generar voz natural tras 3 intentos: {last_error}")
+    combined = np.concatenate(joined)
+    peak = float(np.max(np.abs(combined))) if len(combined) else 0.0
+    if peak > 0.98:
+        combined = combined * (0.96 / peak)
+
+    sf.write(str(path), combined, 24000, subtype="PCM_16")
+    if not path.exists() or path.stat().st_size < 1000:
+        raise RuntimeError("Kokoro genero un archivo de voz invalido.")
 
 
 def apply_audio(video: Path, out: Path, channel: dict, meta: dict, duration: int, seed: int) -> None:
@@ -133,7 +123,7 @@ def apply_audio(video: Path, out: Path, channel: dict, meta: dict, duration: int
         ], check=True)
         return
 
-    text = " ... ".join(
+    text = " ".join(
         scene.get("narration", "").strip()
         for scene in meta.get("scenes", [])
         if scene.get("narration", "").strip()
@@ -141,7 +131,7 @@ def apply_audio(video: Path, out: Path, channel: dict, meta: dict, duration: int
     if not text:
         raise RuntimeError("Dinero Claro requiere narracion y no se genero texto.")
 
-    voice_path = out.with_name("narration_natural.wav")
+    voice_path = out.with_name("narration_kokoro.wav")
     make_natural_spanish_voice(voice_path, text)
     music = out.with_name("finance_soft_music.wav")
     make_pleasant_original_music(music, duration, seed ^ 0xD1E0)
@@ -150,8 +140,8 @@ def apply_audio(video: Path, out: Path, channel: dict, meta: dict, duration: int
         "ffmpeg", "-y", "-loglevel", "error",
         "-i", str(video), "-i", str(voice_path), "-i", str(music),
         "-filter_complex",
-        f"[1:a]highpass=f=70,lowpass=f=8500,acompressor=threshold=-18dB:ratio=2.0:attack=15:release=180,volume=1.05,apad=pad_dur={duration}[v];"
-        "[2:a]volume=0.050[m];[v][m]amix=inputs=2:duration=first:dropout_transition=1[a]",
+        f"[1:a]highpass=f=70,lowpass=f=9000,acompressor=threshold=-18dB:ratio=1.9:attack=12:release=160,loudnorm=I=-16:TP=-1.5:LRA=8,apad=pad_dur={duration}[v];"
+        "[2:a]volume=0.045[m];[v][m]amix=inputs=2:duration=first:dropout_transition=1[a]",
         "-map", "0:v:0", "-map", "[a]", "-t", str(duration),
         "-c:v", "copy", "-c:a", "aac", "-b:a", "192k",
         "-movflags", "+faststart", str(out),
