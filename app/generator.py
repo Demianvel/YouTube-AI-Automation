@@ -38,16 +38,16 @@ def _prompt(channel: dict, previous: list[dict], attempt: int) -> str:
 
     if botanical:
         stock_rule = (
-            "FUENTE VISUAL REAL: cada escena debe incluir stock_query EN INGLES para buscar METRAJE REAL DE CAMARA en Pexels. "
-            "Usa frases cortas como 'sunflower growth timelapse', 'seed germination timelapse' o 'plant growing macro'. "
-            "No pidas CGI, 3D, animation, illustration ni AI. El titulo y la descripcion NO deben afirmar una especie concreta "
-            "si no es esencial; prioriza lenguaje verdadero y generico sobre germinacion/crecimiento para que el metraje real coincida."
+            "FUENTE VISUAL REAL: cada escena debe incluir stock_query EN INGLES para buscar METRAJE O FOTOGRAFIA REAL DE CAMARA "
+            "en bancos de medios libres. Usa frases cortas como 'sunflower growth timelapse', 'seed germination timelapse' o "
+            "'plant growing macro'. No pidas CGI, 3D, animation, illustration ni AI. No afirmes una especie concreta en titulo o descripcion "
+            "si el material visual disponible no puede garantizarla; prioriza verdad y coherencia entre metraje y texto."
         )
     else:
         stock_rule = (
-            "FUENTE VISUAL REAL: cada escena debe incluir stock_query EN INGLES, de 3 a 8 palabras, para buscar B-roll REAL en Pexels. "
-            "Describe una escena filmable y concreta: por ejemplo 'small business owner calculator', 'budget planning desk' o "
-            "'packing online orders'. Evita marcas, logos, pantallas con marcas y terminos como CGI, 3D, animation o AI."
+            "FUENTE VISUAL REAL: cada escena debe incluir stock_query EN INGLES, de 3 a 8 palabras, para buscar B-roll REAL DE CAMARA "
+            "en bancos de medios libres. Describe algo filmable: 'small business owner calculator', 'budget planning desk' o "
+            "'packing online orders'. Evita marcas, logos, pantallas de marcas y terminos CGI, 3D, animation o AI."
         )
 
     return f"""
@@ -90,7 +90,7 @@ Devuelve SOLO JSON valido:
 Reglas:
 - scenes debe contener exactamente {channel['scenes_per_short']} elementos.
 - Cada escena dura {channel['scene_seconds']} segundos.
-- stock_query es obligatorio, en ingles, concreto y orientado a video real.
+- stock_query es obligatorio, en ingles, concreto y orientado a material real.
 - Hashtags: 3 a 5, solo relevantes.
 - Tags: 8 a 15, relevantes y variados.
 - Titulo: maximo 90 caracteres, sin mayusculas abusivas ni afirmaciones falsas.
@@ -114,7 +114,6 @@ def generate_metadata(channel: dict, previous: list[dict], retries: int = 5) -> 
         if len(scenes) != channel["scenes_per_short"]:
             last_reason = "cantidad incorrecta de escenas"
             continue
-
         if any(not (scene.get("stock_query") or "").strip() for scene in scenes):
             last_reason = "falta stock_query para una escena"
             continue
