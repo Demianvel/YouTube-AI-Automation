@@ -14,25 +14,17 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  generate:
+  generate-both:
     runs-on: ubuntu-latest
     timeout-minutes: 90
-    strategy:
-      max-parallel: 1
-      matrix:
-        channel: [brotavida, dineroclaro]
     env:
       GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
       GEMINI_TEXT_MODEL: gemini-3.6-flash
       VIDEO_PROVIDER: procedural
-      CHANNEL: ${{ matrix.channel }}
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-
-      - name: Check generation credentials
-        run: python scripts/check_ready.py --generation-only
 
       - uses: actions/setup-python@v5
         with:
@@ -46,23 +38,34 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Generate Short, title and description
-        run: python -m app.pipeline --channel "$CHANNEL" --dry-run
+      - name: Generate BrotaVida Short, title and description
+        env:
+          CHANNEL: brotavida
+        run: |
+          python scripts/check_ready.py --generation-only
+          python -m app.pipeline --channel brotavida --dry-run
 
-      - name: Save generated artifact
+      - name: Generate Dinero Claro Short, title and description
+        env:
+          CHANNEL: dineroclaro
+        run: |
+          python scripts/check_ready.py --generation-only
+          python -m app.pipeline --channel dineroclaro --dry-run
+
+      - name: Save both generated artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: kickoff-${{ matrix.channel }}-${{ github.run_id }}
+          name: kickoff-both-${{ github.run_id }}
           path: output/
           retention-days: 3
 
-      - name: Persist anti-duplicate history
+      - name: Persist anti-duplicate history once
         run: |
           git config user.name "youtube-ai-bot"
           git config user.email "actions@users.noreply.github.com"
           git add state/history.jsonl
           if ! git diff --cached --quiet; then
-            git commit -m "chore: record kickoff $CHANNEL"
+            git commit -m "chore: record dual-channel kickoff"
             git pull --rebase origin main
             git push origin HEAD:main
           fi
