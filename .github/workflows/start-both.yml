@@ -1,0 +1,68 @@
+name: Start both channels safely
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "state/kickoff-both.txt"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: youtube-ai-kickoff-both
+  cancel-in-progress: false
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    strategy:
+      max-parallel: 1
+      matrix:
+        channel: [brotavida, dineroclaro]
+    env:
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      GEMINI_TEXT_MODEL: gemini-3.6-flash
+      VIDEO_PROVIDER: procedural
+      CHANNEL: ${{ matrix.channel }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check generation credentials
+        run: python scripts/check_ready.py --generation-only
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install renderer and Python dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg espeak-ng fonts-dejavu-core
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Generate Short, title and description
+        run: python -m app.pipeline --channel "$CHANNEL" --dry-run
+
+      - name: Save generated artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: kickoff-${{ matrix.channel }}-${{ github.run_id }}
+          path: output/
+          retention-days: 3
+
+      - name: Persist anti-duplicate history
+        run: |
+          git config user.name "youtube-ai-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add state/history.jsonl
+          if ! git diff --cached --quiet; then
+            git commit -m "chore: record kickoff $CHANNEL"
+            git pull --rebase origin main
+            git push origin HEAD:main
+          fi
