@@ -1,0 +1,2 @@
+Generate and publish the first 5-minute long-form videos for BrotaVida AI and Dinero Claro AI.
+Triggered: 2026-08-12
