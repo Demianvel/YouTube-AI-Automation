@@ -15,11 +15,15 @@ jobs:
     env:
       VIDEO_PROVIDER: procedural
       MUSIC_PROVIDER: local
+      TTS_PROVIDER: kokoro
+      KOKORO_VOICE: em_alex
+      KOKORO_SPEED: "0.95"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+          cache: pip
       - name: Compile Python
         run: python -m compileall -q app scripts
       - name: Validate channel configuration
@@ -39,13 +43,34 @@ jobs:
           assert 'finance' in data['dineroclaro']['visual_mode']
           for cfg in data.values():
               assert cfg['token_env'].startswith('YOUTUBE_TOKEN_')
-          print('free real-footage configuration OK')
+          print('channel configuration OK')
           PY
-      - name: Smoke test local fallback without external APIs
+      - name: Install test dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y ffmpeg fonts-dejavu-core
-          python -m pip install Pillow requests
+          sudo apt-get install -y ffmpeg espeak-ng libsndfile1 fonts-dejavu-core
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+      - name: Verify Kokoro Spanish voice generation
+        run: |
+          python - <<'PY'
+          import numpy as np
+          import soundfile as sf
+          from pathlib import Path
+          from kokoro import KPipeline
+          pipeline = KPipeline(lang_code='e')
+          chunks = []
+          for _g, _p, audio in pipeline('Hola. Esta es una prueba clara de voz en castellano para Dinero Claro.', voice='em_alex', speed=0.95):
+              if audio is not None and len(audio):
+                  chunks.append(np.asarray(audio, dtype=np.float32))
+          assert chunks, 'Kokoro no genero audio'
+          out = Path('/tmp/kokoro-test.wav')
+          sf.write(out, np.concatenate(chunks), 24000, subtype='PCM_16')
+          assert out.exists() and out.stat().st_size > 5000
+          print('Kokoro Spanish OK:', out.stat().st_size, 'bytes')
+          PY
+      - name: Smoke test local plant renderer
+        run: |
           python - <<'PY'
           from pathlib import Path
           from app.video import generate_short
@@ -64,5 +89,5 @@ jobs:
           }
           result = generate_short(plant, meta, Path('/tmp/plant-smoke'))
           assert result.exists() and result.stat().st_size > 1000
-          print('local fallback renderer OK')
+          print('local renderer OK')
           PY
