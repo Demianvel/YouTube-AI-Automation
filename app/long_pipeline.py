@@ -5,6 +5,7 @@ import json
 from datetime import datetime, timezone
 from pathlib import Path
 
+from .channel_analytics import analytics_digest, collect_channel_analytics
 from .config import OUTPUT_DIR, load_channel
 from .long_generator import generate_long_metadata
 from .long_video import generate_long_video
@@ -31,6 +32,13 @@ def run(channel_slug: str, publish: bool = False) -> dict:
         raise ValueError("Long-form 5 min solo esta habilitado para brotavida y dineroclaro.")
 
     channel = load_channel(channel_slug)
+    try:
+        snapshot = collect_channel_analytics(channel, days=90)
+        channel["_analytics_digest"] = analytics_digest(snapshot)
+    except Exception as exc:
+        channel["_analytics_digest"] = "Analytics detallado no disponible en esta ejecucion; no inventar datos."
+        print(f"Analytics long-form no disponible: {exc}")
+
     metadata = generate_long_metadata(channel)
 
     stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
@@ -58,6 +66,7 @@ def run(channel_slug: str, publish: bool = False) -> dict:
         "title_variants": metadata.get("title_variants"),
         "duration_seconds": metadata.get("duration_seconds", 300),
         "tts_provider_used": metadata.get("tts_provider_used"),
+        "analytics_used": bool(channel.get("_analytics_digest")),
         "video_id": video_id,
         "status": status,
         "path": str(video_path),
