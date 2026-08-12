@@ -73,6 +73,9 @@ jobs:
           if [ "$CHANNEL" = "envikids" ]; then
             echo "KOKORO_VOICE=ef_dora" >> "$GITHUB_ENV"
             echo "KOKORO_SPEED=1.02" >> "$GITHUB_ENV"
+          elif [ "$CHANNEL" = "brotavida" ]; then
+            echo "KOKORO_VOICE=em_alex" >> "$GITHUB_ENV"
+            echo "KOKORO_SPEED=0.92" >> "$GITHUB_ENV"
           fi
 
       - name: Check generation credentials
@@ -123,7 +126,7 @@ jobs:
           pip install -r requirements.txt
 
       - name: Install and verify Chatterbox Multilingual V3
-        if: steps.readiness.outputs.ready == 'true' && env.CHANNEL != 'brotavida'
+        if: steps.readiness.outputs.ready == 'true'
         run: |
           pip install torch==2.6.0 torchaudio==2.6.0 --index-url https://download.pytorch.org/whl/cpu
           pip install -r requirements-chatterbox.txt
