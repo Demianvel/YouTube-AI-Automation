@@ -24,10 +24,6 @@ def run(channel_slug: str, dry_run: bool = False) -> dict:
         encoding="utf-8",
     )
 
-    pinned_comment = (metadata.get("pinned_comment") or "").strip()
-    if pinned_comment:
-        (workdir / "pinned_comment.txt").write_text(pinned_comment + "\n", encoding="utf-8")
-
     video_path = generate_short(channel, metadata, workdir)
     video_id = None
     status = "generated"
