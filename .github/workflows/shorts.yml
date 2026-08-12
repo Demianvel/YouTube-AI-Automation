@@ -11,6 +11,16 @@ on:
           - brotavida
           - dineroclaro
           - envikids
+      content_mode:
+        description: Formato de audio (BrotaVida); DineroClaro siempre usa voz
+        required: true
+        default: auto
+        type: choice
+        options:
+          - auto
+          - asmr
+          - music
+          - voice
       dry_run:
         description: Generar sin subir a YouTube
         required: true
@@ -18,7 +28,7 @@ on:
         type: boolean
   schedule:
     # Argentina UTC-3. Si N8N_PRIMARY=true, n8n controla los horarios y GitHub no duplica.
-    # BrotaVida: 00,06,12,18. DineroClaro: 08,13,17,21. EnViKids: manual hasta autorizar OAuth.
+    # BrotaVida 00 ASMR, 06 musica, 12 voz, 18 voz. DineroClaro 08,13,17,21 siempre voz.
     - cron: "0 3,9,15,21 * * *"
     - cron: "0 0,11,16,20 * * *"
 
@@ -55,28 +65,58 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Select channel
+      - name: Select channel and content format
         id: select
         shell: bash
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             CHANNEL="${{ inputs.channel }}"
+            CONTENT_MODE="${{ inputs.content_mode }}"
           elif [ "${{ github.event.schedule }}" = "0 3,9,15,21 * * *" ]; then
             CHANNEL="brotavida"
+            CONTENT_MODE="auto"
           elif [ "${{ github.event.schedule }}" = "0 0,11,16,20 * * *" ]; then
             CHANNEL="dineroclaro"
+            CONTENT_MODE="voice"
           else
             CHANNEL=""
+            CONTENT_MODE="auto"
           fi
+
+          if [ "$CHANNEL" = "dineroclaro" ]; then
+            CONTENT_MODE="voice"
+          elif [ "$CHANNEL" = "brotavida" ] && [ "$CONTENT_MODE" = "auto" ]; then
+            HOUR="$(date -u +%H)"
+            case "$HOUR" in
+              03) CONTENT_MODE="asmr" ;;
+              09) CONTENT_MODE="music" ;;
+              15) CONTENT_MODE="voice" ;;
+              21) CONTENT_MODE="voice" ;;
+              *)
+                SLOT=$((10#$HOUR % 3))
+                if [ "$SLOT" -eq 0 ]; then CONTENT_MODE="asmr";
+                elif [ "$SLOT" -eq 1 ]; then CONTENT_MODE="music";
+                else CONTENT_MODE="voice"; fi
+                ;;
+            esac
+          fi
+
           echo "channel=$CHANNEL" >> "$GITHUB_OUTPUT"
+          echo "content_mode=$CONTENT_MODE" >> "$GITHUB_OUTPUT"
           echo "CHANNEL=$CHANNEL" >> "$GITHUB_ENV"
+          echo "CONTENT_MODE=$CONTENT_MODE" >> "$GITHUB_ENV"
+
           if [ "$CHANNEL" = "envikids" ]; then
             echo "KOKORO_VOICE=ef_dora" >> "$GITHUB_ENV"
             echo "KOKORO_SPEED=1.02" >> "$GITHUB_ENV"
           elif [ "$CHANNEL" = "brotavida" ]; then
             echo "KOKORO_VOICE=em_alex" >> "$GITHUB_ENV"
             echo "KOKORO_SPEED=0.92" >> "$GITHUB_ENV"
+          elif [ "$CHANNEL" = "dineroclaro" ]; then
+            echo "KOKORO_VOICE=em_alex" >> "$GITHUB_ENV"
+            echo "KOKORO_SPEED=0.97" >> "$GITHUB_ENV"
           fi
+          echo "Seleccionado: $CHANNEL / $CONTENT_MODE"
 
       - name: Check generation credentials
         id: readiness
@@ -126,7 +166,7 @@ jobs:
           pip install -r requirements.txt
 
       - name: Install and verify Chatterbox Multilingual V3
-        if: steps.readiness.outputs.ready == 'true'
+        if: steps.readiness.outputs.ready == 'true' && env.CONTENT_MODE == 'voice'
         run: |
           pip install torch==2.6.0 torchaudio==2.6.0 --index-url https://download.pytorch.org/whl/cpu
           pip install -r requirements-chatterbox.txt
@@ -139,7 +179,7 @@ jobs:
           device = 'cpu'
           model = ChatterboxMultilingualTTS.from_pretrained(device=device, t3_model='v3')
           wav = model.generate(
-              'Hola. Esta es una prueba de voz natural en español para el canal.',
+              'Hola. Hoy te voy a mostrar una idea clara, simple y util. Vamos directo al punto.',
               language_id='es',
           )
           out = Path('/tmp/chatterbox_v3_spanish_test.wav')
@@ -159,7 +199,7 @@ jobs:
           elif [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.dry_run }}" = "true" ]; then
             EXTRA="--dry-run"
           fi
-          python -m app.pipeline --channel "$CHANNEL" $EXTRA
+          python -m app.pipeline --channel "$CHANNEL" --content-mode "$CONTENT_MODE" $EXTRA
 
       - name: Persist anti-duplicate history
         if: steps.readiness.outputs.ready == 'true'
@@ -197,7 +237,7 @@ jobs:
         if: steps.readiness.outputs.ready == 'true' && always()
         uses: actions/upload-artifact@v4
         with:
-          name: short-${{ env.CHANNEL }}-${{ github.run_id }}
+          name: short-${{ env.CHANNEL }}-${{ env.CONTENT_MODE }}-${{ github.run_id }}
           path: output/
           retention-days: 3
 
