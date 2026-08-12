@@ -62,16 +62,34 @@ jobs:
           echo "channel=$CHANNEL" >> "$GITHUB_OUTPUT"
           echo "CHANNEL=$CHANNEL" >> "$GITHUB_ENV"
 
-      - name: Check credentials
+      - name: Check generation credentials
         id: readiness
         if: env.CHANNEL != ''
         shell: bash
         run: |
-          if python scripts/check_ready.py; then
+          if python scripts/check_ready.py --generation-only; then
             echo "ready=true" >> "$GITHUB_OUTPUT"
           else
             echo "ready=false" >> "$GITHUB_OUTPUT"
-            echo "Credenciales incompletas: no se genera ni se publica contenido."
+            echo "Falta GEMINI_API_KEY: no se puede generar contenido."
+          fi
+
+      - name: Determine upload mode
+        id: upload
+        if: steps.readiness.outputs.ready == 'true'
+        shell: bash
+        run: |
+          READY=false
+          if [ "$CHANNEL" = "brotavida" ] && [ -n "$YOUTUBE_TOKEN_BROTAVIDA" ]; then
+            READY=true
+          elif [ "$CHANNEL" = "dineroclaro" ] && [ -n "$YOUTUBE_TOKEN_DINEROCLARO" ]; then
+            READY=true
+          fi
+          echo "ready=$READY" >> "$GITHUB_OUTPUT"
+          if [ "$READY" = "true" ]; then
+            echo "Token de YouTube disponible: se permite publicación si no es dry-run."
+          else
+            echo "Token de YouTube ausente: se generará contenido en modo seguro sin publicar."
           fi
 
       - uses: actions/setup-python@v5
@@ -88,12 +106,14 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Generate and upload
+      - name: Generate and optionally upload
         if: steps.readiness.outputs.ready == 'true'
         shell: bash
         run: |
           EXTRA=""
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.dry_run }}" = "true" ]; then
+          if [ "${{ steps.upload.outputs.ready }}" != "true" ]; then
+            EXTRA="--dry-run"
+          elif [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.dry_run }}" = "true" ]; then
             EXTRA="--dry-run"
           fi
           python -m app.pipeline --channel "$CHANNEL" $EXTRA
