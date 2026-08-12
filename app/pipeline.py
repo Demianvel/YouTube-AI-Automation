@@ -11,6 +11,13 @@ from .video import generate_short
 from .youtube import upload_video
 
 
+def _write_metadata(workdir, metadata: dict) -> None:
+    (workdir / "metadata.json").write_text(
+        json.dumps(metadata, ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
+
+
 def run(channel_slug: str, dry_run: bool = False) -> dict:
     channel = load_channel(channel_slug)
     previous = read_history(HISTORY_FILE, channel=channel_slug, limit=80)
@@ -19,12 +26,12 @@ def run(channel_slug: str, dry_run: bool = False) -> dict:
     stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     workdir = OUTPUT_DIR / channel_slug / stamp
     workdir.mkdir(parents=True, exist_ok=True)
-    (workdir / "metadata.json").write_text(
-        json.dumps(metadata, ensure_ascii=False, indent=2),
-        encoding="utf-8",
-    )
+    _write_metadata(workdir, metadata)
 
     video_path = generate_short(channel, metadata, workdir)
+    # The real-footage provider adds source credits after selecting Pexels clips.
+    _write_metadata(workdir, metadata)
+
     video_id = None
     status = "generated"
     if not dry_run:
