@@ -94,7 +94,7 @@ def apply_audio(video: Path, out: Path, channel: dict, meta: dict, duration: int
             "ffmpeg", "-y", "-loglevel", "error",
             "-i", str(video), "-i", str(music),
             "-filter_complex",
-            f"[1:a]afade=t=in:st=0:d=.30,afade=t=out:st={fade_out_start}:d=.75,volume=0.72[a]",
+            f"[1:a]afade=t=in:st=0:d=0.30,afade=t=out:st={fade_out_start:.3f}:d=0.75,volume=0.72[a]",
             "-map", "0:v:0", "-map", "[a]", "-t", str(duration),
             "-c:v", "copy", "-c:a", "aac", "-b:a", "192k",
             "-movflags", "+faststart", str(out),
@@ -114,7 +114,6 @@ def apply_audio(video: Path, out: Path, channel: dict, meta: dict, duration: int
     music = out.with_name("finance_soft_music.wav")
     make_pleasant_original_music(music, duration, seed ^ 0xD1E0)
 
-    # Human-like voice in front, tasteful instrumental bed far below it.
     subprocess.run([
         "ffmpeg", "-y", "-loglevel", "error",
         "-i", str(video), "-i", str(voice_path), "-i", str(music),
