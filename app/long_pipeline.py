@@ -3,11 +3,27 @@ from __future__ import annotations
 import argparse
 import json
 from datetime import datetime, timezone
+from pathlib import Path
 
 from .config import OUTPUT_DIR, load_channel
 from .long_generator import generate_long_metadata
 from .long_video import generate_long_video
+from .thumbnail import generate_thumbnail_variants
 from .youtube import upload_long_video
+
+
+def _compact_artifact(workdir: Path) -> None:
+    keep = {
+        "video_5min.mp4",
+        "metadata.json",
+        "result.json",
+        "thumbnail_1.jpg",
+        "thumbnail_2.jpg",
+        "thumbnail_3.jpg",
+    }
+    for path in workdir.iterdir():
+        if path.is_file() and path.name not in keep:
+            path.unlink(missing_ok=True)
 
 
 def run(channel_slug: str, publish: bool = False) -> dict:
@@ -25,12 +41,13 @@ def run(channel_slug: str, publish: bool = False) -> dict:
     metadata_file.write_text(json.dumps(metadata, ensure_ascii=False, indent=2), encoding="utf-8")
 
     video_path = generate_long_video(channel, metadata, workdir)
+    thumbnails = generate_thumbnail_variants(video_path, metadata, workdir)
     metadata_file.write_text(json.dumps(metadata, ensure_ascii=False, indent=2), encoding="utf-8")
 
     video_id = None
     status = "generated"
     if publish:
-        video_id = upload_long_video(channel, metadata, video_path)
+        video_id = upload_long_video(channel, metadata, video_path, thumbnail_path=thumbnails[0])
         status = "uploaded"
 
     result = {
@@ -38,13 +55,19 @@ def run(channel_slug: str, publish: bool = False) -> dict:
         "channel": channel_slug,
         "handle": channel["handle"],
         "title": metadata.get("title"),
+        "title_variants": metadata.get("title_variants"),
         "duration_seconds": metadata.get("duration_seconds", 300),
         "tts_provider_used": metadata.get("tts_provider_used"),
         "video_id": video_id,
         "status": status,
         "path": str(video_path),
+        "thumbnail_default": str(thumbnails[0]),
+        "thumbnail_ab_candidates": [str(p) for p in thumbnails],
+        "ab_note": "YouTube Studio permite probar hasta 3 titulos/miniaturas en videos largos elegibles; el Data API solo fija una miniatura por vez.",
     }
     (workdir / "result.json").write_text(json.dumps(result, ensure_ascii=False, indent=2), encoding="utf-8")
+    metadata_file.write_text(json.dumps(metadata, ensure_ascii=False, indent=2), encoding="utf-8")
+    _compact_artifact(workdir)
     print(json.dumps(result, ensure_ascii=False))
     return result
 
