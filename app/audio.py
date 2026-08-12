@@ -45,14 +45,14 @@ def make_pleasant_fallback_music(path: Path, duration: int, seed: int) -> None:
 
 def make_lyria_music(path: Path) -> bool:
     """Generate a premium, pleasant instrumental clip with Lyria 3."""
-    from google import genai
-
     if os.getenv("MUSIC_PROVIDER", "lyria").lower() != "lyria":
         return False
 
     api_key = os.environ.get("GEMINI_API_KEY")
     if not api_key:
         return False
+
+    from google import genai
 
     model = os.getenv("LYRIA_MODEL", "lyria-3-clip-preview")
     client = genai.Client(api_key=api_key)
@@ -78,11 +78,11 @@ def make_lyria_music(path: Path) -> bool:
 
 def make_natural_spanish_voice(path: Path, text: str) -> None:
     """Generate warm, natural Castilian/Argentine Spanish narration with Gemini TTS."""
-    from google import genai
-
     api_key = os.environ.get("GEMINI_API_KEY")
     if not api_key:
         raise RuntimeError("Falta GEMINI_API_KEY para generar la voz natural de Dinero Claro.")
+
+    from google import genai
 
     model = os.getenv("GEMINI_TTS_MODEL", "gemini-3.1-flash-tts-preview")
     voice = os.getenv("GEMINI_TTS_VOICE", "Sulafat")
@@ -129,11 +129,12 @@ def apply_audio(video: Path, out: Path, channel: dict, meta: dict, duration: int
     music = _music_file(out, duration, seed, premium=(mode == "music_only"))
 
     if mode == "music_only":
+        fade_out_start = max(0.0, duration - 0.8)
         subprocess.run(
             [
                 "ffmpeg", "-y", "-loglevel", "error",
                 "-i", str(video), "-stream_loop", "-1", "-i", str(music),
-                "-filter_complex", "[1:a]afade=t=in:st=0:d=.35,afade=t=out:st=7.2:d=.8,volume=0.70[a]",
+                "-filter_complex", f"[1:a]afade=t=in:st=0:d=.35,afade=t=out:st={fade_out_start}:d=.8,volume=0.70[a]",
                 "-map", "0:v:0", "-map", "[a]", "-t", str(duration),
                 "-c:v", "copy", "-c:a", "aac", "-b:a", "192k",
                 "-movflags", "+faststart", str(out),
