@@ -116,9 +116,11 @@ def _probe_duration(path: Path) -> float:
 
 def _video_clip(source: Path, out: Path, duration: int, seed: int) -> None:
     source_duration = _probe_duration(source)
+    if source_duration <= 0:
+        raise RuntimeError("El archivo real descargado no tiene duracion de video valida.")
     rng = random.Random(seed)
     start = 0.0 if source_duration <= duration + 1 else rng.uniform(0, max(0.0, source_duration - duration - 0.2))
-    loop = ["-stream_loop", "-1"] if source_duration and source_duration < duration else []
+    loop = ["-stream_loop", "-1"] if source_duration < duration else []
     vf = (
         f"scale={W}:{H}:force_original_aspect_ratio=increase,"
         f"crop={W}:{H},setsar=1,"
@@ -133,7 +135,6 @@ def _video_clip(source: Path, out: Path, duration: int, seed: int) -> None:
 
 
 def _image_clip(source: Path, out: Path, duration: int, seed: int) -> None:
-    # Real-photo fallback with a subtle Ken Burns movement when no real video exists.
     zoom_rate = 0.00055 + (seed % 4) * 0.00008
     frames = duration * 30
     vf = (
@@ -154,6 +155,7 @@ def generate_wikimedia_short(channel: dict, meta: dict, workdir: Path, final: Pa
     clips: list[Path] = []
     credits: list[dict[str, str]] = []
     used_urls: set[str] = set()
+    require_video = bool(channel.get("require_real_video", False))
 
     for index, scene in enumerate(meta.get("scenes") or []):
         chosen: dict[str, Any] | None = None
@@ -165,7 +167,7 @@ def generate_wikimedia_short(channel: dict, meta: dict, workdir: Path, final: Pa
                 chosen = random.Random(_seed(meta, index)).choice(results[:12])
                 chosen_query = query
                 break
-        if chosen is None:
+        if chosen is None and not require_video:
             kind = "image"
             for query in _queries(channel, scene):
                 results = [x for x in _search(query, "image") if x["url"] not in used_urls]
@@ -174,7 +176,8 @@ def generate_wikimedia_short(channel: dict, meta: dict, workdir: Path, final: Pa
                     chosen_query = query
                     break
         if chosen is None:
-            raise RuntimeError(f"Wikimedia Commons no encontro material real para la escena {index + 1}.")
+            requirement = "video real" if require_video else "material real"
+            raise RuntimeError(f"Wikimedia Commons no encontro {requirement} para la escena {index + 1}.")
 
         used_urls.add(chosen["url"])
         ext = ".mp4" if kind == "video" else ".jpg"
