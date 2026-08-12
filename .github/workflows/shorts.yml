@@ -12,7 +12,7 @@ on:
           - dineroclaro
           - envikids
       content_mode:
-        description: Formato de audio (BrotaVida); DineroClaro siempre usa voz
+        description: Formato de audio (BrotaVida); DineroClaro/EnViKids usan voz
         required: true
         default: auto
         type: choice
@@ -28,9 +28,12 @@ on:
         type: boolean
   schedule:
     # Argentina UTC-3. Si N8N_PRIMARY=true, n8n controla los horarios y GitHub no duplica.
-    # BrotaVida 00 ASMR, 06 musica, 12 voz, 18 voz. DineroClaro 08,13,17,21 siempre voz.
+    # BrotaVida 00,06,12,18: formato elegido por rendimiento (ASMR/musica/voz).
+    # DineroClaro 08,13,17,21: siempre voz castellana.
+    # EnViKids 10:30 y 19:30: voz infantil agradable, solo si OAuth esta conectado.
     - cron: "0 3,9,15,21 * * *"
     - cron: "0 0,11,16,20 * * *"
+    - cron: "30 13,22 * * *"
 
 permissions:
   contents: write
@@ -46,6 +49,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 120
     env:
+      PYTHONPATH: .
       GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
       GEMINI_TEXT_MODEL: gemini-3.6-flash
       VIDEO_PROVIDER: real_stock
@@ -78,27 +82,16 @@ jobs:
           elif [ "${{ github.event.schedule }}" = "0 0,11,16,20 * * *" ]; then
             CHANNEL="dineroclaro"
             CONTENT_MODE="voice"
+          elif [ "${{ github.event.schedule }}" = "30 13,22 * * *" ]; then
+            CHANNEL="envikids"
+            CONTENT_MODE="voice"
           else
             CHANNEL=""
             CONTENT_MODE="auto"
           fi
 
-          if [ "$CHANNEL" = "dineroclaro" ]; then
+          if [ "$CHANNEL" = "dineroclaro" ] || [ "$CHANNEL" = "envikids" ]; then
             CONTENT_MODE="voice"
-          elif [ "$CHANNEL" = "brotavida" ] && [ "$CONTENT_MODE" = "auto" ]; then
-            HOUR="$(date -u +%H)"
-            case "$HOUR" in
-              03) CONTENT_MODE="asmr" ;;
-              09) CONTENT_MODE="music" ;;
-              15) CONTENT_MODE="voice" ;;
-              21) CONTENT_MODE="voice" ;;
-              *)
-                SLOT=$((10#$HOUR % 3))
-                if [ "$SLOT" -eq 0 ]; then CONTENT_MODE="asmr";
-                elif [ "$SLOT" -eq 1 ]; then CONTENT_MODE="music";
-                else CONTENT_MODE="voice"; fi
-                ;;
-            esac
           fi
 
           echo "channel=$CHANNEL" >> "$GITHUB_OUTPUT"
@@ -118,11 +111,16 @@ jobs:
           fi
           echo "Seleccionado: $CHANNEL / $CONTENT_MODE"
 
-      - name: Check generation credentials
+      - name: Check generation credentials and scheduled OAuth
         id: readiness
         if: env.CHANNEL != ''
         shell: bash
         run: |
+          if [ "${{ github.event_name }}" = "schedule" ] && [ "$CHANNEL" = "envikids" ] && [ -z "$YOUTUBE_TOKEN_ENVIKIDS" ]; then
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "EnViKids programado pero OAuth ausente: se omite sin gastar generacion."
+            exit 0
+          fi
           if python scripts/check_ready.py --generation-only; then
             echo "ready=true" >> "$GITHUB_OUTPUT"
           else
@@ -175,13 +173,8 @@ jobs:
           import torchaudio as ta
           from pathlib import Path
           from chatterbox.mtl_tts import ChatterboxMultilingualTTS
-
-          device = 'cpu'
-          model = ChatterboxMultilingualTTS.from_pretrained(device=device, t3_model='v3')
-          wav = model.generate(
-              'Hola. Hoy te voy a mostrar una idea clara, simple y util. Vamos directo al punto.',
-              language_id='es',
-          )
+          model = ChatterboxMultilingualTTS.from_pretrained(device='cpu', t3_model='v3')
+          wav = model.generate('Hola. Hoy vamos a descubrir algo divertido y facil de entender.', language_id='es')
           out = Path('/tmp/chatterbox_v3_spanish_test.wav')
           ta.save(str(out), wav.cpu(), model.sr)
           if not out.exists() or out.stat().st_size < 5000:
@@ -208,7 +201,6 @@ jobs:
           git config user.name "youtube-ai-bot"
           git config user.email "actions@users.noreply.github.com"
           NEW_RECORD="$(tail -n 1 state/history.jsonl)"
-
           for attempt in 1 2 3 4 5; do
             git fetch origin main
             git reset --hard origin/main
@@ -227,9 +219,7 @@ jobs:
               echo "Historial guardado correctamente."
               exit 0
             fi
-            echo "Otro cambio llego a main; reintentando historial ($attempt/5)."
           done
-
           echo "No se pudo guardar el historial tras 5 intentos." >&2
           exit 1
 
