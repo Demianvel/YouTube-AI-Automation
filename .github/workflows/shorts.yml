@@ -43,7 +43,9 @@ jobs:
       POLLINATIONS_API_KEY: ${{ secrets.POLLINATIONS_API_KEY }}
       POLLINATIONS_IMAGE_MODEL: flux
       TTS_PROVIDER: chatterbox
-      TTS_FALLBACK_KOKORO: "false"
+      TTS_FALLBACK_KOKORO: "true"
+      KOKORO_VOICE: em_alex
+      KOKORO_SPEED: "0.95"
       MUSIC_PROVIDER: local
       YOUTUBE_TOKEN_BROTAVIDA: ${{ secrets.YOUTUBE_TOKEN_BROTAVIDA }}
       YOUTUBE_TOKEN_DINEROCLARO: ${{ secrets.YOUTUBE_TOKEN_DINEROCLARO }}
@@ -68,6 +70,10 @@ jobs:
           fi
           echo "channel=$CHANNEL" >> "$GITHUB_OUTPUT"
           echo "CHANNEL=$CHANNEL" >> "$GITHUB_ENV"
+          if [ "$CHANNEL" = "envikids" ]; then
+            echo "KOKORO_VOICE=ef_dora" >> "$GITHUB_ENV"
+            echo "KOKORO_SPEED=1.02" >> "$GITHUB_ENV"
+          fi
 
       - name: Check generation credentials
         id: readiness
@@ -112,7 +118,7 @@ jobs:
         if: steps.readiness.outputs.ready == 'true'
         run: |
           sudo apt-get update
-          sudo apt-get install -y ffmpeg libsndfile1 fonts-dejavu-core git
+          sudo apt-get install -y ffmpeg espeak-ng libsndfile1 fonts-dejavu-core git
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
