@@ -17,8 +17,8 @@ on:
         default: false
         type: boolean
   schedule:
-    # Argentina UTC-3: 13:30 todos los dias. Alterna 5 y 10 minutos.
-    - cron: "30 16 * * *"
+    # UTC. Argentina UTC-3: 10:40, 12:40, 14:40, 16:40 y 18:40.
+    - cron: "40 13,15,17,19,21 * * *"
 
 permissions:
   contents: read
@@ -51,12 +51,11 @@ jobs:
             MINUTES="${{ inputs.minutes }}"
             WANT_PUBLISH="${{ inputs.publish }}"
           else
-            DAY="$(date -u +%j)"
-            SLOT=$((10#$DAY % 2))
-            if [ "$SLOT" -eq 0 ]; then
-              MINUTES="5"
-            else
+            HOUR="$(date -u +%H)"
+            if [ $((10#$H % 4)) -eq 1 ]; then
               MINUTES="10"
+            else
+              MINUTES="5"
             fi
             WANT_PUBLISH="true"
           fi
