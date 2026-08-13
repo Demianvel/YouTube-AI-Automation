@@ -37,7 +37,11 @@ def generate_short(channel: dict, metadata: dict, workdir: Path) -> Path:
     visual_mode = str(channel.get("visual_mode") or "").lower()
     botanical = "botanical" in visual_mode
     eligible = botanical or "kids" in visual_mode or "mixed_finance" in visual_mode
-    strict = os.getenv("HF_VIDEO_STRICT", "true").lower().strip() == "true"
+
+    # HF remains the primary renderer, but free ZeroGPU quotas are finite.
+    # Defaulting to non-strict prevents a quota outage from killing publication.
+    # Set HF_VIDEO_STRICT=true explicitly when an operator wants HF-only behavior.
+    strict = os.getenv("HF_VIDEO_STRICT", "false").lower().strip() == "true"
 
     if not eligible:
         return base_video.generate_short(channel, metadata, workdir)
@@ -45,6 +49,8 @@ def generate_short(channel: dict, metadata: dict, workdir: Path) -> Path:
     if not hf_video_available():
         if strict:
             raise RuntimeError("Hugging Face text-to-video esta deshabilitado y HF_VIDEO_STRICT=true.")
+        metadata["hf_primary_failed"] = "HF video deshabilitado"
+        metadata["hf_fallback_used"] = True
         return base_video.generate_short(channel, metadata, workdir)
 
     final = workdir / "short.mp4"
@@ -57,12 +63,15 @@ def generate_short(channel: dict, metadata: dict, workdir: Path) -> Path:
         metadata["visual_source"] = "huggingface_seed_germination_text_to_video" if botanical else "huggingface_text_to_video_primary"
         metadata["hf_primary"] = True
         metadata["hf_strict"] = strict
+        metadata["hf_fallback_used"] = False
         if botanical:
             metadata["botanical_source_type"] = "synthetic_ai_seed_germination_timelapse"
             metadata["visual_format"] = "seed germination time lapse"
         return final
     except Exception as exc:
         metadata["hf_primary_failed"] = str(exc)
+        metadata["hf_primary"] = False
+        metadata["hf_fallback_used"] = True
         if strict:
             raise RuntimeError(f"Hugging Face no pudo generar el Short y HF_VIDEO_STRICT=true: {exc}") from exc
         print(f"Hugging Face text-to-video no disponible ({exc}); usando renderer estable del canal como fallback.")
