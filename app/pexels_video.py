@@ -14,7 +14,8 @@ W, H = 1080, 1920
 
 
 def _seed(meta: dict, scene_index: int) -> int:
-    raw = f"{meta.get('topic','')}|{meta.get('title','')}|{scene_index}"
+    run = os.getenv("GITHUB_RUN_NUMBER", "").strip()
+    raw = f"{meta.get('content_family','')}|{meta.get('topic','')}|{meta.get('title','')}|{scene_index}|{run}"
     return int(hashlib.sha256(raw.encode()).hexdigest()[:16], 16)
 
 
@@ -33,7 +34,7 @@ def _search(query: str, portrait_first: bool = True) -> list[dict[str, Any]]:
     last_error = None
 
     for portrait in attempts:
-        params: dict[str, Any] = {"query": query, "per_page": 40}
+        params: dict[str, Any] = {"query": query, "per_page": 60}
         if portrait:
             params["orientation"] = "portrait"
         try:
@@ -72,9 +73,10 @@ def _choose_video(videos: list[dict[str, Any]], duration: int, seed: int, used_i
         return (portrait, enough, pixels)
 
     candidates.sort(key=score, reverse=True)
-    top = candidates[: min(12, len(candidates))]
-    rng = random.Random(seed)
-    chosen = rng.choice(top)
+    # Use a wider high-quality pool and the GitHub run-dependent seed. This
+    # avoids repeatedly selecting the same first handful of stock clips.
+    top = candidates[: min(28, len(candidates))]
+    chosen = top[seed % len(top)]
     used_ids.add(int(chosen.get("id", 0)))
     return chosen
 
@@ -91,7 +93,6 @@ def _choose_file(video: dict[str, Any]) -> str:
         width = int(f.get("width") or 0)
         height = int(f.get("height") or 0)
         portrait = 1 if height > width else 0
-        # Prefer useful HD over extremely large files.
         min_side = min(width, height)
         hd = 2 if min_side >= 720 else 1 if min_side >= 480 else 0
         pixels = width * height
@@ -132,7 +133,6 @@ def _edit_clip(source: Path, out: Path, duration: int, seed: int, botanical: boo
     source_duration = _probe_duration(source)
     rng = random.Random(seed ^ 0x5058454C53)
 
-    # For botanical timelapses, preserve the beginning to keep the growth progression.
     if botanical or source_duration <= duration + 1:
         start = 0.0
     else:
@@ -143,8 +143,6 @@ def _edit_clip(source: Path, out: Path, duration: int, seed: int, botanical: boo
         input_args.extend(["-stream_loop", "-1"])
     input_args.extend(["-ss", f"{start:.3f}", "-i", str(source)])
 
-    # This is a substantive editorial transform: vertical reframing, crop, grade,
-    # sharpening, frame-rate normalization and audio replacement later in the pipeline.
     vf = (
         f"scale={W}:{H}:force_original_aspect_ratio=increase,"
         f"crop={W}:{H},setsar=1,"
@@ -162,14 +160,21 @@ def _edit_clip(source: Path, out: Path, duration: int, seed: int, botanical: boo
     )
 
 
-def _queries(channel: dict, scene: dict) -> list[str]:
+def _queries(channel: dict, scene: dict, meta: dict) -> list[str]:
     primary = " ".join(str(scene.get("stock_query") or "").split())
     botanical = "botanical" in channel.get("visual_mode", "")
+    family = str(meta.get("content_family") or "").lower().strip()
+
     if botanical:
+        # Species-specific BrotaVida runs MUST NOT fall back to a generic plant
+        # search, because that was the main source of visually repeated uploads.
+        species_specific = family.startswith("germinacion real de ")
+        if species_specific:
+            return [q for q in [primary] if q]
         fallback = [
-            "seed germination timelapse",
-            "plant growth timelapse macro",
-            "real plant growing timelapse",
+            "roots growing macro timelapse",
+            "seed sprout soil timelapse",
+            "seedling first leaves timelapse",
         ]
     else:
         fallback = [
@@ -190,13 +195,17 @@ def generate_pexels_short(channel: dict, meta: dict, workdir: Path, final: Path,
     for i, scene in enumerate(meta.get("scenes") or []):
         videos: list[dict[str, Any]] = []
         chosen_query = ""
-        for query in _queries(channel, scene):
+        for query in _queries(channel, scene, meta):
             videos = _search(query, portrait_first=not botanical)
             if videos:
                 chosen_query = query
                 break
         if not videos:
-            raise RuntimeError(f"No se encontro metraje real en Pexels para la escena {i + 1}.")
+            family = meta.get("content_family") or meta.get("topic") or "esta planta"
+            raise RuntimeError(
+                f"No se encontro timelapse real verificable para '{family}'. "
+                "Se rechaza usar una planta generica o repetir otro clip."
+            )
 
         seed = _seed(meta, i)
         video = _choose_video(videos, duration_per_scene, seed, used_ids)
