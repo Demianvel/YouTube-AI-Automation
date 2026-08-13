@@ -58,7 +58,7 @@ jobs:
                   raise RuntimeError("El audio debe ser estéreo a 48 kHz")
               print("ORGANIC_MASTER_OK", files[0], duration, wav.getframerate(), wav.getnchannels())
           PY
-      - name: Editar diez escenas, aplicar miniatura premium y publicar
+      - name: Editar diez escenas con selección visual robusta, aplicar miniatura y publicar
         shell: bash
         run: |
           python - <<'PY'

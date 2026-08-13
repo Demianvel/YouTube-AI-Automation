@@ -555,9 +555,29 @@ def _download_stock(seconds_by_block: list[int]) -> tuple[list[Path], list[dict[
     credits: list[dict[str, str]] = []
     meta = {"topic": "Aquí Estás Christian worship DemianVelo", "title": TITLE}
     for index, (query, seconds) in enumerate(zip(STOCK_QUERIES, seconds_by_block), start=1):
-        clip, credit = _get_real_segment(query, FINAL_DIR, 200 + index, seconds, False, used, 12000 + index, target_4k=False)
-        clips.append(clip)
-        credits.append(credit)
+        candidates = [query, "nature landscape", "mountain", "ocean", "forest", "sky clouds"]
+        last_error: Exception | None = None
+        for attempt, candidate in enumerate(candidates):
+            try:
+                clip, credit = _get_real_segment(
+                    candidate,
+                    FINAL_DIR,
+                    200 + index,
+                    seconds,
+                    False,
+                    used,
+                    12000 + index * 17 + attempt,
+                    target_4k=False,
+                )
+                clips.append(clip)
+                credits.append(credit)
+                print("STOCK_SCENE_OK", index, candidate, clip)
+                break
+            except Exception as exc:
+                last_error = exc
+                print("STOCK_SCENE_RETRY", index, candidate, type(exc).__name__, exc)
+        else:
+            raise RuntimeError(f"No se pudo obtener una escena única para el bloque {index}: {last_error}")
     return clips, credits
 
 
