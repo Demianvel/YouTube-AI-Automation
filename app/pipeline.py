@@ -13,7 +13,7 @@ from .generator_resilient import generate_metadata
 from .history import append_history, read_history
 from .performance import enrich_history_with_youtube_stats
 from .premium_audio import apply_audio as premium_apply_audio
-from .video_router import generate_short
+from .hf_primary_router import generate_short
 from .youtube import upload_video
 
 
@@ -88,7 +88,6 @@ def run(channel_slug: str, dry_run: bool = False, content_mode: str = "auto") ->
     channel = load_channel(channel_slug)
     previous = read_history(HISTORY_FILE, channel=channel_slug, limit=100)
 
-    # Use the premium Shorts audio engine without changing the upload/OAuth layer.
     video_module.apply_audio = premium_apply_audio
 
     try:
