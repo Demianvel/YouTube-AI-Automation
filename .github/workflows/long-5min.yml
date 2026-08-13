@@ -44,8 +44,11 @@ jobs:
       GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
       GEMINI_TEXT_MODEL: gemini-3.6-flash
       PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
-      TTS_PROVIDER: chatterbox
+      TTS_PROVIDER: chatterbox_latam
       TTS_FALLBACK_KOKORO: "true"
+      CHATTERBOX_EXAGGERATION: "0.60"
+      CHATTERBOX_CFG_WEIGHT: "0.38"
+      CHATTERBOX_TEMPERATURE: "0.80"
       KOKORO_VOICE: em_alex
       KOKORO_SPEED: "0.98"
       YOUTUBE_TOKEN_BROTAVIDA: ${{ secrets.YOUTUBE_TOKEN_BROTAVIDA }}
@@ -72,7 +75,7 @@ jobs:
           python-version: "3.11"
           cache: pip
 
-      - name: Install media, Kokoro and Chatterbox V3
+      - name: Install media, Kokoro and Chatterbox V3 family
         if: steps.gate.outputs.run == 'true'
         run: |
           sudo apt-get update
