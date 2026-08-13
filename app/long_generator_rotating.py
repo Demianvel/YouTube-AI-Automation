@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from .long_generator import generate_long_metadata as _base_generate
+from .long_generator_base import generate_long_metadata as _base_generate
 from .topic_rotation import choose_topic_family
 
 
