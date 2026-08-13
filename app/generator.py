@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import time
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -34,7 +35,9 @@ def _load_families(channel: dict) -> list[str]:
 
 def _choose_family(channel: dict, previous: list[dict], salt: str = "short") -> str:
     families = _load_families(channel)
-    recent = [str(x.get("content_family") or "").strip() for x in previous[-8:]]
+    slug = _channel_slug(channel)
+    cooldown = 24 if slug == "brotavida" else 8
+    recent = [str(x.get("content_family") or "").strip() for x in previous[-cooldown:]]
     recent = [x for x in recent if x]
 
     marker = os.getenv("GITHUB_RUN_NUMBER", "").strip()
@@ -44,7 +47,6 @@ def _choose_family(channel: dict, previous: list[dict], salt: str = "short") -> 
         now = datetime.now(timezone.utc).strftime("%Y%m%d%H")
         base = int(hashlib.sha256(f"{now}|{salt}".encode()).hexdigest()[:10], 16)
 
-    slug = _channel_slug(channel)
     offset = int(hashlib.sha256(f"{slug}|{salt}".encode()).hexdigest()[:8], 16)
     start = (base + offset) % len(families)
 
@@ -84,12 +86,13 @@ def _prompt(channel: dict, previous: list[dict], attempt: int, family: str) -> s
     if audio_mode == "music_only":
         audio_rule = (
             "FORMATO MUSICA: no generes narracion. El campo narration debe ser cadena vacia. "
-            "La retencion debe venir del cambio visual real de la planta. Se agregara musica instrumental original del sistema."
+            "La retencion debe venir del cambio visual real de la planta. Se agregara una pieza instrumental original y distinta para esta ejecucion."
         )
     elif audio_mode == "asmr":
         audio_rule = (
             "FORMATO ASMR: no generes narracion. El campo narration debe ser cadena vacia. "
-            "No se usara musica: el montaje llevara sonidos naturales originales y suaves."
+            "El montaje usara foley botanico limpio y espaciado de gotas de agua, hojas y tierra, sin ruido blanco continuo, "
+            "acompanado por una cama musical ambiental original extremadamente baja."
         )
     elif kids_3d:
         audio_rule = (
@@ -103,13 +106,16 @@ def _prompt(channel: dict, previous: list[dict], attempt: int, family: str) -> s
         )
     else:
         audio_rule = (
-            "FORMATO INFLUENCER DIGITAL: narracion en castellano natural, energia controlada, ritmo agil y pausas humanas. "
-            "Acento argentino/rioplatense suave y comprensible. No imites a ningun creador real ni prometas dinero facil."
+            "FORMATO INFLUENCER DIGITAL: narracion en castellano argentino natural con voseo rioplatense suave, "
+            "energia controlada, ritmo agil, buena diccion y pausas humanas. Debe sentirse como un creador digital profesional, "
+            "no como una publicidad ni un locutor robotico. No imites a ningun creador real ni prometas dinero facil."
         )
 
     if botanical:
         visual_rule = (
-            "FUENTE VISUAL REAL: stock_query EN INGLES para METRAJE REAL DE CAMARA. "
+            "FUENTE VISUAL REAL Y ESPECIFICA: stock_query EN INGLES para METRAJE REAL DE CAMARA de la especie o etapa obligatoria. "
+            "Si la familia nombra una especie, la consulta debe nombrar ESA especie, por ejemplo 'mango seed germination timelapse' o "
+            "'sunflower seed germination timelapse'. No uses consultas genericas de plant growth para una especie concreta. "
             "No CGI, 3D, animation, illustration ni AI. No afirmes una especie o etapa que el video no permita verificar."
         )
     elif kids_3d:
@@ -187,17 +193,32 @@ Reglas:
 """.strip()
 
 
+def _temporary_gemini_error(exc: Exception) -> bool:
+    text = str(exc).upper()
+    return any(token in text for token in ("503", "UNAVAILABLE", "HIGH DEMAND", "429", "RESOURCE_EXHAUSTED"))
+
+
 def generate_metadata(channel: dict, previous: list[dict], retries: int = 5) -> dict[str, Any]:
     client = genai.Client(api_key=os.environ["GEMINI_API_KEY"])
     last_reason = ""
     family = _choose_family(channel, previous, salt="short")
 
     for attempt in range(1, retries + 1):
-        response = client.models.generate_content(
-            model=TEXT_MODEL,
-            contents=_prompt(channel, previous, attempt, family),
-            config=types.GenerateContentConfig(response_mime_type="application/json"),
-        )
+        try:
+            response = client.models.generate_content(
+                model=TEXT_MODEL,
+                contents=_prompt(channel, previous, attempt, family),
+                config=types.GenerateContentConfig(response_mime_type="application/json"),
+            )
+        except Exception as exc:
+            if not _temporary_gemini_error(exc):
+                raise
+            last_reason = f"Gemini temporalmente no disponible: {exc}"
+            if attempt < retries:
+                time.sleep(min(2 * attempt, 8))
+                continue
+            break
+
         data = json.loads(response.text)
         scenes = data.get("scenes") or []
 
