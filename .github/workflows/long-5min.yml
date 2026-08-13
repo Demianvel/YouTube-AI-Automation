@@ -17,6 +17,9 @@ on:
         required: true
         default: false
         type: boolean
+  schedule:
+    # Argentina UTC-3: 14:30 todos los dias.
+    - cron: "30 17 * * *"
   push:
     branches: [main]
     paths:
@@ -44,7 +47,7 @@ jobs:
       TTS_PROVIDER: chatterbox
       TTS_FALLBACK_KOKORO: "true"
       KOKORO_VOICE: em_alex
-      KOKORO_SPEED: "0.95"
+      KOKORO_SPEED: "0.98"
       YOUTUBE_TOKEN_BROTAVIDA: ${{ secrets.YOUTUBE_TOKEN_BROTAVIDA }}
       YOUTUBE_TOKEN_DINEROCLARO: ${{ secrets.YOUTUBE_TOKEN_DINEROCLARO }}
     steps:
@@ -53,7 +56,7 @@ jobs:
         shell: bash
         run: |
           RUN=false
-          if [ "${{ github.event_name }}" = "push" ]; then
+          if [ "${{ github.event_name }}" = "push" ] || [ "${{ github.event_name }}" = "schedule" ]; then
             RUN=true
           elif [ "${{ inputs.channel }}" = "both" ] || [ "${{ inputs.channel }}" = "${{ matrix.channel }}" ]; then
             RUN=true
@@ -95,7 +98,7 @@ jobs:
         shell: bash
         run: |
           PUBLISH=false
-          if [ "${{ github.event_name }}" = "push" ]; then
+          if [ "${{ github.event_name }}" = "push" ] || [ "${{ github.event_name }}" = "schedule" ]; then
             PUBLISH=true
           elif [ "${{ inputs.publish }}" = "true" ]; then
             PUBLISH=true
