@@ -23,7 +23,7 @@ permissions:
 
 concurrency:
   group: aqui-estas-chain45-free
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   s1:
@@ -142,32 +142,21 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
-        with: {name: aqui-estas-270-master, path: input}
+        with:
+          pattern: aqui-estas-*
+          path: chunks
+          merge-multiple: true
       - name: Install final production tools
         run: |
           sudo apt-get update
           sudo apt-get install -y ffmpeg fonts-dejavu-core fonts-liberation2
           pip install requests google-api-python-client google-auth pillow gradio_client
-      - name: Render 1080p cinematic video, CTR thumbnail and publish
+      - name: Unir audio, renderizar diez escenas, aplicar miniatura premium y publicar
         shell: bash
         run: |
-          python - <<'PY'
-          import os
-          from pathlib import Path
-          from scripts.render_aqui_estas_demianvelo import build_video, make_thumbnail, upload, media_duration
-          audio=Path('input/Aqui_Estas_x_DemianVelo.wav')
-          d=media_duration(audio)
-          print('MASTER_DURATION',d)
-          if not 180 <= d <= 300:
-              raise RuntimeError(f'final song must be 3-5 minutes; got {d}')
-          video,credits=build_video(audio,[])
-          thumb=make_thumbnail(video)
-          print('VIDEO_READY',video,media_duration(video),video.stat().st_size)
-          print('THUMB_READY',thumb,thumb.stat().st_size)
-          if os.environ.get('PUBLISH_INPUT','true').lower()=='true':
-              vid=upload(video,thumb,credits)
-              print('YOUTUBE_VIDEO_ID',vid)
-          PY
+          ARGS=(--chunks-dir chunks)
+          if [ "$PUBLISH_INPUT" = "true" ]; then ARGS+=(--publish); fi
+          python scripts/finalize_aqui_estas_from_chunks.py "${ARGS[@]}"
       - uses: actions/upload-artifact@v4
         if: always()
         with:

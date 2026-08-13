@@ -19,21 +19,21 @@ FINAL_DIR = OUT / "final"
 REFERENCE_DIR = ROOT / "reference_aleluya"
 
 TITLE = "Aquí Estás x DemianVelo | Música Cristiana para Volver a Creer"
-BPM = 110
+BPM = 82
 TARGET_SECONDS = 240
 
 # Original direction only: contemporary worship/pop atmosphere, not a cover and not a melody imitation.
 STYLE_PROMPT = (
-    "Original contemporary Christian worship-pop song for DemianVelo, 110 BPM, D major with emotional B minor colors, "
-    "modern cinematic pop production with intimate piano, warm atmospheric pads, clean electric guitar swells, "
-    "deep rounded bass, tasteful live-style drums, subtle electronic pulse, cinematic strings, wide final chorus, "
-    "warm magnetic original adult male lead vocal in Rioplatense Argentine Spanish, close and intimate low register, "
-    "clear diction, controlled natural vibrato, emotional chest voice, luminous upper register, confident but tender delivery, "
+    "Completely original melodic Christian pop worship song for DemianVelo, 82 BPM, D major with emotional B minor colors, "
+    "premium organic cinematic production with intimate grand piano, acoustic guitar, clean electric guitar swells, "
+    "deep rounded electric bass, tasteful live acoustic drums, cinematic strings, subtle pipe organ and a human choir in the final chorus, "
+    "sweet warm original adult male tenor-baritone lead vocal in neutral Rioplatense Argentine Spanish, velvety intimate low register, "
+    "clear gentle diction, believable breaths, controlled natural vibrato, emotional chest voice, luminous upper register, tender heart-filling delivery, "
     "professional radio-ready mix with strong vocal presence and natural dynamics. Build gradually from a quiet intro to a large "
     "hopeful worship chorus and emotional bridge, then finish with a powerful but tasteful final chorus. "
     "Theme: God's nearness when life feels uncertain, peace, restoration, faith, Jesus, gratitude and hope. "
     "Use a completely original melody, harmony, lyric phrasing and hook. Do not imitate any singer, song, worship recording or copyrighted melody. "
-    "No commercial samples."
+    "No synthesizer lead, no electronic pulse, no EDM, no dance beat, no trap, no reggaeton, no commercial samples."
 )
 
 LYRICS = """[INTRO]
@@ -236,12 +236,14 @@ WAN_PROMPTS = [
 STOCK_QUERIES = [
     "cinematic sunrise mountains golden hour",
     "ocean waves golden hour cinematic",
-    "night city lights cinematic street",
-    "empty highway night cinematic",
+    "waterfall forest sunlight cinematic",
+    "wildflowers wind golden hour cinematic",
     "church architecture sunlight cinematic",
     "dramatic clouds sun rays cinematic",
     "forest sunlight rays cinematic",
     "mountain lake sunrise cinematic",
+    "hands praying silhouette sunset cinematic",
+    "open bible candlelight cinematic",
 ]
 
 
@@ -611,6 +613,10 @@ def make_thumbnail(video: Path) -> Path:
 
     frame = FINAL_DIR / "thumbnail_source.jpg"
     out = FINAL_DIR / "thumbnail_aqui_estas.jpg"
+    premium = ROOT / "assets" / "aqui-estas" / "thumbnail-aqui-estas-demianvelo.jpg"
+    if premium.exists() and 0 < premium.stat().st_size < 1_900_000:
+        shutil.copy2(premium, out)
+        return out
     second = max(8, int(media_duration(video) * 0.15))
     run([
         "ffmpeg", "-y", "-loglevel", "error", "-ss", str(second), "-i", str(video), "-frames:v", "1",
