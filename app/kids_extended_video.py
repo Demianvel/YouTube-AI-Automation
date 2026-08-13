@@ -13,6 +13,7 @@ import soundfile as sf
 from kokoro import KPipeline
 
 from .audio import make_pleasant_original_music
+from .kids_asmr import make_clay_asmr
 
 BASE = "https://gen.pollinations.ai/image/"
 W, H, FPS = 1080, 1920, 30
@@ -58,7 +59,7 @@ def _download_image(prompt: str, out: Path, seed: int) -> None:
         except Exception as exc:
             last_error = exc
             time.sleep(2 + attempt * 3)
-    raise RuntimeError(f"No se pudo generar imagen 3D para EnViKids: {last_error}")
+    raise RuntimeError(f"No se pudo generar imagen 3D para EnViKidsAI: {last_error}")
 
 
 def _image_clip(image: Path, out: Path, duration: int, index: int) -> None:
@@ -166,16 +167,30 @@ def render_extended_short(meta: dict, workdir: Path) -> Path:
     ], check=True)
 
     duration = int(meta["duration_seconds"])
-    music = workdir / "extended_music.wav"
-    make_pleasant_original_music(music, duration, _seed(meta, 999))
-
     out = workdir / f"envikids_short_{meta['duration_minutes']}min.mp4"
-    subprocess.run([
-        "ffmpeg", "-y", "-loglevel", "error", "-i", str(visual), "-i", str(voice_full), "-i", str(music),
-        "-filter_complex", "[1:a]volume=1.0[v];[2:a]volume=0.025[m];[v][m]amix=inputs=2:duration=first:dropout_transition=1[a]",
-        "-map", "0:v:0", "-map", "[a]", "-t", str(duration), "-c:v", "copy", "-c:a", "aac", "-b:a", "192k",
-        "-movflags", "+faststart", str(out),
-    ], check=True)
+    audio_style = str(meta.get("audio_style") or "voice_music").lower()
+
+    if audio_style == "clay_asmr":
+        foley = workdir / "extended_clay_asmr.wav"
+        make_clay_asmr(foley, duration, _seed(meta, 777))
+        subprocess.run([
+            "ffmpeg", "-y", "-loglevel", "error", "-i", str(visual), "-i", str(voice_full), "-i", str(foley),
+            "-filter_complex", "[1:a]volume=1.0[v];[2:a]highpass=f=45,lowpass=f=11000,volume=0.18[f];[v][f]amix=inputs=2:duration=first:dropout_transition=1[a]",
+            "-map", "0:v:0", "-map", "[a]", "-t", str(duration), "-c:v", "copy", "-c:a", "aac", "-b:a", "192k",
+            "-movflags", "+faststart", str(out),
+        ], check=True)
+        meta["audio_source"] = "spanish_kids_voice_plus_original_clay_asmr"
+    else:
+        music = workdir / "extended_music.wav"
+        make_pleasant_original_music(music, duration, _seed(meta, 999))
+        subprocess.run([
+            "ffmpeg", "-y", "-loglevel", "error", "-i", str(visual), "-i", str(voice_full), "-i", str(music),
+            "-filter_complex", "[1:a]volume=1.0[v];[2:a]volume=0.025[m];[v][m]amix=inputs=2:duration=first:dropout_transition=1[a]",
+            "-map", "0:v:0", "-map", "[a]", "-t", str(duration), "-c:v", "copy", "-c:a", "aac", "-b:a", "192k",
+            "-movflags", "+faststart", str(out),
+        ], check=True)
+        meta["audio_source"] = "spanish_kids_voice_plus_original_instrumental"
+
     meta["tts_provider_used"] = "kokoro-ef_dora"
     meta["generated_visual_provider"] = "Pollinations image API"
     return out
