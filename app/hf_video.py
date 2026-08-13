@@ -24,7 +24,16 @@ def _channel_prompt(channel: dict, scene: dict) -> str:
     visual = " ".join(str(scene.get("visual_prompt") or scene.get("stock_query") or "").split())
     mode = str(channel.get("visual_mode") or "").lower()
 
-    if "kids" in mode:
+    if "botanical" in mode:
+        style = (
+            "Premium botanical macro time-lapse visualization. One clearly identifiable seed remains the same species through the whole shot. "
+            "Show physically coherent germination progression: seed coat softens and opens, a root emerges and grows downward, fine roots develop, "
+            "a shoot pushes upward through moist soil, stem straightens, cotyledons or first leaves open. Locked macro camera or very slow cinematic push, "
+            "natural soil texture, realistic moisture, believable plant anatomy, continuous growth with no magical morphing, no sudden species changes, "
+            "no hands, no tools, no text, no logos, no watermark, no plastic plant, no duplicate plant, no fantasy colors. "
+            "Vertical premium social-video composition, satisfying seed-germination time-lapse aesthetic."
+        )
+    elif "kids" in mode:
         style = (
             "Original premium 3D family animation, fictional child-safe characters, rounded expressive design, "
             "cinematic soft lighting, colorful detailed environment, clear character motion, playful camera movement, "
@@ -87,7 +96,8 @@ def generate_hf_short(channel: dict, meta: dict, workdir: Path, final: Path, app
             guidance_scale=guidance,
             negative_prompt=[
                 "text", "logo", "watermark", "brand", "copyrighted character", "duplicate subject",
-                "deformed hands", "extra fingers", "flicker", "low quality", "static image"
+                "deformed hands", "extra fingers", "flicker", "low quality", "static image", "species morph",
+                "plastic plant", "television static", "white noise visual"
             ],
         )
         raw.write_bytes(video_bytes)
@@ -112,5 +122,6 @@ def generate_hf_short(channel: dict, meta: dict, workdir: Path, final: Path, app
     meta["generated_visual_provider"] = f"Hugging Face Inference Providers / {model}"
     meta["generated_video_model"] = model
     meta["generated_video_prompts"] = prompts
+    meta["synthetic_visual"] = True
     meta["render_quality"] = "1080x1920_30fps_hf_ai_video"
     apply_audio_fn(visual, final, channel, meta, total_duration, _seed(meta, 999))
