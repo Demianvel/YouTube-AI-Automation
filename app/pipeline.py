@@ -6,11 +6,13 @@ import math
 from collections import defaultdict
 from datetime import datetime, timezone
 
+from . import video as video_module
 from .channel_analytics import analytics_digest, collect_channel_analytics
 from .config import HISTORY_FILE, OUTPUT_DIR, load_channel
 from .generator import generate_metadata
 from .history import append_history, read_history
 from .performance import enrich_history_with_youtube_stats
+from .premium_audio import apply_audio as premium_apply_audio
 from .video import generate_short
 from .youtube import upload_video
 
@@ -85,6 +87,9 @@ def _apply_content_mode(channel_slug: str, channel: dict, requested: str, previo
 def run(channel_slug: str, dry_run: bool = False, content_mode: str = "auto") -> dict:
     channel = load_channel(channel_slug)
     previous = read_history(HISTORY_FILE, channel=channel_slug, limit=100)
+
+    # Use the premium Shorts audio engine without changing the upload/OAuth layer.
+    video_module.apply_audio = premium_apply_audio
 
     try:
         previous = enrich_history_with_youtube_stats(channel, previous)
