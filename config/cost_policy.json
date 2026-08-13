@@ -1,0 +1,33 @@
+{
+  "mode": "free_only",
+  "allow_paid_apis": false,
+  "allow_prepaid_credits": false,
+  "allow_pay_as_you_go": false,
+  "allow_automatic_paid_fallback": false,
+  "on_free_gpu_unavailable": "stop",
+  "preferred_free_compute": [
+    "google_colab_free_gpu_when_available",
+    "huggingface_zerogpu_existing_free_spaces"
+  ],
+  "quality_policy": {
+    "prefer_native_quality_over_fake_upscale": true,
+    "allow_4k_master_when_source_or_model_supports_it": true,
+    "allow_8k_only_if_source_quality_supports_it": true,
+    "never_claim_native_4k_or_8k_if_only_upscaled": true
+  },
+  "music": {
+    "primary": "ACE-Step-1.5",
+    "fallback": "local_original_synth",
+    "paid_fallback": null
+  },
+  "video": {
+    "primary": "LTX-2",
+    "fallback": "real_licensed_broll_or_existing_free_renderer",
+    "paid_fallback": null
+  },
+  "voice": {
+    "spoken_primary": "Chatterbox-Multilingual-V3-LatAm",
+    "spoken_fallback": "Kokoro",
+    "paid_fallback": null
+  }
+}
