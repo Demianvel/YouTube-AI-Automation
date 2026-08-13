@@ -9,6 +9,7 @@ on:
     paths:
       - app/channel_analytics.py
       - scripts/analytics_snapshot.py
+      - config/channels.json
       - .github/workflows/analytics-monitor.yml
 
 permissions:
