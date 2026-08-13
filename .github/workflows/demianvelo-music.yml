@@ -13,6 +13,30 @@ on:
           - "5"
           - "10"
           - "30"
+      style:
+        description: Estilo musical (vacio = auto por Analytics)
+        required: false
+        default: ""
+        type: string
+      lyrics:
+        description: Letra del artista; se respeta literalmente cuando ACE-Step esta activo
+        required: false
+        default: ""
+        type: string
+      vocal_character:
+        description: Caracter vocal original, sin imitar cantantes reales
+        required: false
+        default: "voz calida, magnetica, emocional, clara y con presencia"
+        type: string
+      music_engine:
+        description: Motor musical
+        required: true
+        default: auto
+        type: choice
+        options:
+          - auto
+          - local
+          - acestep
       publish:
         description: Publicar en YouTube si OAuth esta conectado
         required: true
@@ -40,6 +64,8 @@ jobs:
       GEMINI_TEXT_MODEL: gemini-3.6-flash
       PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
       YOUTUBE_TOKEN_DEMIANVELO: ${{ secrets.YOUTUBE_TOKEN_DEMIANVELO }}
+      ACESTEP_API_URL: ${{ secrets.ACESTEP_API_URL }}
+      ACESTEP_API_KEY: ${{ secrets.ACESTEP_API_KEY }}
     steps:
       - uses: actions/checkout@v4
 
@@ -50,9 +76,13 @@ jobs:
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             MINUTES="${{ inputs.minutes }}"
             WANT_PUBLISH="${{ inputs.publish }}"
+            STYLE="${{ inputs.style }}"
+            ENGINE="${{ inputs.music_engine }}"
           elif [ "${{ github.event.schedule }}" = "30 15 * * *" ]; then
             MINUTES="1"
             WANT_PUBLISH="true"
+            STYLE=""
+            ENGINE="auto"
           else
             DAY="$(date -u +%j)"
             SLOT=$((10#$DAY % 3))
@@ -60,6 +90,8 @@ jobs:
             if [ "$SLOT" -eq 1 ]; then MINUTES="10"; fi
             if [ "$SLOT" -eq 2 ]; then MINUTES="30"; fi
             WANT_PUBLISH="true"
+            STYLE=""
+            ENGINE="auto"
           fi
 
           PUBLISH=false
@@ -73,6 +105,8 @@ jobs:
           echo "minutes=$MINUTES" >> "$GITHUB_OUTPUT"
           echo "publish=$PUBLISH" >> "$GITHUB_OUTPUT"
           echo "run=$SHOULD_RUN" >> "$GITHUB_OUTPUT"
+          echo "style=$STYLE" >> "$GITHUB_OUTPUT"
+          echo "engine=$ENGINE" >> "$GITHUB_OUTPUT"
 
       - uses: actions/setup-python@v5
         if: steps.select.outputs.run == 'true'
@@ -91,9 +125,14 @@ jobs:
       - name: Generate original track and cinematic video
         if: steps.select.outputs.run == 'true'
         shell: bash
+        env:
+          DEMIANVELO_LYRICS: ${{ github.event_name == 'workflow_dispatch' && inputs.lyrics || '' }}
+          DEMIANVELO_VOCAL_CHARACTER: ${{ github.event_name == 'workflow_dispatch' && inputs.vocal_character || '' }}
         run: |
           EXTRA=""
-          if [ "${{ steps.select.outputs.publish }}" = "true" ]; then EXTRA="--publish"; fi
+          if [ "${{ steps.select.outputs.publish }}" = "true" ]; then EXTRA="$EXTRA --publish"; fi
+          if [ -n "${{ steps.select.outputs.style }}" ]; then EXTRA="$EXTRA --style '${{ steps.select.outputs.style }}'"; fi
+          EXTRA="$EXTRA --music-engine '${{ steps.select.outputs.engine }}'"
           python -m app.music_pipeline --minutes "${{ steps.select.outputs.minutes }}" $EXTRA
 
       - name: Upload dry-run artifact
