@@ -238,14 +238,16 @@ def render_music_video(meta: dict, music_path: Path, workdir: Path) -> Path:
         clips.append(clip)
         credits.append(credit)
 
-    # Hybrid scenes are normalized to 1080p so real and generated sources concatenate reliably.
+    # Hybrid scenes are normalized to 1080p. Looping is intentional: LTX-2 hero shots are
+    # typically 8-10 seconds, while a hybrid section may be ~30 seconds. The generated shot is
+    # repeated inside that section so the final music video keeps its full requested duration.
     if visual_engine == "hybrid":
         normalized: list[Path] = []
         w, h = ((1080, 1920) if portrait else (1920, 1080))
         for index, clip in enumerate(clips, start=1):
             out_norm = workdir / f"music_norm_{index}.mp4"
             subprocess.run([
-                "ffmpeg", "-y", "-loglevel", "error", "-i", str(clip), "-t", str(segment_seconds),
+                "ffmpeg", "-y", "-loglevel", "error", "-stream_loop", "-1", "-i", str(clip), "-t", str(segment_seconds),
                 "-vf", f"scale={w}:{h}:force_original_aspect_ratio=increase,crop={w}:{h},fps=30",
                 "-an", "-c:v", "libx264", "-preset", "medium", "-crf", "19", "-pix_fmt", "yuv420p", str(out_norm),
             ], check=True)
