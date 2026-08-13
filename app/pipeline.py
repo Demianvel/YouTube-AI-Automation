@@ -23,7 +23,6 @@ def _write_metadata(workdir, metadata: dict) -> None:
 
 
 def _auto_brotavida_mode(previous: list[dict]) -> str:
-    """Explore all 3 formats, then favor modes with stronger VPH/engagement."""
     modes = ("asmr", "music", "voice")
     by_mode: dict[str, list[dict]] = defaultdict(list)
     for row in previous:
@@ -31,7 +30,6 @@ def _auto_brotavida_mode(previous: list[dict]) -> str:
         if mode in modes and row.get("status") == "uploaded":
             by_mode[mode].append(row)
 
-    # Require enough experiments before optimizing aggressively.
     counts = {mode: len(by_mode[mode]) for mode in modes}
     if min(counts.values(), default=0) < 2:
         return min(modes, key=lambda m: counts[m])
@@ -55,7 +53,6 @@ def _auto_brotavida_mode(previous: list[dict]) -> str:
         return sum(values) / max(1, len(values))
 
     ranked = sorted(modes, key=lambda m: score(by_mode[m]), reverse=True)
-    # 75% exploitation, 25% exploration based on UTC hour/day parity.
     marker = datetime.now(timezone.utc).timetuple().tm_yday + datetime.now(timezone.utc).hour
     if marker % 4 == 0:
         return ranked[1 if len(ranked) > 1 else 0]
@@ -145,6 +142,7 @@ def run(channel_slug: str, dry_run: bool = False, content_mode: str = "auto") ->
         "channel": channel_slug,
         "handle": channel["handle"],
         "content_mode": resolved_mode,
+        "content_family": metadata.get("content_family"),
         "topic": metadata.get("topic"),
         "title": metadata.get("title"),
         "video_id": video_id,
