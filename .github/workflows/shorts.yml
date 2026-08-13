@@ -28,9 +28,6 @@ on:
         type: boolean
   schedule:
     # GitHub Actions es el unico programador. Horarios en Argentina (UTC-3).
-    # BrotaVida 00,09,18: 3 Shorts + 1 video largo diario a las 14:30.
-    # DineroClaro 08,17,21: 3 Shorts + 1 video largo diario a las 14:30.
-    # EnViKidsAI 10:30 y 19:30: 2 Shorts normales + Short 1-3 min 16:30 + largo 13:30.
     - cron: "0 3,12,21 * * *"
     - cron: "0 0,11,20 * * *"
     - cron: "30 13,22 * * *"
@@ -55,6 +52,13 @@ jobs:
       PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
       POLLINATIONS_API_KEY: ${{ secrets.POLLINATIONS_API_KEY }}
       POLLINATIONS_IMAGE_MODEL: flux
+      HF_VIDEO_ENABLED: "true"
+      HF_REQUIRE_TEXT_TO_VIDEO: "true"
+      HF_ZERO_VIDEO_SPACE: Lightricks/LTX-2-3
+      HF_ZERO_RETRIES: "2"
+      HF_TOKEN: ${{ secrets.HF_TOKEN }}
+      HF_VIDEO_PROVIDER: auto
+      HF_VIDEO_MODEL: Wan-AI/Wan2.2-TI2V-5B
       TTS_PROVIDER: chatterbox_latam
       TTS_FALLBACK_KOKORO: "true"
       CHATTERBOX_EXAGGERATION: "0.62"
