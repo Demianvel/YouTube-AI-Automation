@@ -1,4 +1,5 @@
 name: Probe alternate FREE ACE-Step Spaces
+# Re-probe current endpoint contracts for Dios Actua.
 
 on:
   push:
