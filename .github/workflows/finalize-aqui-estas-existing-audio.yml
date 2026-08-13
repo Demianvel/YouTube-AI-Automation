@@ -8,10 +8,6 @@ on:
         required: true
         default: true
         type: boolean
-  push:
-    branches: [main]
-    paths:
-      - .github/workflows/finalize-aqui-estas-existing-audio.yml
 
 permissions:
   contents: read
@@ -19,10 +15,11 @@ permissions:
 
 concurrency:
   group: finalize-aqui-estas-existing-audio
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   finalize:
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     timeout-minutes: 180
     env:
@@ -68,11 +65,7 @@ jobs:
         shell: bash
         run: |
           ARGS=(--chunks-dir chunks)
-          PUBLISH=true
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.publish }}" != "true" ]; then
-            PUBLISH=false
-          fi
-          if [ "$PUBLISH" = "true" ]; then ARGS+=(--publish); fi
+          if [ "${{ inputs.publish }}" = "true" ]; then ARGS+=(--publish); fi
           python scripts/finalize_aqui_estas_from_chunks.py "${ARGS[@]}"
 
       - name: Upload final production artifact
