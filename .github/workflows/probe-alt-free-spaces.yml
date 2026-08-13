@@ -1,0 +1,51 @@
+name: Probe alternate FREE ACE-Step Spaces
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/probe-alt-free-spaces.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install -U gradio_client
+      - name: Probe alternate public ACE-Step APIs
+        run: |
+          python - <<'PY'
+          from gradio_client import Client
+          import json
+          spaces = [
+            'victor/ace-step-jam',
+            'techfreakworm/ACE-Music-Studio',
+            'Lanston/ACE-Step-v1-5-Music',
+            'Baseta/Ace-Step-v1.5',
+          ]
+          for space in spaces:
+              print('\n### SPACE', space)
+              try:
+                  c=Client(space, verbose=False)
+                  api=c.view_api(return_format='dict')
+                  named=api.get('named_endpoints', api)
+                  useful=[]
+                  for name,spec in named.items():
+                      blob=(name+' '+json.dumps(spec,ensure_ascii=False)).lower()
+                      if any(k in blob for k in ['generate','music','song','audio','create']):
+                          useful.append((name,spec))
+                  for name,spec in useful[:12]:
+                      print('ENDPOINT',name)
+                      for i,p in enumerate(spec.get('parameters',[]) if isinstance(spec,dict) else [],1):
+                          print(' P',i,p.get('parameter_name'),'default=',p.get('default'),'type=',p.get('type'))
+                      print(' RETURNS', [r.get('type') for r in spec.get('returns',[])])
+              except Exception as exc:
+                  print('ERROR',type(exc).__name__,exc)
+          PY
