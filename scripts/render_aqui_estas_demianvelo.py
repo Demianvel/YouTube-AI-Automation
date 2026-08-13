@@ -566,9 +566,11 @@ def build_video(audio: Path, wan_scenes: list[Path]) -> tuple[Path, list[dict[st
     if not 180 <= target <= 300:
         raise RuntimeError(f"audio fuera de 3-5 min: {target}")
 
-    # Eight ~30-second cinematic blocks. A Wan hero shot replaces 6 seconds of a block when available.
-    hero_count = min(4, len(wan_scenes), 8)
-    seconds_by_block = [24 if i < hero_count else 30 for i in range(8)]
+    # Ten cinematic blocks. A Wan hero shot replaces six seconds of a block when available.
+    block_count = len(STOCK_QUERIES)
+    hero_count = min(4, len(wan_scenes), block_count)
+    base_seconds = max(20, int((target + block_count - 1) // block_count))
+    seconds_by_block = [max(20, base_seconds - 6) if i < hero_count else base_seconds for i in range(block_count)]
     stock, credits = _download_stock(seconds_by_block)
 
     wan_norm: list[Path] = []

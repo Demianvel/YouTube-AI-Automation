@@ -1,0 +1,108 @@
+name: Publish Aqui Estas organic pop cinematic master
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/publish-aqui-estas-organic-master.yml
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: publish-aqui-estas-organic-master
+  cancel-in-progress: true
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    env:
+      PYTHONPATH: ${{ github.workspace }}
+      YOUTUBE_TOKEN_DEMIANVELO: ${{ secrets.YOUTUBE_TOKEN_DEMIANVELO }}
+      PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Recuperar el máster orgánico ACE-Step verificado
+        uses: actions/download-artifact@v4
+        with:
+          name: aqui-estas-music
+          path: music
+          repository: Demianvel/YouTube-AI-Automation
+          run-id: 31666079104
+          github-token: ${{ github.token }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Instalar herramientas cinematográficas y de publicación
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg fonts-dejavu-core fonts-liberation2
+          pip install -U requests gradio_client google-api-python-client google-auth pillow
+      - name: Verificar audio estéreo de cuatro minutos
+        shell: bash
+        run: |
+          python - <<'PY'
+          import wave
+          from pathlib import Path
+          files = list(Path("music").rglob("*.wav"))
+          if len(files) != 1:
+              raise RuntimeError(f"Se esperaba un WAV y se encontraron {files}")
+          with wave.open(str(files[0]), "rb") as wav:
+              duration = wav.getnframes() / wav.getframerate()
+              if not 239 <= duration <= 241:
+                  raise RuntimeError(f"Duración inválida: {duration}")
+              if wav.getframerate() != 48000 or wav.getnchannels() != 2:
+                  raise RuntimeError("El audio debe ser estéreo a 48 kHz")
+              print("ORGANIC_MASTER_OK", files[0], duration, wav.getframerate(), wav.getnchannels())
+          PY
+      - name: Editar diez escenas, aplicar miniatura premium y publicar
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          from app.config import load_channel
+          from app.youtube import upload_long_video
+          from scripts.render_aqui_estas_demianvelo import FINAL_DIR, build_video, make_thumbnail, media_duration
+
+          audio = next(Path("music").rglob("*.wav"))
+          video, credits = build_video(audio, [])
+          thumbnail = make_thumbnail(video)
+          if thumbnail.stat().st_size >= 2 * 1024 * 1024:
+              raise RuntimeError("La miniatura supera el límite de YouTube")
+
+          metadata = {
+              "title": "Aquí Estás x DemianVelo | Video Oficial • Pop Cristiano",
+              "description": "“Aquí Estás” es una canción cristiana original de DemianVelo sobre la presencia de Dios cuando el camino parece incierto. Una canción pop melódica y esperanzadora sobre fe, consuelo, restauración y Jesús.\n\nSi esta canción llena tu corazón, compartila con alguien que necesite esperanza y suscribite a DemianVelo.",
+              "hashtags": ["#DemianVelo", "#AquiEstas", "#MusicaCristiana", "#Jesus", "#Dios"],
+              "tags": ["DemianVelo", "Aquí Estás", "música cristiana", "pop cristiano", "Jesús", "Dios", "adoración", "música de fe", "canción cristiana 2026"],
+              "source_credits": credits,
+              "duration_minutes": 4,
+          }
+          channel = load_channel("demianvelo")
+          video_id = upload_long_video(channel, metadata, video, thumbnail_path=thumbnail, expected_minutes=4)
+          result = {
+              "status": "uploaded",
+              "video_id": video_id,
+              "url": f"https://youtu.be/{video_id}",
+              "title": metadata["title"],
+              "duration_seconds": media_duration(video),
+              "thumbnail_status": metadata.get("thumbnail_upload_status"),
+              "visual_scene_count": 10,
+          }
+          FINAL_DIR.mkdir(parents=True, exist_ok=True)
+          (FINAL_DIR / "organic-release-result.json").write_text(
+              json.dumps(result, ensure_ascii=False, indent=2), encoding="utf-8"
+          )
+          print("YOUTUBE_ORGANIC_RELEASE_OK", json.dumps(result, ensure_ascii=False))
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: aqui-estas-organic-pop-release
+          path: output/aqui_estas_demianvelo/final/
+          if-no-files-found: warn
+          retention-days: 5
