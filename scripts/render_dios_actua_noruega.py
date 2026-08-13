@@ -23,7 +23,7 @@ ASSET_DIR = ROOT / "assets" / "dios-actua"
 
 TITLE = "DIOS ACTÚA — DemianVelo | Video Oficial 4K • Música Cristiana"
 BPM = 84
-TARGET_SECONDS = 240
+TARGET_SECONDS = 212
 
 STYLE_PROMPT = (
     "Completely original melodic Christian pop worship song for DemianVelo, 84 BPM, G major with emotional E minor colors, "
@@ -127,7 +127,7 @@ def vocal_reference() -> Path | None:
 
 def parameter_value(name: str, default: Any, reference: Path | None) -> Any:
     key = name.lower().replace("-", "_")
-    if "reference_audio" in key or "refer_audio" in key:
+    if "reference_audio" in key or "refer_audio" in key or "ref_audio" in key:
         return handle_file(str(reference)) if reference else None
     if "src_audio" in key or "source_audio" in key:
         return None
@@ -145,6 +145,8 @@ def parameter_value(name: str, default: Any, reference: Path | None) -> Any:
         return "text2music"
     if "generation_mode" in key:
         return "custom"
+    if "instrumental_label" in key:
+        return "With vocals"
     if "instrumental" in key:
         return False
     if "vocal_language" in key or key in {"language", "lang"}:
@@ -154,17 +156,29 @@ def parameter_value(name: str, default: Any, reference: Path | None) -> Any:
     if "duration" in key and "repaint" not in key:
         return float(TARGET_SECONDS)
     if "inference_step" in key or key == "steps":
-        return 12
+        return 8
     if "guidance" in key:
         return 7.0
+    if "infer_method" in key:
+        return "ode"
+    if "cfg_interval_start" in key:
+        return 0.0
+    if "cfg_interval_end" in key:
+        return 1.0
+    if key.endswith("shift") or key == "shift":
+        return 1.0
+    if "use_adg" in key:
+        return False
     if "thinking" in key or "cot_caption" in key or "cot_language" in key:
+        return True
+    if "cot_metas" in key:
         return True
     if "random_seed" in key:
         return False
     if key in {"seed", "manual_seed", "seed_number"}:
         return 20260813
     if "cover_strength" in key or "ref_audio_strength" in key:
-        return 0.52
+        return 0.46
     if "batch" in key and "chunk" not in key:
         return 1
     if "audio_format" in key or key == "format":
@@ -177,6 +191,10 @@ def parameter_value(name: str, default: Any, reference: Path | None) -> Any:
         return 0.9
     if "top_k" in key:
         return 0
+    if "keyscale" in key or "key_signature" in key:
+        return "G Major"
+    if "timesignature" in key or "time_signature" in key:
+        return "4"
     return default
 
 
@@ -193,7 +211,9 @@ def try_reference_generation(reference: Path, raw: Path) -> str | None:
                     continue
                 names = [str(p.get("parameter_name") or "").lower() for p in spec.get("parameters", [])]
                 blob = endpoint.lower() + " " + " ".join(names)
-                if "lyric" in blob and any("reference_audio" in name or "refer_audio" in name for name in names):
+                if "lyric" in blob and any(
+                    "reference_audio" in name or "refer_audio" in name or "ref_audio" in name for name in names
+                ):
                     choices.append((endpoint, spec))
             for endpoint, spec in sorted(choices, key=lambda pair: len(pair[1].get("parameters", [])), reverse=True):
                 args = [parameter_value(str(p.get("parameter_name") or ""), p.get("default"), reference) for p in spec.get("parameters", [])]
@@ -212,12 +232,13 @@ def try_reference_generation(reference: Path, raw: Path) -> str | None:
 def try_continuous_generation(raw: Path) -> str:
     token = os.getenv("HF_TOKEN") or None
     spaces = [
+        "techfreakworm/ACE-Music-Studio",
         "victor/ace-step-jam",
         "R-Kentaren/ace-step-jam",
         "Lanston/ACE-Step-v1-5-Music",
+        "Baseta/Ace-Step-v1.5",
         "LububMusicAi/ACE-Step-Custom",
         "Gamahea/ACE-Step-Custom",
-        "techfreakworm/ACE-Music-Studio",
     ]
     errors: list[str] = []
     for space in spaces:
@@ -227,7 +248,7 @@ def try_continuous_generation(raw: Path) -> str:
                 try:
                     print("ACE_STABLE_ATTEMPT", space)
                     result = client.predict(
-                        STYLE_PROMPT, LYRICS, float(TARGET_SECONDS), 12, 7.0, 20260813, "", 0.82, api_name="/generate"
+                        STYLE_PROMPT, LYRICS, float(TARGET_SECONDS), 8, 7.0, 20260813, "", 0.82, api_name="/generate"
                     )
                     decode_audio(result, raw)
                     if 180 <= duration(raw) <= 300:
@@ -245,7 +266,8 @@ def try_continuous_generation(raw: Path) -> str:
                     continue
                 names = [str(p.get("parameter_name") or "") for p in spec.get("parameters", [])]
                 blob = (endpoint + " " + " ".join(names)).lower()
-                if "lyric" in blob and any(word in blob for word in ("generate", "song", "music", "custom")):
+                excluded = any(word in endpoint.lower() for word in ("capture", "restore", "params", "settings", "lambda"))
+                if not excluded and "lyric" in blob and any(word in blob for word in ("generate", "song", "music", "custom")):
                     choices.append((endpoint, spec))
             for endpoint, spec in sorted(choices, key=lambda pair: len(pair[1].get("parameters", [])), reverse=True)[:4]:
                 try:
