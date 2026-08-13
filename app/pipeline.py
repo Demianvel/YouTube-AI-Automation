@@ -13,7 +13,7 @@ from .generator_resilient import generate_metadata
 from .history import append_history, read_history
 from .performance import enrich_history_with_youtube_stats
 from .premium_audio import apply_audio as premium_apply_audio
-from .video import generate_short
+from .video_router import generate_short
 from .youtube import upload_video
 
 
