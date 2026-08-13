@@ -95,6 +95,26 @@ def _probe_audio(path: Path) -> float:
         return 0.0
 
 
+def _apply_original_character_timbre(source: Path, out: Path, speaker_style: str) -> Path:
+    """Create original synthetic character variations without imitating any known voice."""
+    factors = {
+        "narrator": 1.0,
+        "bright_character": 1.065,
+        "calm_character": 0.955,
+        "comic_character": 1.105,
+    }
+    factor = factors.get(speaker_style, 1.0)
+    if abs(factor - 1.0) < 0.001:
+        return source
+    tempo = 1.0 / factor
+    subprocess.run([
+        "ffmpeg", "-y", "-loglevel", "error", "-i", str(source),
+        "-af", f"asetrate=24000*{factor:.5f},aresample=24000,atempo={tempo:.5f}",
+        "-ar", "24000", "-ac", "1", "-c:a", "pcm_s16le", str(out),
+    ], check=True)
+    return out
+
+
 def _kids_voice_segments(meta: dict, workdir: Path) -> list[Path]:
     pipeline = KPipeline(lang_code="e")
     voice = os.getenv("KOKORO_KIDS_VOICE", "ef_dora")
@@ -104,26 +124,38 @@ def _kids_voice_segments(meta: dict, workdir: Path) -> list[Path]:
 
     for index, scene in enumerate(meta["scenes"]):
         parts = []
-        for _g, _p, audio in pipeline(scene["narration"], voice=voice, speed=speed, split_pattern=r"(?<=[.!?])\s+"):
+        text = " ".join(str(scene["narration"]).split())
+        for _g, _p, audio in pipeline(text, voice=voice, speed=speed, split_pattern=r"(?<=[.!?])\s+"):
             if audio is not None and len(audio):
                 parts.append(np.asarray(audio, dtype=np.float32))
         if not parts:
             raise RuntimeError(f"Kokoro no genero voz infantil para escena {index + 1}.")
         raw = workdir / f"kids_voice_raw_{index + 1}.wav"
         sf.write(raw, np.concatenate(parts), 24000, subtype="PCM_16")
-        duration = _probe_audio(raw)
+
+        styled = workdir / f"kids_voice_styled_{index + 1}.wav"
+        active = _apply_original_character_timbre(raw, styled, str(scene.get("speaker_style") or "narrator"))
+        duration = _probe_audio(active)
         out = workdir / f"kids_voice_{index + 1}.wav"
         filters = ["highpass=f=75", "lowpass=f=9500", "acompressor=threshold=-18dB:ratio=1.7:attack=12:release=150", "loudnorm=I=-16:TP=-1.5:LRA=8"]
-        if duration > scene_seconds - 0.35:
-            factor = min(1.35, max(1.0, duration / (scene_seconds - 0.45)))
+
+        # Keep speech flowing through almost the entire scene, avoiding long dead air.
+        target = scene_seconds - 0.18
+        if duration > target:
+            factor = min(1.35, max(1.0, duration / target))
+            filters.insert(0, f"atempo={factor:.4f}")
+        elif 0 < duration < target - 0.55:
+            factor = max(0.82, min(1.0, duration / target))
             filters.insert(0, f"atempo={factor:.4f}")
         filters.append(f"apad=pad_dur={scene_seconds}")
         filters.append(f"atrim=0:{scene_seconds}")
         subprocess.run([
-            "ffmpeg", "-y", "-loglevel", "error", "-i", str(raw),
+            "ffmpeg", "-y", "-loglevel", "error", "-i", str(active),
             "-af", ",".join(filters), "-ar", "48000", "-ac", "1", "-c:a", "pcm_s16le", str(out),
         ], check=True)
         raw.unlink(missing_ok=True)
+        if active != raw:
+            active.unlink(missing_ok=True)
         outputs.append(out)
     return outputs
 
@@ -170,7 +202,7 @@ def render_kids_long(meta: dict, workdir: Path) -> Path:
             "-map", "0:v:0", "-map", "[a]", "-t", str(duration), "-c:v", "copy", "-c:a", "aac", "-b:a", "192k",
             "-movflags", "+faststart", str(out),
         ], check=True)
-        meta["audio_source"] = "spanish_kids_voice_plus_original_clay_asmr"
+        meta["audio_source"] = "continuous_spanish_kids_voice_plus_original_clay_asmr"
     else:
         music = workdir / "kids_long_music.wav"
         make_pleasant_original_music(music, duration, _seed(meta, 999))
@@ -180,8 +212,8 @@ def render_kids_long(meta: dict, workdir: Path) -> Path:
             "-map", "0:v:0", "-map", "[a]", "-t", str(duration), "-c:v", "copy", "-c:a", "aac", "-b:a", "192k",
             "-movflags", "+faststart", str(out),
         ], check=True)
-        meta["audio_source"] = "spanish_kids_voice_plus_original_instrumental"
+        meta["audio_source"] = "continuous_spanish_kids_voice_plus_original_instrumental"
 
-    meta["tts_provider_used"] = "kokoro-ef_dora"
+    meta["tts_provider_used"] = "kokoro-ef_dora-original-profiles"
     meta["generated_visual_provider"] = "Pollinations image API"
     return out
