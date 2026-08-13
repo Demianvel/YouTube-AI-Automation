@@ -8,6 +8,9 @@ from urllib.parse import quote
 
 import requests
 
+from .ltx2_adapter import available as ltx2_available
+from .ltx2_adapter import generate_clip as generate_ltx2_clip
+
 BASE = "https://gen.pollinations.ai/image/"
 W, H = 1080, 1920
 
@@ -21,9 +24,9 @@ def _download_generated_image(prompt: str, out: Path, seed: int) -> None:
     key = os.getenv("POLLINATIONS_API_KEY", "").strip()
     full_prompt = (
         prompt
-        + ", premium polished 3D animated family film look, cute fictional characters, "
+        + ", premium polished original 3D family animation, cute fictional characters, "
           "soft cinematic lighting, expressive faces, clean materials, colorful environment, "
-          "vertical composition, no text, no logo, no watermark, no real people"
+          "vertical composition, no text, no logo, no watermark, no real people, no copyrighted characters"
     )
     url = BASE + quote(full_prompt, safe="")
     params = {
@@ -74,11 +77,39 @@ def _animate_image(source: Path, out: Path, duration: int, index: int) -> None:
     ], check=True)
 
 
-def generate_pollinations_kids_short(channel: dict, meta: dict, workdir: Path, final: Path, apply_audio_fn) -> None:
+def _ltx_prompt(scene_prompt: str) -> str:
+    return (
+        scene_prompt
+        + ". Original premium 3D family animation for children and teens. Fully animated characters and environment, "
+          "clear physical motion, expressive friendly faces, polished materials, cinematic camera movement, "
+          "bright soft lighting, safe positive mood, no text, no logos, no brands, no real people, "
+          "no copyrighted characters, no imitation of any existing animation franchise."
+    )
+
+
+def _generate_ltx2_scenes(channel: dict, meta: dict, workdir: Path) -> list[Path]:
     scene_duration = int(channel["scene_seconds"])
     scenes = meta.get("scenes") or []
     clips: list[Path] = []
+    for index, scene in enumerate(scenes):
+        clip = workdir / f"kids_ltx2_scene_{index + 1}.mp4"
+        prompt = str(scene.get("visual_prompt") or scene.get("stock_query") or "cute original 3D kids adventure")
+        generate_ltx2_clip(
+            _ltx_prompt(prompt),
+            clip,
+            seconds=min(10, scene_duration),
+            portrait=True,
+            seed=_seed(meta, index),
+            native_4k=True,
+        )
+        clips.append(clip)
+    return clips
 
+
+def _generate_image_scenes(channel: dict, meta: dict, workdir: Path) -> list[Path]:
+    scene_duration = int(channel["scene_seconds"])
+    scenes = meta.get("scenes") or []
+    clips: list[Path] = []
     for index, scene in enumerate(scenes):
         image = workdir / f"kids_generated_{index + 1}.jpg"
         clip = workdir / f"kids_scene_{index + 1}.mp4"
@@ -86,9 +117,27 @@ def generate_pollinations_kids_short(channel: dict, meta: dict, workdir: Path, f
         _download_generated_image(prompt, image, _seed(meta, index))
         _animate_image(image, clip, scene_duration, index)
         clips.append(clip)
+    return clips
+
+
+def generate_pollinations_kids_short(channel: dict, meta: dict, workdir: Path, final: Path, apply_audio_fn) -> None:
+    clips: list[Path]
+    visual_provider = "Pollinations image API + cinematic motion"
+
+    if ltx2_available():
+        try:
+            clips = _generate_ltx2_scenes(channel, meta, workdir)
+            visual_provider = "LTX-2 native video generation (4K scene pipeline)"
+        except Exception as exc:
+            print(f"LTX-2 fallo para EnViKidsAI ({exc}); regenerando TODAS las escenas con fallback estable.")
+            for p in workdir.glob("kids_ltx2_scene_*.mp4"):
+                p.unlink(missing_ok=True)
+            clips = _generate_image_scenes(channel, meta, workdir)
+    else:
+        clips = _generate_image_scenes(channel, meta, workdir)
 
     if not clips:
-        raise RuntimeError("No se generaron escenas 3D para EnViKids.")
+        raise RuntimeError("No se generaron escenas 3D para EnViKidsAI.")
 
     manifest = workdir / "kids_concat.txt"
     manifest.write_text("\n".join(f"file '{p.resolve()}'" for p in clips), encoding="utf-8")
@@ -99,6 +148,6 @@ def generate_pollinations_kids_short(channel: dict, meta: dict, workdir: Path, f
         "-movflags", "+faststart", str(visual),
     ], check=True)
 
-    total_duration = int(channel["scenes_per_short"]) * scene_duration
-    meta["generated_visual_provider"] = "Pollinations image API"
+    total_duration = int(channel["scenes_per_short"]) * int(channel["scene_seconds"])
+    meta["generated_visual_provider"] = visual_provider
     apply_audio_fn(visual, final, channel, meta, total_duration, _seed(meta, 999))
