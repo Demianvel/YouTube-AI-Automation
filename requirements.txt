@@ -7,3 +7,4 @@ requests>=2.32.0
 numpy>=1.26,<3
 soundfile>=0.13.1
 kokoro>=0.9.4
+huggingface_hub>=0.34.4,<2
