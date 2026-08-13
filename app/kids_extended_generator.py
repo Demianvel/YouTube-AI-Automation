@@ -13,12 +13,12 @@ SCENE_SECONDS = 12
 
 def generate_extended_short_metadata(channel: dict, minutes: int) -> dict[str, Any]:
     if minutes not in {1, 2, 3}:
-        raise ValueError("EnViKids extended Shorts solo admite 1, 2 o 3 minutos.")
+        raise ValueError("EnViKidsAI extended Shorts solo admite 1, 2 o 3 minutos.")
     scene_count = minutes * 5
     analytics = channel.get("_analytics_digest") or "No hay Analytics disponible; no inventar preferencias de audiencia."
 
     prompt = f"""
-Eres guionista senior de YouTube Shorts infantiles y productor de animacion 3D familiar.
+Eres guionista senior de YouTube Shorts infantiles/familiares y productor de animacion 3D para niños y adolescentes.
 Canal: {channel['display_name']} ({channel['handle']}).
 Duracion exacta objetivo: {minutes} minuto(s), vertical 9:16.
 Escenas: exactamente {scene_count} escenas de {SCENE_SECONDS} segundos.
@@ -29,40 +29,53 @@ UNIVERSO DEL CANAL:
 ANALYTICS DISPONIBLE:
 {analytics}
 
-Crea UNA mini-historia original, coherente, segura y entretenida. Si Analytics muestra temas con mas vistas, likes, comentarios, retencion, compartidos o suscriptores ganados, favorece esos patrones SIN repetir titulos ni historias anteriores.
+APRENDIZAJE DE AUDIENCIA:
+- Prioriza categorias presentes en videos con mas vistas y, especialmente, videos que ganaron mas suscriptores.
+- Tambien considera retencion, porcentaje visto, compartidos, likes y comentarios cuando existan.
+- No copies el video ganador: conserva el INTERES principal y crea otra historia, gancho y escenas.
+- Si Analytics aun tiene pocos datos, explora distintas categorias de manera equilibrada.
 
 TEMAS POSIBLES A ROTAR:
 - cocina divertida y segura;
 - dinosaurios simpaticos;
-- patitos, gatos, perros, vacas y otros animales;
-- selva amazonica fantastica y educativa;
-- oceano, espacio, robots amistosos;
+- patitos, gatos, perros, vacas, conejos, tortugas y otros animales;
+- escuela: ciencias, arte, musica, biblioteca, recreo, amistad, numeros y colores;
+- selva amazonica fantastica/educativa, naturaleza, oceano y espacio;
 - musica y baile con pista instrumental original;
-- amistad, colores, numeros, naturaleza y pequeños misterios sin miedo;
+- plastilina/modelado 3D satisfactorio tipo ASMR;
+- robots amistosos, pequeños misterios sin miedo y juegos de imaginacion;
 - bebes ficticios/cartoon siempre en situaciones seguras y acompañados por adultos ficticios cuando corresponda.
+
+AUDIO:
+Elige exactamente uno:
+1) "voice_music": voz castellana agradable + musica instrumental ORIGINAL muy suave.
+2) "clay_asmr": solo para plastilina/modelado: voz castellana suave + foley original de amasado/modelado, sin musica comercial.
+Siempre debe haber narracion. La voz debe servir para niños y adolescentes: calida, clara, expresiva, sin gritos y sin infantilizar en exceso.
 
 ESTILO VISUAL:
 - pelicula familiar 3D premium, personajes completamente originales;
 - formas redondeadas, expresiones claras, luz cinematografica suave, colores vivos;
+- inspiracion general en animacion 3D familiar moderna, sin copiar el estilo identificable ni personajes de ninguna franquicia;
 - continuidad de protagonistas entre escenas;
-- no copiar personajes, vestuario, escenarios ni diseños de ninguna franquicia real;
 - no personas reales, no logos, no marcas, no texto dentro de la imagen;
 - cada visual_prompt debe ser autocontenido, vertical 9:16, con accion visible y encuadre distinto.
 
 NARRACION:
-- castellano natural, calido y agradable para niños;
+- castellano natural y facil de entender para audiencia hispanohablante;
 - 18 a 26 palabras por escena;
 - ritmo agil pero no gritado;
-- vocabulario simple, positivo y curioso;
-- sin violencia, miedo intenso, humillacion ni conductas peligrosas imitables.
+- vocabulario positivo, curioso y apropiado para niños/adolescentes;
+- sin violencia, miedo intenso, humillacion, sexualizacion ni conductas peligrosas imitables.
 
 Devuelve SOLO JSON valido:
 {{
   "topic": "tema central",
+  "content_category": "cocina|dinosaurios|animales|escuela|musica|naturaleza|plastilina_asmr|aventura",
+  "audio_style": "voice_music|clay_asmr",
   "hook": "gancho de los primeros 2 segundos",
   "title": "titulo atractivo y verdadero, maximo 90 caracteres",
   "description": "descripcion de 3 a 6 lineas para YouTube",
-  "hashtags": ["#Shorts", "#EnViKids", "#..."],
+  "hashtags": ["#Shorts", "#EnViKidsAI", "#..."],
   "tags": ["..."],
   "scenes": [
     {{
@@ -74,6 +87,7 @@ Devuelve SOLO JSON valido:
 
 Reglas estrictas:
 - scenes debe tener exactamente {scene_count} elementos.
+- Si content_category es plastilina_asmr, audio_style debe ser clay_asmr.
 - Hashtags: 3 a 5.
 - Tags: 10 a 18.
 - Nada de markdown fuera del JSON.
@@ -100,7 +114,16 @@ Reglas estrictas:
         scene["visual_prompt"] = visual[:1500]
         scene["narration"] = narration
 
-    data["title"] = str(data.get("title") or "Nueva aventura EnViKids").strip()[:90]
+    category = str(data.get("content_category") or "aventura").strip().lower()
+    audio_style = str(data.get("audio_style") or "voice_music").strip().lower()
+    if category == "plastilina_asmr":
+        audio_style = "clay_asmr"
+    if audio_style not in {"voice_music", "clay_asmr"}:
+        audio_style = "voice_music"
+
+    data["content_category"] = category
+    data["audio_style"] = audio_style
+    data["title"] = str(data.get("title") or "Nueva aventura EnViKids AI").strip()[:90]
     data["description"] = str(data.get("description") or "").strip()
     data["hashtags"] = [str(x).strip() for x in (data.get("hashtags") or []) if str(x).strip()][:5]
     data["tags"] = [str(x).strip() for x in (data.get("tags") or []) if str(x).strip()][:18]
