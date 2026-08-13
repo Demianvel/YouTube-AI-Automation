@@ -1,0 +1,51 @@
+name: Publish Aleluya 4min FREE
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - scripts/render_aleluya4.py
+      - .github/workflows/aleluya4-publish.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: publish-aleluya-4min-free
+  cancel-in-progress: true
+
+jobs:
+  build_publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 240
+    env:
+      PYTHONPATH: .
+      HF_TOKEN: ${{ secrets.HF_TOKEN }}
+      PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
+      YOUTUBE_TOKEN_DEMIANVELO: ${{ secrets.YOUTUBE_TOKEN_DEMIANVELO }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install free production dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+          python -m pip install --upgrade pip
+          pip install gradio_client requests google-api-python-client google-auth
+
+      - name: Generate, render, validate and publish
+        run: python scripts/render_aleluya4.py
+
+      - name: Upload result artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: aleluya-4min-production-${{ github.run_id }}
+          path: output/aleluya4/
+          if-no-files-found: warn
+          retention-days: 5
