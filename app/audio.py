@@ -3,6 +3,7 @@ from __future__ import annotations
 import math
 import os
 import random
+import shutil
 import struct
 import subprocess
 import wave
@@ -78,11 +79,9 @@ def make_botanical_asmr(path: Path, duration: int, seed: int) -> None:
             soil_lp += 0.012 * (white - soil_lp)
             leaf_white = rng.uniform(-1.0, 1.0)
             leaf_lp += 0.045 * (leaf_white - leaf_lp)
-
             slow = 0.55 + 0.45 * math.sin(math.tau * 0.19 * t + 0.8)
             soil = soil_lp * 0.18
             leaves = (leaf_white - leaf_lp) * (0.045 + 0.025 * slow)
-
             water = 0.0
             for drop_time in drops:
                 dt = t - drop_time
@@ -91,16 +90,10 @@ def make_botanical_asmr(path: Path, duration: int, seed: int) -> None:
                     freq = 980.0 - 280.0 * min(1.0, dt / 0.16)
                     water += math.sin(math.tau * freq * dt) * env * 0.23
                     water += math.sin(math.tau * freq * 1.8 * dt) * env * 0.065
-
-            micro = 0.0
             local = t % 1.7
-            if local < 0.05:
-                env = math.exp(-65 * local)
-                micro = rng.uniform(-1.0, 1.0) * env * 0.035
-
+            micro = rng.uniform(-1.0, 1.0) * math.exp(-65 * local) * 0.035 if local < 0.05 else 0.0
             fade = min(1.0, t / 0.25, max(0.0, (duration - t) / 0.35))
-            sample = (soil + leaves + water + micro) * fade
-            sample = max(-0.92, min(0.92, sample))
+            sample = max(-0.92, min(0.92, (soil + leaves + water + micro) * fade))
             buffer += struct.pack("<h", int(sample * 32767))
             if len(buffer) >= 65536:
                 wf.writeframes(buffer)
@@ -119,18 +112,11 @@ def _kokoro_voice(path: Path, text: str) -> None:
     pipeline = KPipeline(lang_code="e")
     chunks: list[np.ndarray] = []
     clean_text = " ".join(str(text).split())
-    for _graphemes, _phonemes, audio in pipeline(
-        clean_text,
-        voice=voice,
-        speed=speed,
-        split_pattern=r"(?<=[.!?])\s+",
-    ):
+    for _graphemes, _phonemes, audio in pipeline(clean_text, voice=voice, speed=speed, split_pattern=r"(?<=[.!?])\s+"):
         if audio is not None and len(audio):
             chunks.append(np.asarray(audio, dtype=np.float32))
     if not chunks:
         raise RuntimeError("Kokoro no genero audio en español.")
-
-    # Tiny inter-sentence gap: enough for intelligibility, short enough to keep a streamer/influencer flow.
     pause = np.zeros(int(24000 * 0.035), dtype=np.float32)
     joined: list[np.ndarray] = []
     for index, chunk in enumerate(chunks):
@@ -144,15 +130,94 @@ def _kokoro_voice(path: Path, text: str) -> None:
     sf.write(str(path), combined, 24000, subtype="PCM_16")
 
 
-def _chatterbox_voice(path: Path, text: str) -> None:
-    """Chatterbox Multilingual V3, official CPU/CUDA API."""
+def _chatterbox_general_voice(path: Path, text: str) -> None:
     import torch
     import torchaudio as ta
     from chatterbox.mtl_tts import ChatterboxMultilingualTTS
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
     model = ChatterboxMultilingualTTS.from_pretrained(device=device, t3_model="v3")
-    kwargs: dict = {"language_id": "es"}
+    kwargs: dict = {
+        "language_id": "es",
+        "exaggeration": float(os.getenv("CHATTERBOX_EXAGGERATION", "0.62")),
+        "cfg_weight": float(os.getenv("CHATTERBOX_CFG_WEIGHT", "0.38")),
+        "temperature": float(os.getenv("CHATTERBOX_TEMPERATURE", "0.80")),
+    }
+    ref = os.getenv("CHATTERBOX_REFERENCE_AUDIO", "").strip()
+    if ref:
+        if not Path(ref).exists():
+            raise RuntimeError("CHATTERBOX_REFERENCE_AUDIO no existe en el runner.")
+        kwargs["audio_prompt_path"] = ref
+    clean_text = " ".join(str(text).split())
+    wav = model.generate(clean_text, **kwargs)
+    ta.save(str(path), wav.cpu(), model.sr)
+
+
+def _link_or_copy(src: Path, dst: Path) -> None:
+    dst.parent.mkdir(parents=True, exist_ok=True)
+    if dst.exists() or dst.is_symlink():
+        return
+    try:
+        dst.symlink_to(src)
+    except OSError:
+        shutil.copy2(src, dst)
+
+
+def _latam_model_dir() -> Path:
+    """Merge official base companion assets with the official LatAm Spanish V3 finetune.
+
+    ResembleAI's LatAm pack contains its regional T3 and V3 S3Gen assets, while the shared
+    base repository contains the voice encoder/default conditionals. Chatterbox's from_local
+    loader accepts an arbitrary .safetensors T3 filename, so the two official snapshots can
+    be combined without modifying model weights.
+    """
+    from huggingface_hub import snapshot_download
+
+    cache = Path(os.getenv("CHATTERBOX_LATAM_CACHE", Path.home() / ".cache/chatterbox-latam-v3")).expanduser()
+    marker = cache / ".ready"
+    if marker.exists():
+        return cache
+
+    base = Path(snapshot_download(
+        repo_id="ResembleAI/chatterbox",
+        repo_type="model",
+        allow_patterns=["ve.pt", "conds.pt"],
+        token=os.getenv("HF_TOKEN") or None,
+    ))
+    latam = Path(snapshot_download(
+        repo_id="ResembleAI/Chatterbox-Multilingual-es-mx-latam",
+        repo_type="model",
+        allow_patterns=["t3_es_mx_latam.safetensors", "s3gen_v3.pt", "grapheme_mtl_merged_expanded_v1.json"],
+        token=os.getenv("HF_TOKEN") or None,
+    ))
+    cache.mkdir(parents=True, exist_ok=True)
+    _link_or_copy(base / "ve.pt", cache / "ve.pt")
+    if (base / "conds.pt").exists():
+        _link_or_copy(base / "conds.pt", cache / "conds.pt")
+    _link_or_copy(latam / "t3_es_mx_latam.safetensors", cache / "t3_es_mx_latam.safetensors")
+    _link_or_copy(latam / "s3gen_v3.pt", cache / "s3gen.pt")
+    _link_or_copy(latam / "grapheme_mtl_merged_expanded_v1.json", cache / "grapheme_mtl_merged_expanded_v1.json")
+    marker.write_text("official ResembleAI LatAm Spanish V3 pack\n", encoding="utf-8")
+    return cache
+
+
+def _chatterbox_latam_voice(path: Path, text: str) -> None:
+    import torch
+    import torchaudio as ta
+    from chatterbox.mtl_tts import ChatterboxMultilingualTTS
+
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    model = ChatterboxMultilingualTTS.from_local(
+        _latam_model_dir(),
+        device=device,
+        t3_model="t3_es_mx_latam.safetensors",
+    )
+    kwargs: dict = {
+        "language_id": "es",
+        "exaggeration": float(os.getenv("CHATTERBOX_EXAGGERATION", "0.62")),
+        "cfg_weight": float(os.getenv("CHATTERBOX_CFG_WEIGHT", "0.38")),
+        "temperature": float(os.getenv("CHATTERBOX_TEMPERATURE", "0.80")),
+    }
     ref = os.getenv("CHATTERBOX_REFERENCE_AUDIO", "").strip()
     if ref:
         if not Path(ref).exists():
@@ -164,11 +229,26 @@ def _chatterbox_voice(path: Path, text: str) -> None:
 
 
 def make_natural_spanish_voice(path: Path, text: str) -> str:
-    """Returns the provider actually used. Chatterbox can fall back to Kokoro."""
-    provider = os.getenv("TTS_PROVIDER", "chatterbox").lower().strip()
-    if provider == "chatterbox":
+    """Prefer official LatAm Spanish V3, then general V3, then Kokoro."""
+    provider = os.getenv("TTS_PROVIDER", "chatterbox_latam").lower().strip()
+    if provider in {"chatterbox_latam", "chatterbox-latam", "latam"}:
         try:
-            _chatterbox_voice(path, text)
+            _chatterbox_latam_voice(path, text)
+            used = "chatterbox-v3-latam-es-419"
+        except Exception as latam_exc:
+            print(f"Chatterbox LatAm V3 no disponible ({latam_exc}); intentando V3 general.")
+            try:
+                _chatterbox_general_voice(path, text)
+                used = "chatterbox-v3-general-fallback"
+            except Exception as general_exc:
+                if os.getenv("TTS_FALLBACK_KOKORO", "true").lower() != "true":
+                    raise
+                print(f"Chatterbox V3 general no disponible ({general_exc}); usando Kokoro.")
+                _kokoro_voice(path, text)
+                used = "kokoro-fallback"
+    elif provider == "chatterbox":
+        try:
+            _chatterbox_general_voice(path, text)
             used = "chatterbox-v3"
         except Exception as exc:
             if os.getenv("TTS_FALLBACK_KOKORO", "true").lower() != "true":
@@ -195,11 +275,9 @@ def apply_audio(video: Path, out: Path, channel: dict, meta: dict, duration: int
         asmr = out.with_name("botanical_asmr.wav")
         make_botanical_asmr(asmr, duration, seed)
         subprocess.run([
-            "ffmpeg", "-y", "-loglevel", "error",
-            "-i", str(video), "-i", str(asmr),
+            "ffmpeg", "-y", "-loglevel", "error", "-i", str(video), "-i", str(asmr),
             "-filter_complex", "[1:a]highpass=f=45,lowpass=f=11000,loudnorm=I=-20:TP=-2:LRA=7[a]",
-            "-map", "0:v:0", "-map", "[a]", "-t", str(duration),
-            "-c:v", "copy", "-c:a", "aac", "-b:a", "192k",
+            "-map", "0:v:0", "-map", "[a]", "-t", str(duration), "-c:v", "copy", "-c:a", "aac", "-b:a", "192k",
             "-movflags", "+faststart", str(out),
         ], check=True)
         meta["tts_provider_used"] = "none"
@@ -213,42 +291,33 @@ def apply_audio(video: Path, out: Path, channel: dict, meta: dict, duration: int
         fade_out = min(0.75, max(0.05, duration * 0.20))
         fade_out_start = max(0.0, duration - fade_out)
         subprocess.run([
-            "ffmpeg", "-y", "-loglevel", "error",
-            "-i", str(video), "-i", str(music),
-            "-filter_complex",
-            f"[1:a]afade=t=in:st=0:d={fade_in:.2f},afade=t=out:st={fade_out_start:.2f}:d={fade_out:.2f},volume=0.72[a]",
-            "-map", "0:v:0", "-map", "[a]", "-t", str(duration),
-            "-c:v", "copy", "-c:a", "aac", "-b:a", "192k",
+            "ffmpeg", "-y", "-loglevel", "error", "-i", str(video), "-i", str(music),
+            "-filter_complex", f"[1:a]afade=t=in:st=0:d={fade_in:.2f},afade=t=out:st={fade_out_start:.2f}:d={fade_out:.2f},volume=0.72[a]",
+            "-map", "0:v:0", "-map", "[a]", "-t", str(duration), "-c:v", "copy", "-c:a", "aac", "-b:a", "192k",
             "-movflags", "+faststart", str(out),
         ], check=True)
         meta["tts_provider_used"] = "none"
         meta["audio_source"] = "original_instrumental_generated_in_repo"
         return
 
-    text = " ".join(
-        scene.get("narration", "").strip()
-        for scene in meta.get("scenes", [])
-        if scene.get("narration", "").strip()
-    )
+    text = " ".join(scene.get("narration", "").strip() for scene in meta.get("scenes", []) if scene.get("narration", "").strip())
     if not text:
         raise RuntimeError("El canal requiere narracion y no se genero texto.")
 
-    requested = os.getenv("TTS_PROVIDER", "chatterbox").lower().strip()
-    voice_path = out.with_name(f"narration_{requested}.wav")
+    requested = os.getenv("TTS_PROVIDER", "chatterbox_latam").lower().strip()
+    voice_path = out.with_name(f"narration_{requested.replace('-', '_')}.wav")
     used = make_natural_spanish_voice(voice_path, text)
     meta["tts_provider_used"] = used
 
     music = out.with_name("soft_music.wav")
     make_pleasant_original_music(music, duration, seed ^ 0xD1E0)
-    music_volume = "0.035" if "kids" in channel.get("visual_mode", "") else "0.035"
+    music_volume = "0.032"
     subprocess.run([
-        "ffmpeg", "-y", "-loglevel", "error",
-        "-i", str(video), "-i", str(voice_path), "-i", str(music),
+        "ffmpeg", "-y", "-loglevel", "error", "-i", str(video), "-i", str(voice_path), "-i", str(music),
         "-filter_complex",
-        f"[1:a]highpass=f=70,lowpass=f=9000,acompressor=threshold=-18dB:ratio=1.9:attack=12:release=160,loudnorm=I=-16:TP=-1.5:LRA=8,apad=pad_dur={duration}[v];"
+        f"[1:a]highpass=f=70,lowpass=f=10000,acompressor=threshold=-18dB:ratio=1.75:attack=10:release=140,loudnorm=I=-16:TP=-1.5:LRA=8,apad=pad_dur={duration}[v];"
         f"[2:a]volume={music_volume}[m];[v][m]amix=inputs=2:duration=first:dropout_transition=1[a]",
-        "-map", "0:v:0", "-map", "[a]", "-t", str(duration),
-        "-c:v", "copy", "-c:a", "aac", "-b:a", "192k",
+        "-map", "0:v:0", "-map", "[a]", "-t", str(duration), "-c:v", "copy", "-c:a", "aac", "-b:a", "192k",
         "-movflags", "+faststart", str(out),
     ], check=True)
-    meta["audio_source"] = "continuous_natural_spanish_voice_plus_original_instrumental"
+    meta["audio_source"] = "continuous_latam_spanish_voice_plus_original_instrumental"
