@@ -1,0 +1,323 @@
+name: Render Aqui Estas FREE parallel and publish
+
+on:
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: Publicar en @DemianVelo si el render final es valido
+        required: true
+        default: true
+        type: boolean
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/render-aqui-estas-parallel-free.yml
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: aqui-estas-free-parallel
+  cancel-in-progress: false
+
+jobs:
+  music:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        section: [1, 2, 3, 4]
+    env:
+      PYTHONPATH: .
+      SECTION: ${{ matrix.section }}
+      HF_TOKEN: ${{ secrets.HF_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install free music client and ffmpeg
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+          pip install -U gradio_client
+      - name: Generate one 60-second ACE-Step section on an independent runner
+        shell: bash
+        run: |
+          mkdir -p output/music
+          python - <<'PY'
+          import base64, os, shutil, subprocess
+          from pathlib import Path
+          from gradio_client import Client
+          from scripts.render_aqui_estas_demianvelo import SECTIONS, STYLE_PROMPT
+
+          section_no = int(os.environ['SECTION'])
+          lyrics = SECTIONS[section_no - 1]
+          seed = 20260813
+          token = os.getenv('HF_TOKEN') or None
+          out = Path(f'output/music/section_{section_no}.wav')
+
+          spaces = [
+              'victor/ace-step-jam',
+              'ManishKumar0001/ace-step-jam',
+              'techfreakworm/ACE-Music-Studio',
+              'ACloudCenter/ACE-Music-Generator',
+          ]
+
+          def decode(v):
+              if isinstance(v, str):
+                  p = Path(v)
+                  if p.exists() and p.is_file():
+                      shutil.copy2(p, out); return True
+                  s = v.strip()
+                  if s.startswith('data:audio/') and ';base64,' in s:
+                      out.write_bytes(base64.b64decode(s.split(';base64,', 1)[1])); return True
+                  try:
+                      raw = base64.b64decode(s, validate=True)
+                      if len(raw) > 100000:
+                          out.write_bytes(raw); return True
+                  except Exception:
+                      pass
+              if isinstance(v, dict):
+                  return any(decode(x) for x in v.values())
+              if isinstance(v, (list, tuple)):
+                  return any(decode(x) for x in v)
+              return False
+
+          def duration(path):
+              cp = subprocess.run(['ffprobe','-v','error','-show_entries','format=duration','-of','default=nw=1:nk=1',str(path)], text=True, capture_output=True, check=True)
+              return float(cp.stdout.strip())
+
+          errors=[]
+          prompt = STYLE_PROMPT + f'. Section {section_no} of one continuous song. Keep exactly the same original male singer identity, vocal placement, timbre, tonal center, instrumentation and mix as the other sections. Do not add spoken commentary.'
+          for space in spaces:
+              try:
+                  print('TRY_ACE_SPACE', space)
+                  client = Client(space, token=token, verbose=False)
+                  api = client.view_api(return_format='dict')
+                  named = api.get('named_endpoints', api)
+                  if '/generate' in named:
+                      result = client.predict(prompt, lyrics, 60.0, 8, 7.0, seed, '', 0.8, api_name='/generate')
+                  else:
+                      # Dynamic fallback for ACE-Step interfaces exposing named prompt/lyrics parameters.
+                      candidates=[]
+                      for endpoint,spec in named.items():
+                          if not isinstance(spec,dict): continue
+                          names=[str(p.get('parameter_name') or '').lower() for p in spec.get('parameters',[])]
+                          blob=(endpoint+' '+' '.join(names)).lower()
+                          if 'lyric' in blob and any(k in blob for k in ['generate','music','song']):
+                              candidates.append((endpoint,spec))
+                      if not candidates:
+                          raise RuntimeError('no compatible generation endpoint')
+                      endpoint,spec=max(candidates,key=lambda x:len(x[1].get('parameters',[])))
+                      args=[]
+                      for p in spec.get('parameters',[]):
+                          n=str(p.get('parameter_name') or '').lower().replace('-','_')
+                          default=p.get('default',None)
+                          if n in {'prompt','caption','music_prompt','description','song_description'} or ('prompt' in n and 'negative' not in n): value=prompt
+                          elif 'lyric' in n: value=lyrics
+                          elif 'duration' in n and 'repaint' not in n: value=60.0
+                          elif 'bpm' in n: value=110
+                          elif 'vocal_language' in n or n in {'language','lang'}: value='es'
+                          elif 'infer' in n and 'step' in n or n=='steps': value=8
+                          elif 'guidance' in n: value=7.0
+                          elif n in {'seed','manual_seed'}: value=seed
+                          elif 'random_seed' in n: value=False
+                          elif 'instrumental' in n: value=False
+                          elif 'batch' in n: value=1
+                          else: value=default
+                          args.append(value)
+                      result=client.predict(*args,api_name=endpoint)
+                  if not decode(result):
+                      raise RuntimeError('ACE-Step returned no downloadable audio')
+                  d=duration(out)
+                  if d < 50 or d > 75:
+                      raise RuntimeError(f'invalid section duration {d}')
+                  if out.stat().st_size < 100000:
+                      raise RuntimeError('audio file too small')
+                  print('SECTION_SUCCESS', section_no, space, d, out.stat().st_size)
+                  break
+              except Exception as exc:
+                  out.unlink(missing_ok=True)
+                  msg=f'{space}: {type(exc).__name__}: {exc}'
+                  print('ACE_SPACE_FAIL', msg)
+                  errors.append(msg)
+          else:
+              raise RuntimeError('All free ACE-Step Spaces failed for section %s:\n%s' % (section_no, '\n'.join(errors)))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: aqui-estas-part-${{ matrix.section }}
+          path: output/music/section_${{ matrix.section }}.wav
+          if-no-files-found: error
+          retention-days: 5
+
+  hero:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    continue-on-error: true
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - id: 1
+            prompt: "Original fictional adult male Christian pop singer performing an intimate verse on a minimal cinematic stage, warm expressive face, natural body movement, elegant dark neutral wardrobe without logos, volumetric golden backlight and deep blue atmosphere, photorealistic premium commercial music video, smooth slow dolly-in, no celebrity resemblance, no text, 16:9"
+          - id: 2
+            prompt: "Original fictional adult male singer performing a powerful worship chorus on a wide cinematic stage, tasteful haze, moving warm spotlights, emotional natural hand gestures, polished realistic skin and fabric, premium contemporary music video camera orbit, no celebrity resemblance, no brands, no text, 16:9"
+          - id: 3
+            prompt: "Solitary silhouette walking along a mountain ridge just before sunrise, first golden rays breaking through dramatic clouds, hopeful spiritual atmosphere, smooth cinematic drone movement, photorealistic premium music video, no logos, no text, 16:9"
+          - id: 4
+            prompt: "Rain-wet city street at blue hour with warm window reflections, original fictional adult male singer walking slowly toward camera while singing emotionally, cinematic shallow depth of field, natural body motion, premium commercial color grade, no celebrity resemblance, no logos, no text, 16:9"
+    env:
+      HERO_ID: ${{ matrix.id }}
+      HERO_PROMPT: ${{ matrix.prompt }}
+      HF_TOKEN: ${{ secrets.HF_TOKEN }}
+    steps:
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -U gradio_client
+      - name: Try free Wan2.2 hero shot on an independent runner
+        shell: bash
+        run: |
+          mkdir -p output/hero
+          python - <<'PY'
+          import os, shutil
+          from pathlib import Path
+          from gradio_client import Client
+          token=os.getenv('HF_TOKEN') or None
+          prompt=os.environ['HERO_PROMPT']
+          hero_id=int(os.environ['HERO_ID'])
+          spaces=['OpenKing/wan2-video-generation','shafqat786/Wan-AI-Wan2.2-TI2V-5B','Teheby63736363/Wan-AI-Wan2.2-TI2V-5B','skrov/Wan-AI-Wan2.2-TI2V-5B']
+          out=Path(f'output/hero/hero_{hero_id}.mp4')
+          def walk(v, files):
+              if isinstance(v,str):
+                  p=Path(v)
+                  if p.exists() and p.suffix.lower() in {'.mp4','.webm','.mov','.mkv'}: files.append(p)
+              elif isinstance(v,dict):
+                  for x in v.values(): walk(x,files)
+              elif isinstance(v,(list,tuple)):
+                  for x in v: walk(x,files)
+          errors=[]
+          for space in spaces:
+              try:
+                  print('TRY_WAN_SPACE',space)
+                  c=Client(space,token=token,verbose=False)
+                  api=c.view_api(return_format='dict'); named=api.get('named_endpoints',api)
+                  if space=='OpenKing/wan2-video-generation' and '/generate_video' in named:
+                      result=c.predict(prompt,None,1280,704,73,20,5.0,4200+hero_id,api_name='/generate_video')
+                  else:
+                      cand=[]
+                      for endpoint,spec in named.items():
+                          if not isinstance(spec,dict): continue
+                          names=[str(p.get('parameter_name') or '').lower() for p in spec.get('parameters',[])]
+                          returns=' '.join(str(r.get('type') or r.get('component') or '') for r in spec.get('returns',[])).lower()
+                          if any('prompt' in n for n in names) and ('video' in endpoint.lower() or 'video' in returns): cand.append((endpoint,spec))
+                      if not cand: raise RuntimeError('no video endpoint')
+                      endpoint,spec=max(cand,key=lambda x:len(x[1].get('parameters',[])))
+                      args=[]
+                      for p in spec.get('parameters',[]):
+                          n=str(p.get('parameter_name') or '').lower().replace('-','_'); default=p.get('default',None)
+                          if 'image' in n or 'audio' in n: value=None
+                          elif 'prompt' in n and 'negative' not in n: value=prompt
+                          elif 'negative' in n: value='blurry, low quality, text, watermark, logo, celebrity resemblance, deformed anatomy'
+                          elif 'width' in n: value=1280
+                          elif 'height' in n: value=704
+                          elif 'duration' in n or 'seconds' in n: value=3.0
+                          elif 'frame' in n: value=73
+                          elif 'step' in n: value=12
+                          elif 'guidance' in n: value=5.0
+                          elif n=='seed': value=4200+hero_id
+                          elif 'random' in n and 'seed' in n: value=False
+                          else: value=default
+                          args.append(value)
+                      result=c.predict(*args,api_name=endpoint)
+                  files=[]; walk(result,files)
+                  if not files: raise RuntimeError('no downloadable video')
+                  shutil.copy2(files[0],out)
+                  if out.stat().st_size<50000: raise RuntimeError('video too small')
+                  print('HERO_SUCCESS',space,out.stat().st_size)
+                  break
+              except Exception as exc:
+                  out.unlink(missing_ok=True)
+                  msg=f'{space}: {type(exc).__name__}: {exc}'; errors.append(msg); print('WAN_FAIL',msg)
+          else:
+              raise RuntimeError('all free Wan2.2 spaces failed: '+' | '.join(errors))
+          PY
+      - uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: aqui-estas-hero-${{ matrix.id }}
+          path: output/hero/hero_${{ matrix.id }}.mp4
+          retention-days: 5
+
+  assemble:
+    needs: [music, hero]
+    if: ${{ always() && needs.music.result == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    env:
+      PYTHONPATH: .
+      YOUTUBE_TOKEN_DEMIANVELO: ${{ secrets.YOUTUBE_TOKEN_DEMIANVELO }}
+      PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
+      PUBLISH_INPUT: ${{ github.event_name == 'workflow_dispatch' && inputs.publish || 'true' }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download all four song sections
+        uses: actions/download-artifact@v4
+        with:
+          pattern: aqui-estas-part-*
+          path: parts
+          merge-multiple: true
+      - name: Download optional Wan2.2 hero shots
+        uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          pattern: aqui-estas-hero-*
+          path: heroes
+          merge-multiple: true
+      - name: Install final production dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg fonts-dejavu-core fonts-liberation2
+          pip install requests google-api-python-client google-auth pillow gradio_client
+      - name: Assemble, create thumbnail and publish to DemianVelo
+        shell: bash
+        run: |
+          python - <<'PY'
+          import os, subprocess
+          from pathlib import Path
+          from scripts.render_aqui_estas_demianvelo import FINAL_DIR, build_video, make_thumbnail, upload, media_duration
+
+          parts=[Path('parts')/f'section_{i}.wav' for i in range(1,5)]
+          for p in parts:
+              if not p.exists() or p.stat().st_size<100000: raise RuntimeError(f'missing music part {p}')
+          FINAL_DIR.mkdir(parents=True,exist_ok=True)
+          audio=FINAL_DIR/'Aqui_Estas_x_DemianVelo.wav'
+          cmd=['ffmpeg','-y','-loglevel','error']
+          for p in parts: cmd += ['-i',str(p)]
+          cmd += ['-filter_complex',
+              '[0:a]loudnorm=I=-15:TP=-1.2:LRA=10[a0];[1:a]loudnorm=I=-15:TP=-1.2:LRA=10[a1];[2:a]loudnorm=I=-15:TP=-1.2:LRA=10[a2];[3:a]loudnorm=I=-15:TP=-1.2:LRA=10[a3];[a0][a1]acrossfade=d=0.6:c1=tri:c2=tri[a01];[a01][a2]acrossfade=d=0.6:c1=tri:c2=tri[a012];[a012][a3]acrossfade=d=0.6:c1=tri:c2=tri[outa]',
+              '-map','[outa]','-c:a','pcm_s16le',str(audio)]
+          subprocess.run(cmd,check=True)
+          d=media_duration(audio)
+          if not 180<=d<=300: raise RuntimeError(f'final audio duration invalid: {d}')
+          heroes=sorted(Path('heroes').glob('*.mp4')) if Path('heroes').exists() else []
+          print('OPTIONAL_HERO_SHOTS',len(heroes))
+          video,credits=build_video(audio,heroes)
+          thumb=make_thumbnail(video)
+          print('FINAL_VIDEO',video,media_duration(video),video.stat().st_size)
+          print('THUMBNAIL',thumb,thumb.stat().st_size)
+          if os.environ.get('PUBLISH_INPUT','true').lower()=='true':
+              upload(video,thumb,credits)
+          PY
+      - name: Upload final production artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: demianvelo-aqui-estas-final-${{ github.run_id }}
+          path: output/aqui_estas_demianvelo/
+          if-no-files-found: warn
+          retention-days: 5
