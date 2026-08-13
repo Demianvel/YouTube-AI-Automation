@@ -74,11 +74,12 @@ def main() -> None:
     print(f"Usando cliente OAuth: {client_file}")
     print("Se abrira un enlace de Google. Elegi la cuenta que administra @DemianVelo y acepta los permisos.")
     print("El token NO se imprimira ni se guardara en el repositorio.")
+    print("El script elegira automaticamente un puerto local libre para evitar conflictos.")
 
     flow = InstalledAppFlow.from_client_secrets_file(str(client_file), SCOPES)
     credentials = flow.run_local_server(
         host="127.0.0.1",
-        port=8766,
+        port=0,
         open_browser=False,
         authorization_prompt_message="\nAbri esta URL en el navegador del mismo telefono:\n{url}\n",
         success_message="Autorizacion recibida. Podes volver a Termux.",
