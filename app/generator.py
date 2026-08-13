@@ -52,8 +52,9 @@ def _prompt(channel: dict, previous: list[dict], attempt: int) -> str:
         )
     elif kids_3d:
         audio_rule = (
-            "REGLA DE AUDIO INFANTIL: cada escena debe incluir una narracion muy breve en castellano claro, alegre y natural. "
-            "Usa palabras simples, tono calido y positivo, sin gritos, amenazas, miedo ni frases adultas."
+            "REGLA DE AUDIO INFANTIL/JUVENIL: cada escena debe incluir una narracion muy breve en castellano claro, alegre y natural. "
+            "La voz debe sentirse amable y expresiva para niños y adolescentes, sin voz de bebe exagerada, sin gritos y sin frases adultas. "
+            "Se agregara musica instrumental original muy suave; nunca canciones comerciales de terceros."
         )
     else:
         if botanical:
@@ -78,8 +79,9 @@ def _prompt(channel: dict, previous: list[dict], attempt: int) -> str:
         )
     elif kids_3d:
         visual_rule = (
-            "VISUAL GENERATIVO 3D: visual_prompt debe describir una escena infantil 3D completa y autocontenida, vertical 9:16, "
-            "con personajes ficticios tiernos, expresiones claras, luz cinematografica suave, colores vivos y composicion profesional. "
+            "VISUAL GENERATIVO 3D: visual_prompt debe describir una escena infantil/familiar 3D completa y autocontenida, vertical 9:16, "
+            "con personajes ficticios originales, expresiones claras, luz cinematografica suave, colores vivos y composicion profesional. "
+            "Inspiracion general en animacion 3D familiar moderna, pero no copies personajes, diseños, vestuario, escenarios ni el estilo identificable de ninguna franquicia. "
             "No uses personas reales, logos, texto ni marcas. stock_query debe ser una frase corta en ingles que resuma la escena; "
             "se usa solo como identificador auxiliar y no como banco de metraje."
         )
@@ -89,6 +91,20 @@ def _prompt(channel: dict, previous: list[dict], attempt: int) -> str:
             "en bancos de medios libres. Describe algo filmable: 'small business owner calculator', 'budget planning desk' o "
             "'packing online orders'. Evita marcas, logos y terminos CGI, 3D, animation o AI."
         )
+
+    kids_focus = ""
+    if kids_3d:
+        kids_focus = """
+CATEGORIAS ENVIKIDSAI A ROTAR Y APRENDER:
+- cocina divertida y segura;
+- dinosaurios simpaticos;
+- animales como patitos, gatos, perros, vacas, conejos, tortugas y animales de selva/granja;
+- escuela: ciencias, arte, musica, biblioteca, recreo, amistad, numeros y colores;
+- musica y baile con pista original del sistema;
+- plastilina/modelado 3D satisfactorio inspirado en ASMR visual;
+- naturaleza, selva amazonica fantastica/educativa, oceano, espacio, robots amistosos y aventuras positivas.
+No fuerces una categoria: usa Analytics para favorecer lo que ya demostro mas vistas, retencion o suscriptores ganados, manteniendo exploracion para descubrir nuevos intereses.
+""".strip()
 
     channel_value = (
         "transformacion visual clara y verificable" if botanical else
@@ -105,6 +121,7 @@ PROMPT MAESTRO DEL CANAL:
 
 {audio_rule}
 {visual_rule}
+{kids_focus}
 
 Genera UN concepto nuevo para un Short de {channel['scenes_per_short'] * channel['scene_seconds']} segundos.
 Debe ser claramente diferente del historial reciente. El titulo debe generar curiosidad real, describir correctamente el contenido y evitar clickbait enganoso.
@@ -116,7 +133,9 @@ ANALYTICS DEL CANAL PARA ADAPTAR EL CONTENIDO:
 
 REGLAS PARA APRENDER DE LA AUDIENCIA:
 - Prioriza patrones presentes en videos que combinaron vistas, tiempo de visualizacion, porcentaje visto, compartidos, comentarios y suscriptores ganados.
-- Si ciertos paises o edades aparecen con mas fuerza, adapta ejemplos, vocabulario y temas sin excluir injustamente a otras audiencias.
+- En EnViKidsAI, da peso especial a los temas de videos que ganaron mas suscriptores, no solo a los que tuvieron mas vistas.
+- Si un video tiene muchas vistas pero retencion debil o casi no convierte a suscriptores, no lo copies ciegamente.
+- Si ciertos paises o edades aparecen con mas fuerza, adapta vocabulario y temas sin excluir injustamente a otras audiencias.
 - Usa las fuentes de trafico y dispositivos como contexto para ritmo y claridad, no como excusa para clickbait.
 - Inspírate en temas y formatos que funcionaron, pero crea una idea NUEVA y original.
 - No inventes datos faltantes. Si demografia o compartidos no aparecen, ignoralos.
