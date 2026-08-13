@@ -37,6 +37,18 @@ jobs:
                   c=Client(space, verbose=False)
                   api=c.view_api(return_format='dict')
                   named=api.get('named_endpoints', api)
+                  for name,spec in named.items():
+                      if not isinstance(spec,dict):
+                          continue
+                      params=spec.get('parameters',[])
+                      names=[str(p.get('parameter_name') or '') for p in params]
+                      returns=spec.get('returns',[])
+                      blob=(name+' '+' '.join(names)+' '+json.dumps(returns,ensure_ascii=False)).lower()
+                      if 'prompt' in blob and 'lyric' in blob:
+                          print('GENERATION_CANDIDATE',name)
+                          for i,p in enumerate(params,1):
+                              print(' G',i,p.get('parameter_name'),'default=',p.get('default'),'type=',p.get('type'))
+                          print(' G_RETURNS', [r.get('type') for r in returns])
                   useful=[]
                   for name,spec in named.items():
                       blob=(name+' '+json.dumps(spec,ensure_ascii=False)).lower()
