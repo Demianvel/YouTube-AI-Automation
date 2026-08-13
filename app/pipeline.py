@@ -9,7 +9,7 @@ from datetime import datetime, timezone
 from . import video as video_module
 from .channel_analytics import analytics_digest, collect_channel_analytics
 from .config import HISTORY_FILE, OUTPUT_DIR, load_channel
-from .generator import generate_metadata
+from .generator_resilient import generate_metadata
 from .history import append_history, read_history
 from .performance import enrich_history_with_youtube_stats
 from .premium_audio import apply_audio as premium_apply_audio
