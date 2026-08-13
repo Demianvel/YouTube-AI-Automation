@@ -1,0 +1,42 @@
+name: Probe free Hugging Face ZeroGPU APIs
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - triggers/hf-zero-probe.txt
+      - .github/workflows/hf-zero-probe.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install client
+        run: pip install -U gradio_client huggingface_hub
+      - name: Probe Spaces
+        run: |
+          python - <<'PY'
+          from gradio_client import Client
+          spaces = [
+              'ACE-Step/Ace-Step-v1.5',
+              'Lightricks/LTX-2-3',
+              'linoyts/LTX-2-3-sync',
+              'ShaundeOoO/ltx-2.3-fast',
+          ]
+          for space in spaces:
+              print('\n###', space)
+              try:
+                  c = Client(space, verbose=False)
+                  print(c.view_api(return_format='dict'))
+              except Exception as exc:
+                  print('ERROR', type(exc).__name__, exc)
+          PY
