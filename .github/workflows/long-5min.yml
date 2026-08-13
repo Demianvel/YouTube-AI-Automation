@@ -18,8 +18,8 @@ on:
         default: false
         type: boolean
   schedule:
-    # Argentina UTC-3: 14:30 todos los dias.
-    - cron: "30 17 * * *"
+    # UTC. Argentina UTC-3: 10:30, 12:30, 14:30, 16:30 y 18:30.
+    - cron: "30 13,15,17,19,21 * * *"
   push:
     branches: [main]
     paths:
