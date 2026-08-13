@@ -13,7 +13,12 @@ def choose_topic_family(channel_slug: str, previous: list[dict] | None = None, s
     data = json.loads(FAMILIES_FILE.read_text(encoding="utf-8"))
     families = [str(x).strip() for x in data[channel_slug] if str(x).strip()]
     previous = previous or []
-    recent = [str(x.get("content_family") or "").strip() for x in previous[-8:]]
+
+    # BrotaVida has many species. Keep a much longer cooldown so a plant does
+    # not come back after only a handful of uploads. Other channels retain a
+    # shorter window so their formats can learn/adapt faster.
+    cooldown = 24 if channel_slug == "brotavida" else 8
+    recent = [str(x.get("content_family") or "").strip() for x in previous[-cooldown:]]
     recent = [x for x in recent if x]
 
     marker = os.getenv("GITHUB_RUN_NUMBER", "").strip()
