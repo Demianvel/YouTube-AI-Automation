@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import hashlib
-import math
 import os
 import subprocess
 import time
@@ -14,6 +13,7 @@ import soundfile as sf
 from kokoro import KPipeline
 
 from .audio import make_pleasant_original_music
+from .kids_asmr import make_clay_asmr
 
 BASE = "https://gen.pollinations.ai/image/"
 W, H, FPS = 1920, 1080, 30
@@ -158,15 +158,30 @@ def render_kids_long(meta: dict, workdir: Path) -> Path:
     ], check=True)
 
     duration = int(meta["duration_seconds"])
-    music = workdir / "kids_long_music.wav"
-    make_pleasant_original_music(music, duration, _seed(meta, 999))
     out = workdir / f"envikids_{meta['duration_minutes']}min.mp4"
-    subprocess.run([
-        "ffmpeg", "-y", "-loglevel", "error", "-i", str(visual), "-i", str(voice_full), "-i", str(music),
-        "-filter_complex", "[1:a]volume=1.0[v];[2:a]volume=0.028[m];[v][m]amix=inputs=2:duration=first:dropout_transition=1[a]",
-        "-map", "0:v:0", "-map", "[a]", "-t", str(duration), "-c:v", "copy", "-c:a", "aac", "-b:a", "192k",
-        "-movflags", "+faststart", str(out),
-    ], check=True)
+    audio_style = str(meta.get("audio_style") or "voice_music").lower()
+
+    if audio_style == "clay_asmr":
+        foley = workdir / "kids_clay_asmr.wav"
+        make_clay_asmr(foley, duration, _seed(meta, 777))
+        subprocess.run([
+            "ffmpeg", "-y", "-loglevel", "error", "-i", str(visual), "-i", str(voice_full), "-i", str(foley),
+            "-filter_complex", "[1:a]volume=1.0[v];[2:a]highpass=f=45,lowpass=f=11000,volume=0.18[f];[v][f]amix=inputs=2:duration=first:dropout_transition=1[a]",
+            "-map", "0:v:0", "-map", "[a]", "-t", str(duration), "-c:v", "copy", "-c:a", "aac", "-b:a", "192k",
+            "-movflags", "+faststart", str(out),
+        ], check=True)
+        meta["audio_source"] = "spanish_kids_voice_plus_original_clay_asmr"
+    else:
+        music = workdir / "kids_long_music.wav"
+        make_pleasant_original_music(music, duration, _seed(meta, 999))
+        subprocess.run([
+            "ffmpeg", "-y", "-loglevel", "error", "-i", str(visual), "-i", str(voice_full), "-i", str(music),
+            "-filter_complex", "[1:a]volume=1.0[v];[2:a]volume=0.028[m];[v][m]amix=inputs=2:duration=first:dropout_transition=1[a]",
+            "-map", "0:v:0", "-map", "[a]", "-t", str(duration), "-c:v", "copy", "-c:a", "aac", "-b:a", "192k",
+            "-movflags", "+faststart", str(out),
+        ], check=True)
+        meta["audio_source"] = "spanish_kids_voice_plus_original_instrumental"
+
     meta["tts_provider_used"] = "kokoro-ef_dora"
     meta["generated_visual_provider"] = "Pollinations image API"
     return out
