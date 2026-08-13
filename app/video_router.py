@@ -8,17 +8,25 @@ from .hf_video import generate_hf_short
 
 
 def _sanitize_botanical_prompts(metadata: dict) -> list[str]:
+    """Build a dedicated seed-germination time-lapse prompt for BrotaVida HF video."""
     originals: list[str] = []
+    family = str(metadata.get("content_family") or metadata.get("topic") or "seed germination").strip()
     for scene in metadata.get("scenes") or []:
         original = str(scene.get("visual_prompt") or "")
         originals.append(original)
-        helper = " ".join(str(scene.get("stock_query") or metadata.get("content_family") or metadata.get("topic") or "seed germination").split())
+        species_hint = " ".join(
+            str(scene.get("stock_query") or family or "seed germination time lapse").split()
+        )
         scene["visual_prompt"] = (
-            f"{helper}. Premium botanical macro time-lapse visualization, one seed, same species throughout, "
-            "seed coat opens, primary root grows downward, fine roots branch, shoot rises through moist soil, "
-            "stem straightens, cotyledons or first leaves unfold, believable plant anatomy, realistic moisture, "
-            "continuous coherent growth, locked macro camera, natural colors, no magical morphing, no species change, "
-            "no duplicate plants, no hands, no tools, no text, no logo, no watermark, vertical 9:16."
+            f"{species_hint}. SEED GERMINATION TIME LAPSE, premium macro botanical documentary visualization. "
+            "Start with one clearly visible seed resting in or just below moist dark soil. Keep the exact same seed and species "
+            "throughout the entire shot. Show a smooth continuous biological progression compressed as a real time-lapse: the seed absorbs moisture, "
+            "seed coat swells and splits, the white primary root emerges and grows downward, secondary fine roots branch naturally, the shoot curves upward, "
+            "pushes through the soil surface, the stem straightens, cotyledons open and the first small green leaves unfold. "
+            "Use a locked macro camera or transparent soil cross-section view so roots and shoot remain visible. Realistic plant anatomy, natural gravity, "
+            "realistic soil particles and moisture, subtle natural light changes, satisfying organic motion, photographic macro detail, no jump cuts. "
+            "Do not morph into another species, do not duplicate the plant, no magical growth, no fantasy colors, no hands, no tools, no pot labels, "
+            "no text, no subtitles, no logos, no watermark. Vertical 9:16 premium YouTube Shorts composition."
         )
     return originals
 
@@ -29,12 +37,11 @@ def _restore_visual_prompts(metadata: dict, originals: list[str]) -> None:
 
 
 def generate_short(channel: dict, metadata: dict, workdir: Path) -> Path:
-    """Prefer unique AI video for BrotaVida, EnViKids and Dinero Claro.
+    """Use Hugging Face text-to-video as the primary visual engine for every automated channel.
 
-    Hugging Face is best-effort because free ZeroGPU/provider availability can vary.
-    If AI generation is unavailable, each channel returns to its existing stable renderer.
-    BrotaVida AI output is explicitly marked synthetic in metadata; its fallback remains
-    species-specific real footage rather than a generic plant clip.
+    BrotaVida receives a dedicated seed-germination time-lapse master prompt. EnViKids and
+    Dinero Claro also go through HF first. Existing channel renderers are reliability fallbacks
+    only when the free HF/ZeroGPU/provider route is unavailable.
     """
     visual_mode = str(channel.get("visual_mode") or "").lower()
     botanical = "botanical" in visual_mode
@@ -49,15 +56,18 @@ def generate_short(channel: dict, metadata: dict, workdir: Path) -> Path:
                 originals = _sanitize_botanical_prompts(metadata)
             generate_hf_short(channel, metadata, workdir, final, base_video.apply_audio)
             metadata["visual_source"] = (
-                "huggingface_botanical_ai_visualization"
+                "huggingface_seed_germination_text_to_video"
                 if botanical
-                else "huggingface_unique_ai_video"
+                else "huggingface_text_to_video_primary"
             )
+            metadata["hf_primary"] = True
             if botanical:
-                metadata["botanical_source_type"] = "synthetic_ai_visualization"
+                metadata["botanical_source_type"] = "synthetic_ai_seed_germination_timelapse"
+                metadata["visual_format"] = "seed germination time lapse"
             return final
         except Exception as exc:
-            print(f"Hugging Face text-to-video no disponible ({exc}); usando renderer estable del canal.")
+            metadata["hf_primary_failed"] = str(exc)
+            print(f"Hugging Face text-to-video no disponible ({exc}); usando renderer estable del canal como fallback.")
         finally:
             if botanical and originals:
                 _restore_visual_prompts(metadata, originals)
