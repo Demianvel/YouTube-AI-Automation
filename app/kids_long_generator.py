@@ -32,7 +32,8 @@ ANALYTICS DISPONIBLE:
 OBJETIVO DE APRENDIZAJE CONTINUO:
 - Antes de elegir tema, revisa los videos listados en Analytics.
 - Da prioridad a patrones de los videos con mas vistas Y a los que mas suscriptores ganaron.
-- Tambien considera porcentaje visto, tiempo de visualizacion, compartidos, likes y comentarios cuando existan.
+- Tambien considera porcentaje visto, tiempo de visualizacion, compartidos y likes cuando existan.
+- Este canal esta marcado como Made for Kids: los comentarios pueden estar deshabilitados; no dependas de comentarios como senal principal.
 - Si un video tuvo muchas vistas pero mala retencion o pocos suscriptores, no lo copies ciegamente.
 - Si un tema convierte muy bien a suscriptores aunque tenga menos vistas, dale peso adicional.
 - Repite el INTERES o la CATEGORIA que funciono, nunca la misma historia, titulo, escenas o personajes exactos.
@@ -46,13 +47,15 @@ TEMAS Y FORMATOS A ROTAR:
 - selva amazonica fantastica y educativa, naturaleza, oceano y espacio;
 - musica y baile con pista instrumental ORIGINAL generada por el sistema;
 - plastilina/modelado 3D satisfactorio tipo ASMR, siempre ficticio y seguro;
-- robots amistosos, juegos de imaginacion, pequeños misterios sin miedo y aventuras positivas.
+- robots amistosos, juegos de imaginacion, pequenos misterios sin miedo y aventuras positivas.
 
 AUDIO:
 Elige exactamente uno:
 1) "voice_music": narracion en castellano + musica instrumental original muy suave.
 2) "clay_asmr": para plastilina/modelado: narracion castellana suave + sonidos originales de amasado/modelado; SIN musica comercial.
 La narracion siempre debe estar presente y ser adecuada para niños y adolescentes: natural, clara, amable, expresiva, sin voz de bebe exagerada y sin gritos.
+La voz debe sentirse CONTINUA a lo largo del video. No reinicies la historia ni hagas una presentacion nueva en cada escena. La ultima frase de una escena puede dejar la idea abierta para que la siguiente la complete. Evita silencios largos: escribe suficiente texto para ocupar casi toda cada escena a ritmo conversacional.
+Puedes incluir dialogos cortos de personajes ficticios. Para cada escena usa speaker_style con uno de estos valores: narrator, bright_character, calm_character, comic_character. Son perfiles sinteticos originales; NUNCA imites una voz conocida, actor, personaje protegido o creador real. Usa narrator en la mayoria de escenas y perfiles de personaje solo cuando el dialogo lo justifique.
 
 ESTILO VISUAL:
 - Animacion 3D familiar premium y cinematografica, personajes ficticios totalmente originales.
@@ -63,7 +66,8 @@ ESTILO VISUAL:
 
 NARRACION:
 - Castellano natural y neutro/latino, facil de entender en Argentina y otros paises hispanohablantes.
-- Aproximadamente 28 a 38 palabras por escena.
+- Aproximadamente 34 a 42 palabras por escena para mantener voz casi continua durante 15 segundos.
+- Evita puntos innecesarios y pausas dramaticas largas; usa frases enlazadas y fluidas.
 - Para niños: vocabulario simple y curioso. Para adolescentes: no sonar infantilizado.
 - Sin amenazas, miedo intenso, humillacion, sexualizacion ni instrucciones peligrosas.
 - Si aparecen bebes ficticios/cartoon en situaciones cotidianas, siempre acompañados por adultos ficticios responsables cuando exista riesgo.
@@ -81,7 +85,8 @@ Devuelve SOLO JSON valido:
   "scenes": [
     {{
       "visual_prompt": "escena 3D completa 16:9 con continuidad visual",
-      "narration": "28 a 38 palabras en castellano"
+      "speaker_style": "narrator|bright_character|calm_character|comic_character",
+      "narration": "34 a 42 palabras en castellano, conectadas con la escena anterior y siguiente"
     }}
   ]
 }}
@@ -104,6 +109,7 @@ Reglas:
     scenes = data.get("scenes") or []
     if len(scenes) != scene_count:
         raise RuntimeError(f"Gemini genero {len(scenes)} escenas; se requieren {scene_count}.")
+    allowed_styles = {"narrator", "bright_character", "calm_character", "comic_character"}
     for i, scene in enumerate(scenes, start=1):
         if not str(scene.get("visual_prompt") or "").strip():
             raise RuntimeError(f"Falta visual_prompt en escena {i}.")
@@ -111,6 +117,8 @@ Reglas:
             raise RuntimeError(f"Falta narracion en escena {i}.")
         scene["visual_prompt"] = " ".join(str(scene["visual_prompt"]).split())[:1500]
         scene["narration"] = " ".join(str(scene["narration"]).split())
+        style = str(scene.get("speaker_style") or "narrator").strip().lower()
+        scene["speaker_style"] = style if style in allowed_styles else "narrator"
 
     category = str(data.get("content_category") or "aventura").strip().lower()
     audio_style = str(data.get("audio_style") or "voice_music").strip().lower()
