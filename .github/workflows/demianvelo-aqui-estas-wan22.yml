@@ -134,14 +134,15 @@ jobs:
 
           def extract(value):
               if isinstance(value, str):
-                  p = Path(value)
-                  if p.exists():
-                      return p
                   s = value.strip()
                   for prefix in ("data:audio/wav;base64,", "data:audio/x-wav;base64,"):
                       if s.startswith(prefix):
                           out.write_bytes(base64.b64decode(s[len(prefix):]))
                           return out
+                  if len(s) < 4096:
+                      p = Path(s)
+                      if p.exists():
+                          return p
                   try:
                       raw = base64.b64decode(s, validate=True)
                       if len(raw) > 500000:
