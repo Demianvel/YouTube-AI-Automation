@@ -1,0 +1,60 @@
+name: Finish and publish Aleluya 4min
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - scripts/finish_aleluya4_visualizer.py
+      - .github/workflows/aleluya4-finish.yml
+
+permissions:
+  actions: read
+  contents: read
+
+concurrency:
+  group: finish-aleluya-4min
+  cancel-in-progress: true
+
+jobs:
+  finish_publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    env:
+      PYTHONPATH: .
+      GH_TOKEN: ${{ github.token }}
+      YOUTUBE_TOKEN_DEMIANVELO: ${{ secrets.YOUTUBE_TOKEN_DEMIANVELO }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Recover successful 4-minute ACE-Step song
+        run: |
+          mkdir -p input_aleluya4
+          gh run download 31659692695 \
+            --repo Demianvel/YouTube-AI-Automation \
+            -n aleluya-4min-production-31659692695 \
+            -D input_aleluya4
+          find input_aleluya4 -maxdepth 5 -type f -printf '%p %s bytes\n'
+
+      - name: Install local render and YouTube dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg fonts-dejavu-core
+          python -m pip install --upgrade pip
+          pip install google-api-python-client google-auth
+
+      - name: Render original cinematic visualizer and publish
+        run: python scripts/finish_aleluya4_visualizer.py
+
+      - name: Upload final production artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: aleluya-final-published-${{ github.run_id }}
+          path: output/aleluya4_final/
+          if-no-files-found: warn
+          retention-days: 5
