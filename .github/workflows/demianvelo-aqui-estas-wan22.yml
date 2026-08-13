@@ -12,7 +12,7 @@ permissions:
 
 concurrency:
   group: demianvelo-aqui-estas-wan22
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   music:
