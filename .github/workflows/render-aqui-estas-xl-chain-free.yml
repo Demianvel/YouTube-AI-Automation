@@ -1,0 +1,220 @@
+name: Render Aqui Estas ACE XL chained FREE and publish
+
+on:
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: Publicar en @DemianVelo
+        required: true
+        default: true
+        type: boolean
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/render-aqui-estas-xl-chain-free.yml
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: aqui-estas-xl-chain
+  cancel-in-progress: false
+
+env:
+  PYTHONPATH: .
+  HF_TOKEN: ${{ secrets.HF_TOKEN }}
+
+jobs:
+  minute1:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -U gradio_client
+      - name: Generate first minute with ACE-Step 1.5 XL SFT Studio
+        run: |
+          mkdir -p audio
+          python - <<'PY'
+          import os, shutil
+          from pathlib import Path
+          from gradio_client import Client
+          from scripts.render_aqui_estas_demianvelo import SECTIONS, STYLE_PROMPT
+          out=Path('audio/aqui_estas_060.wav')
+          c=Client('techfreakworm/ACE-Music-Studio',token=os.getenv('HF_TOKEN') or None,verbose=False)
+          result=c.predict(
+              STYLE_PROMPT+'. First minute of a four-minute continuous song. Establish one distinctive original male Rioplatense Argentine singer identity and keep a stable tonal center and production palette for later extensions.',
+              SECTIONS[0],60.0,'With vocals',8,7.0,'ode',20260813,0.0,1.0,1.0,False,True,True,True,True,0.85,0.9,0,2.0,'NO USER INPUT',110,'D','4','es',
+              api_name='/on_generate_click'
+          )
+          src=Path(result[0] if isinstance(result,(list,tuple)) else result)
+          if not src.exists(): raise RuntimeError('ACE Music Studio did not return first-minute audio')
+          shutil.copy2(src,out)
+          if out.stat().st_size<100000: raise RuntimeError('first-minute audio too small')
+          print('MINUTE1_OK',out.stat().st_size)
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: aqui-estas-060
+          path: audio/aqui_estas_060.wav
+          retention-days: 5
+
+  minute2:
+    needs: minute1
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: aqui-estas-060
+          path: input
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -U gradio_client
+      - name: Extend same song to about two minutes
+        run: |
+          mkdir -p audio
+          python - <<'PY'
+          import os, shutil
+          from pathlib import Path
+          from gradio_client import Client, handle_file
+          from scripts.render_aqui_estas_demianvelo import SECTIONS, STYLE_PROMPT
+          seed=Path('input/aqui_estas_060.wav')
+          out=Path('audio/aqui_estas_120.wav')
+          c=Client('techfreakworm/ACE-Music-Studio',token=os.getenv('HF_TOKEN') or None,verbose=False)
+          result=c.predict(handle_file(str(seed)),STYLE_PROMPT+'. Continue seamlessly with exactly the same singer, key, vocal timbre, instrumentation, tempo and mix.',SECTIONS[1],60.0,2.0,'balanced',0.45,10,'auto',8,7.0,'ode',20260813,0.0,1.0,1.0,False,True,True,True,True,0.85,0.9,0,2.0,'NO USER INPUT',110,'D','4','es',api_name='/on_extend_click')
+          src=Path(result[0] if isinstance(result,(list,tuple)) else result)
+          if not src.exists(): raise RuntimeError('ACE extension 2 returned no audio')
+          shutil.copy2(src,out)
+          if out.stat().st_size<200000: raise RuntimeError('two-minute extension too small')
+          print('MINUTE2_OK',out.stat().st_size)
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: aqui-estas-120
+          path: audio/aqui_estas_120.wav
+          retention-days: 5
+
+  minute3:
+    needs: minute2
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: aqui-estas-120
+          path: input
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -U gradio_client
+      - name: Extend same song to about three minutes
+        run: |
+          mkdir -p audio
+          python - <<'PY'
+          import os, shutil
+          from pathlib import Path
+          from gradio_client import Client, handle_file
+          from scripts.render_aqui_estas_demianvelo import SECTIONS, STYLE_PROMPT
+          seed=Path('input/aqui_estas_120.wav'); out=Path('audio/aqui_estas_180.wav')
+          c=Client('techfreakworm/ACE-Music-Studio',token=os.getenv('HF_TOKEN') or None,verbose=False)
+          result=c.predict(handle_file(str(seed)),STYLE_PROMPT+'. Continue seamlessly with exactly the same singer and production. Grow emotionally toward the bridge without changing voice identity.',SECTIONS[2],60.0,2.0,'balanced',0.45,10,'auto',8,7.0,'ode',20260813,0.0,1.0,1.0,False,True,True,True,True,0.85,0.9,0,2.0,'NO USER INPUT',110,'D','4','es',api_name='/on_extend_click')
+          src=Path(result[0] if isinstance(result,(list,tuple)) else result)
+          if not src.exists(): raise RuntimeError('ACE extension 3 returned no audio')
+          shutil.copy2(src,out)
+          if out.stat().st_size<300000: raise RuntimeError('three-minute extension too small')
+          print('MINUTE3_OK',out.stat().st_size)
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: aqui-estas-180
+          path: audio/aqui_estas_180.wav
+          retention-days: 5
+
+  minute4:
+    needs: minute3
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: aqui-estas-180
+          path: input
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -U gradio_client
+      - name: Extend same song to final three-to-five-minute master
+        run: |
+          mkdir -p audio
+          python - <<'PY'
+          import os, shutil
+          from pathlib import Path
+          from gradio_client import Client, handle_file
+          from scripts.render_aqui_estas_demianvelo import SECTIONS, STYLE_PROMPT
+          seed=Path('input/aqui_estas_180.wav'); out=Path('audio/Aqui_Estas_x_DemianVelo.wav')
+          c=Client('techfreakworm/ACE-Music-Studio',token=os.getenv('HF_TOKEN') or None,verbose=False)
+          result=c.predict(handle_file(str(seed)),STYLE_PROMPT+'. Final extension: preserve exactly the same singer and production, deliver the largest emotional final chorus and resolve gently at the outro.',SECTIONS[3],60.0,2.0,'balanced',0.45,10,'auto',8,7.0,'ode',20260813,0.0,1.0,1.0,False,True,True,True,True,0.85,0.9,0,2.0,'NO USER INPUT',110,'D','4','es',api_name='/on_extend_click')
+          src=Path(result[0] if isinstance(result,(list,tuple)) else result)
+          if not src.exists(): raise RuntimeError('ACE final extension returned no audio')
+          shutil.copy2(src,out)
+          if out.stat().st_size<400000: raise RuntimeError('final master too small')
+          print('MINUTE4_OK',out.stat().st_size)
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: aqui-estas-master-audio
+          path: audio/Aqui_Estas_x_DemianVelo.wav
+          retention-days: 5
+
+  produce:
+    needs: minute4
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    env:
+      YOUTUBE_TOKEN_DEMIANVELO: ${{ secrets.YOUTUBE_TOKEN_DEMIANVELO }}
+      PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
+      PUBLISH_INPUT: ${{ github.event_name == 'workflow_dispatch' && inputs.publish || 'true' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: aqui-estas-master-audio
+          path: input
+      - name: Install free cinematic production dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg fonts-dejavu-core fonts-liberation2
+          pip install requests google-api-python-client google-auth pillow gradio_client
+      - name: Validate duration, render cinematic master, thumbnail and publish
+        run: |
+          python - <<'PY'
+          import os
+          from pathlib import Path
+          from scripts.render_aqui_estas_demianvelo import build_video, make_thumbnail, upload, media_duration
+          audio=Path('input/Aqui_Estas_x_DemianVelo.wav')
+          d=media_duration(audio)
+          print('MASTER_AUDIO_DURATION',d)
+          if not 180<=d<=300: raise RuntimeError(f'audio must be 3-5 minutes; got {d}')
+          video,credits=build_video(audio,[])
+          thumb=make_thumbnail(video)
+          print('FINAL_VIDEO_READY',video,media_duration(video),video.stat().st_size)
+          print('FINAL_THUMBNAIL_READY',thumb,thumb.stat().st_size)
+          if os.environ.get('PUBLISH_INPUT','true').lower()=='true':
+              video_id=upload(video,thumb,credits)
+              print('PUBLISHED_VIDEO_ID',video_id)
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: aqui-estas-final-production-${{ github.run_id }}
+          path: output/aqui_estas_demianvelo/
+          if-no-files-found: warn
+          retention-days: 5
