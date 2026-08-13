@@ -44,9 +44,11 @@ jobs:
           assert data['dineroclaro']['require_real_video'] is True
           assert data['envikids']['audio_mode'] == 'voice_music'
           assert data['envikids']['made_for_kids'] is True
+          assert data['envikids']['handle'].lower() == '@envikidsai'
+          assert data['envikids']['youtube_url'].lower().endswith('/@envikidsai')
           for cfg in data.values():
               assert cfg['token_env'].startswith('YOUTUBE_TOKEN_')
-          print('three-channel configuration OK')
+          print('three-channel configuration OK; EnViKidsAI target verified')
           PY
       - name: Install media and base Python dependencies
         run: |
