@@ -1,0 +1,225 @@
+name: Render Aleluya FREE v2
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/render-aleluya-zero-v2.yml
+      - presets/demianvelo/aleluya_hallelujah.json
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: render-aleluya-zero-v2
+  cancel-in-progress: true
+
+jobs:
+  music:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install -U gradio_client
+      - name: Generate 60-second song with alternate FREE ACE-Step Space
+        shell: bash
+        run: |
+          mkdir -p output/music
+          python - <<'PY'
+          import shutil
+          from pathlib import Path
+          from gradio_client import Client
+
+          caption = (
+              'Original Christian electronic worship, cinematic pop and progressive house, 122 BPM, '
+              'warm deep original male singer in Argentine Spanish, intimate emotional verses, '
+              'big uplifting chorus, luminous electronic build and drop, polished modern production, '
+              'hopeful spiritual atmosphere, no imitation of any real singer, no copyrighted melody or samples.'
+          )
+          lyrics = '''[INTRO]\nCuando la noche parece no terminar,\nTu luz me encuentra y me vuelve a levantar.\n\n[PRE-CORO]\nY aunque tiemble el suelo bajo mis pies,\nsi Tu mano me sostiene, vuelvo a creer.\n\n[CORO]\nAleluya, Hallelujah,\nmi esperanza vive en Vos.\nAleluya, Hallelujah,\nlate fuerte el corazón.\nCuando todo se oscurece,\nTu presencia trae la luz.\nAleluya, Hallelujah,\nmi camino es con Jesús.\n\n[OUTRO]\nAleluya… Hallelujah…\nTu luz siempre estará.'''
+
+          c = Client('victor/ace-step-jam', verbose=False)
+          result = c.predict(
+              'acestep-v15-turbo',
+              caption,
+              lyrics,
+              122,
+              '',
+              '4',
+              'es',
+              60,
+              8,
+              7.0,
+              1,
+              -1,
+              'mp3',
+              False,
+              0.85,
+              2.0,
+              0,
+              0.9,
+              True,
+              True,
+              False,
+              True,
+              api_name='/generate_custom_song',
+          )
+
+          found = []
+          def walk(v):
+              if isinstance(v, str):
+                  p = Path(v)
+                  if p.exists() and p.suffix.lower() in {'.mp3','.wav','.flac','.m4a'}:
+                      found.append(p)
+              elif isinstance(v, dict):
+                  for x in v.values(): walk(x)
+              elif isinstance(v, (list,tuple)):
+                  for x in v: walk(x)
+          walk(result)
+          if not found:
+              print('ACE_RESULT=', repr(result)[:12000])
+              raise RuntimeError('ACE-Step no devolvió audio descargable.')
+          src = found[0]
+          dst = Path('output/music/Aleluya_Hallelujah_DemianVelo_60s' + src.suffix.lower())
+          shutil.copy2(src, dst)
+          print('MUSIC_FILE=', dst, 'bytes=', dst.stat().st_size)
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: aleluya-music
+          path: output/music/
+          if-no-files-found: warn
+          retention-days: 5
+
+  video:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        scene:
+          - id: 1
+            prompt: "Original fictional adult male Christian electronic singer performing on a minimal cinematic stage, volumetric blue and golden light, natural expressive body movement to music, premium realistic cinematography, no celebrity resemblance, no text, no logos, 16:9"
+          - id: 2
+            prompt: "Epic sunrise over mountain landscape with golden rays through clouds, cinematic drone movement, spiritual hopeful atmosphere, photorealistic premium music video, no text, no logos, 16:9"
+    steps:
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install -U gradio_client
+      - name: Generate FREE LTX-2 scene
+        shell: bash
+        env:
+          SCENE_ID: ${{ matrix.scene.id }}
+          SCENE_PROMPT: ${{ matrix.scene.prompt }}
+        run: |
+          mkdir -p output/video
+          python - <<'PY'
+          import os, shutil
+          from pathlib import Path
+          from gradio_client import Client
+
+          c = Client('Lightricks/LTX-2-3', verbose=False)
+          sid = int(os.environ['SCENE_ID'])
+          result = c.predict(os.environ['SCENE_PROMPT'], True, 100 + sid, api_name='/generate_video')
+          files=[]
+          def walk(v):
+              if isinstance(v,str):
+                  p=Path(v)
+                  if p.exists() and p.suffix.lower() in {'.mp4','.webm','.mov'}: files.append(p)
+              elif isinstance(v,dict):
+                  for x in v.values(): walk(x)
+              elif isinstance(v,(list,tuple)):
+                  for x in v: walk(x)
+          walk(result)
+          if not files:
+              print('LTX_RESULT=', repr(result)[:8000])
+              raise RuntimeError('LTX-2 no devolvió video descargable.')
+          src=files[0]
+          dst=Path(f'output/video/scene_{sid:02d}{src.suffix.lower()}')
+          shutil.copy2(src,dst)
+          print('VIDEO_FILE=',dst,'bytes=',dst.stat().st_size)
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: aleluya-scene-${{ matrix.scene.id }}
+          path: output/video/
+          if-no-files-found: warn
+          retention-days: 5
+
+  assemble:
+    needs: [music, video]
+    if: always() && needs.music.result == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: aleluya-*
+          path: input
+          merge-multiple: true
+      - name: Install FFmpeg
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+      - name: Assemble music video from whatever FREE LTX scenes succeeded
+        shell: bash
+        run: |
+          mkdir -p output/final
+          python - <<'PY'
+          import glob, subprocess
+          from pathlib import Path
+
+          audio = next((p for p in glob.glob('input/*') if Path(p).suffix.lower() in {'.mp3','.wav','.flac','.m4a'}), None)
+          scenes = sorted([p for p in glob.glob('input/*') if Path(p).suffix.lower() in {'.mp4','.webm','.mov'}])
+          if not audio:
+              raise RuntimeError('No llegó el audio ACE-Step.')
+          if not scenes:
+              raise RuntimeError('No llegó ninguna escena LTX-2 gratuita.')
+
+          def dur(p):
+              r=subprocess.run(['ffprobe','-v','error','-show_entries','format=duration','-of','default=nw=1:nk=1',p],capture_output=True,text=True,check=True)
+              return float(r.stdout.strip())
+          target=dur(audio)
+          edited=[]
+          for idx,src in enumerate(scenes):
+              for mode in range(4):
+                  dst=Path(f'output/final/variant_{idx}_{mode}.mp4')
+                  if mode==0:
+                      vf='scale=1920:1080:force_original_aspect_ratio=increase,crop=1920:1080,fps=30'
+                  elif mode==1:
+                      vf='scale=1920:1080:force_original_aspect_ratio=increase,crop=1920:1080,hflip,fps=30'
+                  elif mode==2:
+                      vf='scale=2304:1296:force_original_aspect_ratio=increase,crop=1920:1080:x=(iw-ow)/2:y=(ih-oh)/2,fps=30'
+                  else:
+                      vf='scale=1920:1080:force_original_aspect_ratio=increase,crop=1920:1080,eq=contrast=1.05:saturation=1.08,fps=30'
+                  subprocess.run(['ffmpeg','-y','-loglevel','error','-stream_loop','-1','-i',src,'-t','8','-vf',vf,'-an','-c:v','libx264','-preset','medium','-crf','19','-pix_fmt','yuv420p',str(dst)],check=True)
+                  edited.append(dst)
+
+          manifest=Path('output/final/concat.txt')
+          lines=[]; elapsed=0.0; i=0
+          while elapsed < target + 8:
+              v=edited[i % len(edited)]
+              lines.append("file '" + str(v.resolve()).replace("'", "'\\''") + "'")
+              elapsed += dur(str(v)); i += 1
+          manifest.write_text('\n'.join(lines),encoding='utf-8')
+
+          visual=Path('output/final/visual.mp4')
+          subprocess.run(['ffmpeg','-y','-loglevel','error','-f','concat','-safe','0','-i',str(manifest),'-t',f'{target:.3f}','-an','-c:v','libx264','-preset','medium','-crf','18','-pix_fmt','yuv420p',str(visual)],check=True)
+          final=Path('output/final/Aleluya_Hallelujah_x_DemianVelo_60s.mp4')
+          subprocess.run(['ffmpeg','-y','-loglevel','error','-i',str(visual),'-i',audio,'-map','0:v:0','-map','1:a:0','-t',f'{target:.3f}','-c:v','copy','-c:a','aac','-b:a','256k','-movflags','+faststart',str(final)],check=True)
+          print('FINAL=',final,'duration=',target,'bytes=',final.stat().st_size)
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: aleluya-final-free
+          path: |
+            output/final/Aleluya_Hallelujah_x_DemianVelo_60s.mp4
+          if-no-files-found: error
+          retention-days: 5
