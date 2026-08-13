@@ -6,6 +6,7 @@ from pathlib import Path
 from . import video as base_video
 from .hf_video import available as hf_video_available
 from .hf_video import generate_hf_short
+from .premium_audio import apply_audio as apply_premium_audio
 
 
 def _brotavida_prompts(metadata: dict) -> list[str]:
@@ -59,11 +60,15 @@ def generate_short(channel: dict, metadata: dict, workdir: Path) -> Path:
     try:
         if botanical:
             originals = _brotavida_prompts(metadata)
-        generate_hf_short(channel, metadata, workdir, final, base_video.apply_audio)
+        # All successful Hugging Face Shorts use the premium audio engine.
+        # BrotaVida ASMR combines non-continuous water/leaf/soil foley with
+        # a rotating original ambient palette so consecutive posts differ.
+        generate_hf_short(channel, metadata, workdir, final, apply_premium_audio)
         metadata["visual_source"] = "huggingface_seed_germination_text_to_video" if botanical else "huggingface_text_to_video_primary"
         metadata["hf_primary"] = True
         metadata["hf_strict"] = strict
         metadata["hf_fallback_used"] = False
+        metadata["premium_audio_on_hf"] = True
         if botanical:
             metadata["botanical_source_type"] = "synthetic_ai_seed_germination_timelapse"
             metadata["visual_format"] = "seed germination time lapse"
