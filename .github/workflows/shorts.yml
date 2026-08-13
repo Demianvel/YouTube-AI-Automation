@@ -102,12 +102,15 @@ jobs:
           echo "CONTENT_MODE=$CONTENT_MODE" >> "$GITHUB_ENV"
 
           if [ "$CHANNEL" = "envikids" ]; then
+            echo "TTS_PROVIDER=kokoro" >> "$GITHUB_ENV"
             echo "KOKORO_VOICE=ef_dora" >> "$GITHUB_ENV"
             echo "KOKORO_SPEED=1.03" >> "$GITHUB_ENV"
           elif [ "$CHANNEL" = "brotavida" ]; then
+            echo "TTS_PROVIDER=chatterbox_latam" >> "$GITHUB_ENV"
             echo "KOKORO_VOICE=em_alex" >> "$GITHUB_ENV"
             echo "KOKORO_SPEED=0.98" >> "$GITHUB_ENV"
           elif [ "$CHANNEL" = "dineroclaro" ]; then
+            echo "TTS_PROVIDER=chatterbox_latam" >> "$GITHUB_ENV"
             echo "KOKORO_VOICE=em_alex" >> "$GITHUB_ENV"
             echo "KOKORO_SPEED=1.00" >> "$GITHUB_ENV"
           fi
@@ -173,7 +176,7 @@ jobs:
           python - <<'PY'
           from chatterbox.mtl_tts import ChatterboxMultilingualTTS
           assert 'es' in ChatterboxMultilingualTTS.get_supported_languages()
-          print('Chatterbox V3 package OK; LatAm pack will load on first synthesis with automatic fallbacks.')
+          print('Chatterbox V3 package OK; LatAm pack will load on first adult-channel synthesis with automatic fallbacks.')
           PY
 
       - name: Generate Short and optionally upload
