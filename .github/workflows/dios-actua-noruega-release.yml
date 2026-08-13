@@ -1,4 +1,5 @@
 name: Dios Actua - Norway 4K official release
+# Operational release trigger for the verified DemianVelo master.
 
 on:
   workflow_dispatch:
