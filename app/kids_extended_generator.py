@@ -31,7 +31,8 @@ ANALYTICS DISPONIBLE:
 
 APRENDIZAJE DE AUDIENCIA:
 - Prioriza categorias presentes en videos con mas vistas y, especialmente, videos que ganaron mas suscriptores.
-- Tambien considera retencion, porcentaje visto, compartidos, likes y comentarios cuando existan.
+- Tambien considera retencion, porcentaje visto, compartidos y likes cuando existan.
+- Como el canal es Made for Kids, los comentarios pueden estar deshabilitados; no los uses como senal principal.
 - No copies el video ganador: conserva el INTERES principal y crea otra historia, gancho y escenas.
 - Si Analytics aun tiene pocos datos, explora distintas categorias de manera equilibrada.
 
@@ -43,7 +44,7 @@ TEMAS POSIBLES A ROTAR:
 - selva amazonica fantastica/educativa, naturaleza, oceano y espacio;
 - musica y baile con pista instrumental original;
 - plastilina/modelado 3D satisfactorio tipo ASMR;
-- robots amistosos, pequeños misterios sin miedo y juegos de imaginacion;
+- robots amistosos, pequenos misterios sin miedo y juegos de imaginacion;
 - bebes ficticios/cartoon siempre en situaciones seguras y acompañados por adultos ficticios cuando corresponda.
 
 AUDIO:
@@ -51,6 +52,8 @@ Elige exactamente uno:
 1) "voice_music": voz castellana agradable + musica instrumental ORIGINAL muy suave.
 2) "clay_asmr": solo para plastilina/modelado: voz castellana suave + foley original de amasado/modelado, sin musica comercial.
 Siempre debe haber narracion. La voz debe servir para niños y adolescentes: calida, clara, expresiva, sin gritos y sin infantilizar en exceso.
+La narracion debe fluir de una escena a la siguiente como una sola historia continua, sin presentaciones repetidas ni silencios largos. Escribe suficiente texto para ocupar casi toda cada escena a ritmo natural.
+Puedes usar dialogos cortos de personajes ficticios. En cada escena indica speaker_style: narrator, bright_character, calm_character o comic_character. Son perfiles sinteticos originales; nunca imites una voz reconocible, actor, personaje protegido o creador real.
 
 ESTILO VISUAL:
 - pelicula familiar 3D premium, personajes completamente originales;
@@ -62,8 +65,8 @@ ESTILO VISUAL:
 
 NARRACION:
 - castellano natural y facil de entender para audiencia hispanohablante;
-- 18 a 26 palabras por escena;
-- ritmo agil pero no gritado;
+- 27 a 33 palabras por escena para mantener voz casi continua durante 12 segundos;
+- frases enlazadas, pocas pausas, ritmo agil pero no gritado;
 - vocabulario positivo, curioso y apropiado para niños/adolescentes;
 - sin violencia, miedo intenso, humillacion, sexualizacion ni conductas peligrosas imitables.
 
@@ -80,7 +83,8 @@ Devuelve SOLO JSON valido:
   "scenes": [
     {{
       "visual_prompt": "escena 3D completa vertical 9:16 con continuidad",
-      "narration": "18 a 26 palabras en castellano"
+      "speaker_style": "narrator|bright_character|calm_character|comic_character",
+      "narration": "27 a 33 palabras en castellano conectadas con las escenas vecinas"
     }}
   ]
 }}
@@ -104,6 +108,7 @@ Reglas estrictas:
     if len(scenes) != scene_count:
         raise RuntimeError(f"Gemini genero {len(scenes)} escenas; se requieren {scene_count}.")
 
+    allowed_styles = {"narrator", "bright_character", "calm_character", "comic_character"}
     for index, scene in enumerate(scenes, start=1):
         visual = " ".join(str(scene.get("visual_prompt") or "").split())
         narration = " ".join(str(scene.get("narration") or "").split())
@@ -113,6 +118,8 @@ Reglas estrictas:
             raise RuntimeError(f"Falta narracion en escena {index}.")
         scene["visual_prompt"] = visual[:1500]
         scene["narration"] = narration
+        style = str(scene.get("speaker_style") or "narrator").strip().lower()
+        scene["speaker_style"] = style if style in allowed_styles else "narrator"
 
     category = str(data.get("content_category") or "aventura").strip().lower()
     audio_style = str(data.get("audio_style") or "voice_music").strip().lower()
