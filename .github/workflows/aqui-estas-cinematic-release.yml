@@ -1,0 +1,120 @@
+name: Publicar Aqui Estas - Cinematic Release
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/aqui-estas-cinematic-release.yml
+      - assets/aqui-estas/**
+
+permissions:
+  contents: read
+  actions: write
+
+concurrency:
+  group: publicar-aqui-estas-cinematic
+  cancel-in-progress: true
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      GH_TOKEN: ${{ github.token }}
+      PYTHONPATH: ${{ github.workspace }}
+      YOUTUBE_TOKEN_DEMIANVELO: ${{ secrets.YOUTUBE_TOKEN_DEMIANVELO }}
+      SOURCE_RUN: "31666079104"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Recuperar master musical verificado
+        shell: bash
+        run: |
+          mkdir -p music
+          gh run download "$SOURCE_RUN" --name aqui-estas-music --dir music
+          test -s music/Aqui_Estas_x_DemianVelo.wav
+          ffprobe -v error -show_entries format=duration -of default=nw=1:nk=1 music/Aqui_Estas_x_DemianVelo.wav
+          gh run cancel "$SOURCE_RUN" || true
+      - name: Instalar herramientas de master y publicación
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg fonts-dejavu-core
+          pip install -U google-api-python-client google-auth
+      - name: Crear videoclip cinematográfico 4K-ready
+        shell: bash
+        run: |
+          mkdir -p release /tmp/aqui-scenes
+          : > /tmp/aqui-scenes/list.txt
+          INDEX=0
+          for IMAGE in assets/aqui-estas/*.jpg; do
+            OUT="/tmp/aqui-scenes/scene_${INDEX}.mp4"
+            ffmpeg -y -loglevel error -framerate 30 -loop 1 -i "$IMAGE" -t 60 \
+              -filter_complex "[0:v]split=2[bg][fg];[bg]scale=1920:1080:force_original_aspect_ratio=increase,crop=1920:1080,gblur=sigma=26,eq=brightness=-0.11:saturation=1.08[bg2];[fg]scale=-2:1000,eq=contrast=1.035:saturation=1.045[fg2];[bg2][fg2]overlay=(W-w)/2:(H-h)/2,zoompan=z='min(max(zoom,pzoom)+0.00010,1.06)':x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':d=1:s=1920x1080:fps=30,fade=t=in:st=0:d=1.2,fade=t=out:st=58.8:d=1.2,vignette=PI/12,format=yuv420p[v]" \
+              -map "[v]" -an -c:v libx264 -preset medium -crf 17 -movflags +faststart "$OUT"
+            echo "file '$OUT'" >> /tmp/aqui-scenes/list.txt
+            INDEX=$((INDEX+1))
+          done
+          test "$INDEX" -eq 4
+
+          ffmpeg -y -loglevel error -f concat -safe 0 -i /tmp/aqui-scenes/list.txt \
+            -c copy /tmp/aqui-visual.mp4
+          ffmpeg -y -loglevel error -i /tmp/aqui-visual.mp4 -i music/Aqui_Estas_x_DemianVelo.wav -t 240 \
+            -map 0:v:0 -map 1:a:0 -c:v copy \
+            -af "highpass=f=32,lowpass=f=18000,acompressor=threshold=-18dB:ratio=2:attack=20:release=180:makeup=2,alimiter=limit=0.92,loudnorm=I=-12:LRA=8:TP=-1" \
+            -c:a aac -b:a 320k -movflags +faststart release/Aqui_Estas_x_DemianVelo_4min.mp4
+
+          ffmpeg -y -loglevel error -ss 45 -i release/Aqui_Estas_x_DemianVelo_4min.mp4 -t 59 \
+            -vf "scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,fps=30" \
+            -c:v libx264 -preset medium -crf 18 -c:a aac -b:a 320k -movflags +faststart \
+            release/Aqui_Estas_x_DemianVelo_SHORT.mp4
+          ffmpeg -y -loglevel error -i music/Aqui_Estas_x_DemianVelo.wav \
+            -af "highpass=f=32,lowpass=f=18000,acompressor=threshold=-18dB:ratio=2:attack=20:release=180:makeup=2,alimiter=limit=0.92,loudnorm=I=-12:LRA=8:TP=-1" \
+            -c:a pcm_s24le release/Aqui_Estas_x_DemianVelo_MASTER.wav
+
+          ffmpeg -y -loglevel error -i assets/aqui-estas/03-1000433481.jpg -frames:v 1 \
+            -filter_complex "[0:v]split=2[bg][fg];[bg]scale=1280:720:force_original_aspect_ratio=increase,crop=1280:720,gblur=sigma=24,eq=brightness=-0.18[bg2];[fg]scale=-2:660[fg2];[bg2][fg2]overlay=(W-w)/2:(H-h)/2,drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf:text='AQUÍ ESTÁS':fontcolor=white:fontsize=70:borderw=4:bordercolor=black@0.55:x=(w-text_w)/2:y=h-150" \
+            -q:v 2 release/thumbnail.jpg
+
+          ffprobe -v error -show_entries format=duration,size -of json release/Aqui_Estas_x_DemianVelo_4min.mp4 > release/qa-long.json
+          ffprobe -v error -show_entries format=duration,size -of json release/Aqui_Estas_x_DemianVelo_SHORT.mp4 > release/qa-short.json
+      - name: Publicar directamente en DemianVelo
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          from app.config import load_channel
+          from app.youtube import upload_long_video
+
+          metadata = {
+              "title": "Aquí Estás x DemianVelo | Canción Cristiana • Dios Habla Hoy",
+              "description": "“Aquí Estás” es una canción cristiana original de DemianVelo sobre sentir la presencia de Dios en cada momento.\n\nUna alabanza pop moderna, humana y esperanzadora para recordar que Jesús permanece cerca, trae paz y vuelve a levantar el corazón.\n\nDios Habla Hoy",
+              "hashtags": ["#DemianVelo", "#AquiEstas", "#MusicaCristiana", "#Jesus", "#Dios"],
+              "tags": ["DemianVelo", "Aquí Estás", "música cristiana", "Dios Habla Hoy", "Jesús", "pop worship", "alabanza cristiana"],
+          }
+          video_id = upload_long_video(
+              load_channel("demianvelo"), metadata,
+              Path("release/Aqui_Estas_x_DemianVelo_4min.mp4"),
+              thumbnail_path=Path("release/thumbnail.jpg"),
+              expected_minutes=4,
+          )
+          result = {
+              "status": "uploaded",
+              "video_id": video_id,
+              "url": f"https://youtu.be/{video_id}",
+              "title": metadata["title"],
+              "thumbnail_upload_status": metadata.get("thumbnail_upload_status"),
+          }
+          Path("release/youtube-result.json").write_text(json.dumps(result, ensure_ascii=False, indent=2), encoding="utf-8")
+          print("UPLOAD_SUCCESS", json.dumps(result, ensure_ascii=False))
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: aqui-estas-demianvelo-final
+          path: release/
+          if-no-files-found: warn
+          retention-days: 7
