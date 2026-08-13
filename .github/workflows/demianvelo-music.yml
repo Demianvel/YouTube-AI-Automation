@@ -1,0 +1,105 @@
+name: DemianVelo original music
+
+on:
+  workflow_dispatch:
+    inputs:
+      minutes:
+        description: Duracion del video
+        required: true
+        default: "1"
+        type: choice
+        options:
+          - "1"
+          - "5"
+          - "10"
+          - "30"
+      publish:
+        description: Publicar en YouTube si OAuth esta conectado
+        required: true
+        default: false
+        type: boolean
+  schedule:
+    # Argentina UTC-3: Short musical 12:30; video largo 20:30.
+    - cron: "30 15 * * *"
+    - cron: "30 23 * * *"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: demianvelo-music-${{ github.event_name == 'workflow_dispatch' && inputs.minutes || github.event.schedule }}
+  cancel-in-progress: false
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    env:
+      PYTHONPATH: .
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      GEMINI_TEXT_MODEL: gemini-3.6-flash
+      PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
+      YOUTUBE_TOKEN_DEMIANVELO: ${{ secrets.YOUTUBE_TOKEN_DEMIANVELO }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Select duration and publish mode
+        id: select
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            MINUTES="${{ inputs.minutes }}"
+            WANT_PUBLISH="${{ inputs.publish }}"
+          elif [ "${{ github.event.schedule }}" = "30 15 * * *" ]; then
+            MINUTES="1"
+            WANT_PUBLISH="true"
+          else
+            DAY="$(date -u +%j)"
+            SLOT=$((10#$DAY % 3))
+            if [ "$SLOT" -eq 0 ]; then MINUTES="5"; fi
+            if [ "$SLOT" -eq 1 ]; then MINUTES="10"; fi
+            if [ "$SLOT" -eq 2 ]; then MINUTES="30"; fi
+            WANT_PUBLISH="true"
+          fi
+
+          PUBLISH=false
+          SHOULD_RUN=true
+          if [ "$WANT_PUBLISH" = "true" ] && [ -n "$YOUTUBE_TOKEN_DEMIANVELO" ]; then
+            PUBLISH=true
+          elif [ "${{ github.event_name }}" = "schedule" ] && [ -z "$YOUTUBE_TOKEN_DEMIANVELO" ]; then
+            SHOULD_RUN=false
+            echo "OAuth DemianVelo ausente: se omite la generacion programada."
+          fi
+          echo "minutes=$MINUTES" >> "$GITHUB_OUTPUT"
+          echo "publish=$PUBLISH" >> "$GITHUB_OUTPUT"
+          echo "run=$SHOULD_RUN" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/setup-python@v5
+        if: steps.select.outputs.run == 'true'
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install media and Python dependencies
+        if: steps.select.outputs.run == 'true'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg libsndfile1
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Generate original track and cinematic video
+        if: steps.select.outputs.run == 'true'
+        shell: bash
+        run: |
+          EXTRA=""
+          if [ "${{ steps.select.outputs.publish }}" = "true" ]; then EXTRA="--publish"; fi
+          python -m app.music_pipeline --minutes "${{ steps.select.outputs.minutes }}" $EXTRA
+
+      - name: Upload dry-run artifact
+        if: steps.select.outputs.run == 'true' && steps.select.outputs.publish != 'true' && always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: demianvelo-${{ steps.select.outputs.minutes }}min-${{ github.run_id }}
+          path: output/demianvelo/
+          retention-days: 2
