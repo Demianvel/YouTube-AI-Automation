@@ -9,6 +9,7 @@ on:
 
 permissions:
   contents: read
+  actions: read
 
 concurrency:
   group: demianvelo-aqui-estas-wan22
@@ -16,160 +17,35 @@ concurrency:
 
 jobs:
   music:
-    name: Canción original con ACE-Step
+    name: Recuperar máster ACE-Step verificado
     runs-on: ubuntu-latest
-    timeout-minutes: 120
-    env:
-      HF_TOKEN: ${{ secrets.HF_TOKEN }}
+    timeout-minutes: 15
     steps:
-      - uses: actions/setup-python@v5
+      - name: Descargar la voz y canción ya aprobadas
+        uses: actions/download-artifact@v4
         with:
-          python-version: "3.11"
-      - name: Instalar cliente
-        run: pip install -U gradio_client
-      - name: Generar Aqui Estas
+          name: aqui-estas-music
+          path: output/music
+          repository: Demianvel/YouTube-AI-Automation
+          run-id: 31666079104
+          github-token: ${{ github.token }}
+      - name: Verificar el máster de audio
         shell: bash
         run: |
-          mkdir -p output/music
           python - <<'PY'
-          import base64, os, shutil
+          import wave
           from pathlib import Path
-          from textwrap import dedent
-          from gradio_client import Client
-
-          prompt = (
-              "Completely original 2026 contemporary Christian worship pop song titled Aqui Estas, 69 BPM, 4/4, warm major key, "
-              "organic premium studio production, grand piano, acoustic guitar, clean electric guitar with subtle delay, "
-              "round electric bass, real acoustic drums, cinematic strings, restrained atmospheric pads, human choir. "
-              "Original adult male tenor-baritone lead vocal in neutral Rioplatense Spanish, warm airy intimate tone in verses, "
-              "slightly raspy projected high notes in choruses, transparent tuning, natural vibrato, close microphone presence. "
-              "Minimal contemplative intro growing into a large congregational chorus, emotional bridge crescendo and monumental final chorus. "
-              "Front-and-center vocal, wide doubles and third/fifth harmonies only in choruses, deep hall reverb with clear predelay, "
-              "controlled low end, silky highs, commercial dynamic master. Faith, comfort, gratitude, hope and spiritual triumph. "
-              "Expressive human delivery with precise Spanish diction and believable breaths. No imitation of any singer, "
-              "no existing melody, no samples, no synthesizer lead, no EDM drop, no trap, no reggaeton."
-          )
-
-          lyrics = dedent(r'''[INTRO]
-          Tu paz desciende sobre este lugar,
-          algo en el alma vuelve a despertar.
-
-          [VERSO 1]
-          Aquí estás, puedo sentir tu paz,
-          tu amor me envuelve y no me suelta más.
-          Aquí estás, respirando en mi interior,
-          llenando el silencio con tu voz.
-
-          [PRE-CORO]
-          Mi corazón se rinde ante tu verdad,
-          y todo lo que soy te quiere adorar.
-
-          [CORO]
-          Aquí estás, cerca de mi corazón,
-          trayendo vida, levantando mi canción.
-          Aquí estás, dando calma y libertad,
-          Jesús, tu amor me vuelve a despertar.
-          Sos mi refugio, mi fuerza y mi verdad;
-          mi Dios, aquí estás.
-
-          [VERSO 2]
-          Aquí estás, abrazando mi dolor,
-          donde hubo miedo hoy florece tu favor.
-          Aquí estás, sosteniendo mi caminar,
-          y cada herida empieza a descansar.
-
-          [PRE-CORO]
-          Mi corazón se rinde ante tu verdad,
-          y todo lo que soy te quiere adorar.
-
-          [CORO]
-          Aquí estás, cerca de mi corazón,
-          trayendo vida, levantando mi canción.
-          Aquí estás, dando calma y libertad,
-          Jesús, tu amor me vuelve a despertar.
-          Sos mi refugio, mi fuerza y mi verdad;
-          mi Dios, aquí estás.
-
-          [PUENTE]
-          Cuando no entiendo, seguís a mi lado;
-          cuando me quiebro, me das nueva fuerza.
-          Si el horizonte parece lejano,
-          tu fidelidad se mantiene despierta.
-          En cada valle, en cada cima,
-          tu gracia me acompañará.
-          Sos el principio de mi vida,
-          mi esperanza hasta el final.
-
-          [BUILD]
-          Aquí estás,
-          yo puedo sentirlo.
-          Aquí estás,
-          tu paz vive en mí.
-          Aquí estás,
-          mi corazón canta.
-          Aquí estás,
-          Jesús, junto a mí.
-
-          [CORO FINAL]
-          Aquí estás, cerca de mi corazón,
-          trayendo vida, levantando mi canción.
-          Aquí estás, dando calma y libertad,
-          Jesús, tu amor me vuelve a despertar.
-          Sos mi refugio, mi fuerza y mi verdad;
-          mi Dios, aquí estás.
-
-          [POST-CORO]
-          Oh-oh, aquí estás,
-          oh-oh, mi Dios está.
-          Oh-oh, aquí estás,
-          por siempre reinarás.
-
-          [OUTRO]
-          Tu paz desciende una vez más;
-          mi Dios, aquí estás.''').strip()
-
-          out = Path("output/music/Aqui_Estas_x_DemianVelo.wav")
-          client = Client("victor/ace-step-jam", token=os.getenv("HF_TOKEN") or None, verbose=False)
-          result = client.predict(prompt, lyrics, 240.0, 16, 7.5, -1, "", 0.82, api_name="/generate")
-
-          def extract(value):
-              if isinstance(value, str):
-                  s = value.strip()
-                  for prefix in ("data:audio/wav;base64,", "data:audio/x-wav;base64,"):
-                      if s.startswith(prefix):
-                          out.write_bytes(base64.b64decode(s[len(prefix):]))
-                          return out
-                  if len(s) < 4096:
-                      p = Path(s)
-                      if p.exists():
-                          return p
-                  try:
-                      raw = base64.b64decode(s, validate=True)
-                      if len(raw) > 500000:
-                          out.write_bytes(raw)
-                          return out
-                  except Exception:
-                      pass
-              if isinstance(value, dict):
-                  for item in value.values():
-                      found = extract(item)
-                      if found:
-                          return found
-              if isinstance(value, (list, tuple)):
-                  for item in value:
-                      found = extract(item)
-                      if found:
-                          return found
-              return None
-
-          source = extract(result)
-          if not source:
-              raise RuntimeError("ACE-Step no devolvió audio: " + repr(result)[:1500])
-          if source != out:
-              shutil.copy2(source, out)
-          if out.stat().st_size < 500000:
-              raise RuntimeError("El audio generado es demasiado pequeño")
-          print("MUSIC_OK", out, out.stat().st_size)
+          files = list(Path("output/music").rglob("*.wav"))
+          if len(files) != 1:
+              raise RuntimeError(f"Se esperaba un único WAV y se encontraron: {files}")
+          audio = files[0]
+          with wave.open(str(audio), "rb") as wav:
+              duration = wav.getnframes() / wav.getframerate()
+              print("AUDIO_QA", audio, duration, wav.getframerate(), wav.getnchannels(), wav.getsampwidth())
+              if not 239 <= duration <= 241:
+                  raise RuntimeError(f"Duración inesperada: {duration:.3f}s")
+              if wav.getframerate() != 48000 or wav.getnchannels() != 2:
+                  raise RuntimeError("El máster no es estéreo a 48 kHz")
           PY
       - uses: actions/upload-artifact@v4
         with:
@@ -187,22 +63,22 @@ jobs:
         include:
           - id: 1
             space: OpenKing/wan2-video-generation
-            prompt: "Respectful original cinematic depiction of Jesus, a Middle Eastern Jewish man in his early thirties with shoulder-length dark hair and a simple cream robe, walking with diverse adults through a sunlit green meadow and helping them cross a small stream, warm genuine smiles, distant mountains, smooth cinematic dolly, premium 2026 Christian pop music video, human photorealism, natural skin, no celebrity resemblance, no text, no logo, 16:9"
+            prompt: "Respectful original cinematic depiction of Jesus, a Middle Eastern Jewish man in his early thirties with shoulder-length dark hair and a simple cream robe, walking with diverse adults through a sunlit green meadow and helping them cross a small stream, distant mountains, slow cinematic dolly, premium Christian music video, human photorealism, natural skin and hands, contemplative faces with relaxed closed mouths, nobody speaking or singing, no direct-to-camera performance, no celebrity resemblance, no text, no logo, 16:9"
           - id: 2
             space: BYTFITY/wan2-video-generation262515414142
-            prompt: "Respectful original cinematic depiction of Jesus, a Middle Eastern Jewish man in his early thirties wearing a simple cream robe, welcoming tired adult hikers at a mountain summit at sunrise, sincere embraces, vast valley and birds, smooth aerial-to-dolly camera, authentic joy and hope, premium human photorealism, no celebrity resemblance, no text, no logo, 16:9"
+            prompt: "Respectful original cinematic depiction of Jesus, a Middle Eastern Jewish man in his early thirties wearing a simple cream robe, welcoming tired adult hikers at a mountain summit at sunrise, sincere embraces, vast valley and birds, smooth aerial-to-dolly camera, authentic hope, premium human photorealism, contemplative faces with relaxed closed mouths, nobody speaking or singing, no direct-to-camera performance, no celebrity resemblance, no text, no logo, 16:9"
           - id: 3
             space: OpenKing/wan2-video-generation
-            prompt: "Respectful original cinematic depiction of Jesus sharing bread at a warm community gathering beside a lake, diverse adults helping an older man, natural smiles and compassionate gestures, sunlight through olive trees, gentle gimbal movement, premium human photorealism, natural skin and hands, no celebrity resemblance, no text, no logo, 16:9"
+            prompt: "Respectful original cinematic depiction of Jesus sharing bread at a warm community gathering beside a lake, diverse adults helping an older man, compassionate gestures, sunlight through olive trees, gentle gimbal movement, premium human photorealism, natural skin and hands, calm faces with relaxed closed mouths, nobody speaking or singing, no direct-to-camera performance, no celebrity resemblance, no text, no logo, 16:9"
           - id: 4
             space: BYTFITY/wan2-video-generation262515414142
-            prompt: "Respectful original cinematic depiction of Jesus among a joyful group of diverse adult friends celebrating outdoors at sunset, natural laughter, flowers and ocean horizon, warm lanterns, smooth orbiting camera, elegant premium Christian pop music video cinematography, human photorealism, no celebrity resemblance, no text, no logo, 16:9"
+            prompt: "Respectful original cinematic depiction of Jesus among a hopeful group of diverse adult friends praying outdoors at sunset, hands joined, flowers and ocean horizon, warm lanterns, smooth orbiting camera, elegant premium Christian music video cinematography, human photorealism, contemplative faces with relaxed closed mouths, nobody speaking or singing, no direct-to-camera performance, no celebrity resemblance, no text, no logo, 16:9"
           - id: 5
             space: OpenKing/wan2-video-generation
-            prompt: "Respectful original cinematic depiction of Jesus helping an exhausted adult stand after a difficult hike while friends welcome them with hugs, golden rays through a forest, hopeful authentic human emotion, slow cinematic push-in, premium human photorealism, natural hands, no celebrity resemblance, no text, no logo, 16:9"
+            prompt: "Respectful original cinematic depiction of Jesus helping an exhausted adult stand after a difficult hike while friends welcome them with gentle embraces, golden rays through a forest, hopeful authentic human emotion, slow cinematic push-in, premium human photorealism, natural hands, calm faces with relaxed closed mouths, nobody speaking or singing, no direct-to-camera performance, no celebrity resemblance, no text, no logo, 16:9"
           - id: 6
             space: BYTFITY/wan2-video-generation262515414142
-            prompt: "Respectful original cinematic depiction of Jesus walking with adult friends along a scenic road toward a radiant sunrise, stopping beside waterfalls and wildflowers for moments of prayer and joyful conversation, fluid drone and gimbal shots, uplifting premium human cinematic realism, no celebrity resemblance, no text, no logo, 16:9"
+            prompt: "Respectful original cinematic depiction of Jesus walking with adult friends along a scenic road toward a radiant sunrise, stopping beside waterfalls and wildflowers for silent prayer, fluid drone and gimbal shots, uplifting premium human cinematic realism, contemplative faces with relaxed closed mouths, nobody speaking or singing, no direct-to-camera performance, no celebrity resemblance, no text, no logo, 16:9"
     steps:
       - uses: actions/setup-python@v5
         with:
@@ -330,38 +206,63 @@ jobs:
           AUDIO="$(find artifacts -type f \( -iname '*.wav' -o -iname '*.flac' -o -iname '*.mp3' \) | head -n1)"
           test -n "$AUDIO" || { echo "Falta audio"; exit 1; }
           mapfile -t SCENES < <(find artifacts -type f \( -iname '*.mp4' -o -iname '*.webm' -o -iname '*.mov' \) | sort)
-          test "${#SCENES[@]}" -ge 1 || { echo "Wan2.2 no entregó escenas"; exit 1; }
+          test "${#SCENES[@]}" -ge 3 || { echo "BLOQUEADO: Wan2.2 entregó menos de 3 escenas; no se publicará un video estático o incompleto"; exit 1; }
 
           : > /tmp/scenes/list.txt
           INDEX=0
           for SCENE in "${SCENES[@]}"; do
-            OUT="/tmp/scenes/scene_${INDEX}.mp4"
-            ffmpeg -y -loglevel error -stream_loop -1 -i "$SCENE" -t 8 \
-              -vf "scale=1920:1080:force_original_aspect_ratio=increase,crop=1920:1080,fps=30,eq=contrast=1.04:saturation=1.06,vignette=PI/10" \
-              -an -c:v libx264 -preset medium -crf 18 -pix_fmt yuv420p "$OUT"
+            OUT="/tmp/scenes/wan_${INDEX}.mp4"
+            ffmpeg -y -loglevel error -stream_loop -1 -i "$SCENE" -t 18 \
+              -vf "scale=1920:1080:force_original_aspect_ratio=increase,crop=1920:1080,fps=30,eq=contrast=1.04:saturation=1.06:gamma=1.01,vignette=PI/11,fade=t=in:st=0:d=0.7,fade=t=out:st=17.3:d=0.7" \
+              -an -c:v libx264 -preset fast -crf 17 -pix_fmt yuv420p -video_track_timescale 90000 "$OUT"
             echo "file '$OUT'" >> /tmp/scenes/list.txt
+            if test "$INDEX" -lt 4; then
+              STILL="$(find assets/aqui-estas -maxdepth 1 -type f -iname '*.jpg' | sort | sed -n "$((INDEX+1))p")"
+              test -n "$STILL" || { echo "Falta recurso cinematográfico ${INDEX}"; exit 1; }
+              STILL_OUT="/tmp/scenes/still_${INDEX}.mp4"
+              ffmpeg -y -loglevel error -loop 1 -i "$STILL" -t 20 \
+                -vf "scale=2100:1182:force_original_aspect_ratio=increase,crop=2100:1182,zoompan=z='min(zoom+0.00035,1.10)':x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':d=600:s=1920x1080:fps=30,eq=contrast=1.04:saturation=1.05:gamma=1.01,vignette=PI/12,fade=t=in:st=0:d=0.7,fade=t=out:st=19.3:d=0.7" \
+                -an -c:v libx264 -preset fast -crf 17 -pix_fmt yuv420p -video_track_timescale 90000 "$STILL_OUT"
+              echo "file '$STILL_OUT'" >> /tmp/scenes/list.txt
+            fi
             INDEX=$((INDEX+1))
           done
 
-          ffmpeg -y -loglevel error -stream_loop -1 -f concat -safe 0 -i /tmp/scenes/list.txt -t 240 \
-            -an -c:v libx264 -preset medium -crf 18 -pix_fmt yuv420p /tmp/visual-long.mp4
-          ffmpeg -y -loglevel error -i /tmp/visual-long.mp4 -i "$AUDIO" -t 240 \
-            -map 0:v:0 -map 1:a:0 -c:v copy \
-            -af "highpass=f=32,lowpass=f=18000,acompressor=threshold=-18dB:ratio=2:attack=20:release=180:makeup=2,alimiter=limit=0.92,loudnorm=I=-12:LRA=8:TP=-1" \
+          ffmpeg -y -loglevel error -f concat -safe 0 -i /tmp/scenes/list.txt \
+            -an -c:v copy /tmp/montage.mp4
+          ffmpeg -y -loglevel error -i "$AUDIO" -t 240 \
+            -af "highpass=f=32,lowpass=f=18000,acompressor=threshold=-18dB:ratio=2:attack=20:release=180:makeup=2,loudnorm=I=-13:LRA=8:TP=-1.2,alimiter=limit=0.90" \
+            -ar 48000 -ac 2 -c:a pcm_s24le release/Aqui_Estas_x_DemianVelo_MASTER.wav
+          ffmpeg -y -loglevel error -stream_loop -1 -i /tmp/montage.mp4 -i release/Aqui_Estas_x_DemianVelo_MASTER.wav -t 240 \
+            -map 0:v:0 -map 1:a:0 -vf "fps=30" -c:v libx264 -preset fast -crf 17 -pix_fmt yuv420p \
             -c:a aac -b:a 320k -movflags +faststart release/Aqui_Estas_x_DemianVelo_4min.mp4
 
           ffmpeg -y -loglevel error -ss 32 -i release/Aqui_Estas_x_DemianVelo_4min.mp4 -t 59 \
             -vf "scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,fps=30" \
-            -c:v libx264 -preset medium -crf 18 -c:a aac -b:a 320k -movflags +faststart \
+            -c:v libx264 -preset fast -crf 18 -c:a aac -b:a 320k -movflags +faststart \
             release/Aqui_Estas_x_DemianVelo_SHORT.mp4
-          ffmpeg -y -loglevel error -i "$AUDIO" \
-            -af "highpass=f=32,lowpass=f=18000,acompressor=threshold=-18dB:ratio=2:attack=20:release=180:makeup=2,alimiter=limit=0.92,loudnorm=I=-12:LRA=8:TP=-1" \
-            -c:a pcm_s24le release/Aqui_Estas_x_DemianVelo_MASTER.wav
 
-          ffmpeg -y -loglevel error -ss 70 -i release/Aqui_Estas_x_DemianVelo_4min.mp4 -frames:v 1 \
-            -vf "scale=1280:720:force_original_aspect_ratio=increase,crop=1280:720" release/thumbnail.jpg
-          ffprobe -v error -show_entries format=duration,size -of json release/Aqui_Estas_x_DemianVelo_4min.mp4 > release/qa-long.json
-          ffprobe -v error -show_entries format=duration,size -of json release/Aqui_Estas_x_DemianVelo_SHORT.mp4 > release/qa-short.json
+          cp assets/aqui-estas/thumbnail-aqui-estas-demianvelo.jpg release/thumbnail.jpg
+          test "$(stat -c%s release/thumbnail.jpg)" -lt 2097152 || { echo "Miniatura supera 2 MB"; exit 1; }
+          ffprobe -v error -show_entries stream=index,codec_type,codec_name,width,height,r_frame_rate:format=duration,size -of json release/Aqui_Estas_x_DemianVelo_4min.mp4 > release/qa-long.json
+          ffprobe -v error -show_entries stream=index,codec_type,codec_name,width,height,r_frame_rate:format=duration,size -of json release/Aqui_Estas_x_DemianVelo_SHORT.mp4 > release/qa-short.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          qa = json.loads(Path("release/qa-long.json").read_text())
+          duration = float(qa["format"]["duration"])
+          video = next(s for s in qa["streams"] if s["codec_type"] == "video")
+          audio = next(s for s in qa["streams"] if s["codec_type"] == "audio")
+          if not 239 <= duration <= 241:
+              raise RuntimeError(f"Duración final inválida: {duration}")
+          if (video.get("width"), video.get("height")) != (1920, 1080):
+              raise RuntimeError(f"Resolución final inválida: {video}")
+          if audio.get("codec_name") != "aac":
+              raise RuntimeError(f"Audio final inválido: {audio}")
+          if int(qa["format"]["size"]) < 20_000_000:
+              raise RuntimeError("El video final es demasiado pequeño")
+          print("MASTER_QA_OK", duration, video, audio)
+          PY
       - name: Guardar letra y metadatos
         shell: bash
         run: |
@@ -371,10 +272,12 @@ jobs:
           Canción pop worship cristiana original 2026 sobre la presencia de Dios, la esperanza y la fe en Jesús.
 
           Título YouTube:
-          Aquí Estás x DemianVelo | Canción Cristiana • Dios Habla Hoy
+          AQUÍ ESTÁS — DemianVelo | Video Oficial | Canción Cristiana
 
           Descripción:
-          “Aquí Estás” es una canción cristiana original de DemianVelo sobre sentir la presencia de Dios en cada momento. Una alabanza pop moderna, humana y esperanzadora para recordar que Jesús permanece cerca, trae paz y vuelve a levantar el corazón.
+          “Aquí Estás” es una canción cristiana original de DemianVelo sobre sentir la presencia de Dios en cada momento. Una alabanza contemporánea, íntima y esperanzadora para recordar que Jesús permanece cerca, trae paz y vuelve a levantar el corazón.
+
+          Suscribite a DemianVelo y compartí esta canción con alguien que necesite esperanza hoy.
 
           Dios Habla Hoy
           #DemianVelo #AquiEstas #MusicaCristiana #Jesus #Dios #Worship
@@ -408,10 +311,10 @@ jobs:
           thumb = Path("release/thumbnail.jpg")
           channel = load_channel("demianvelo")
           metadata = {
-              "title": "Aquí Estás x DemianVelo | Canción Cristiana • Dios Habla Hoy",
-              "description": "“Aquí Estás” es una canción cristiana original de DemianVelo sobre sentir la presencia de Dios en cada momento.\n\nUna alabanza pop moderna, humana y esperanzadora para recordar que Jesús permanece cerca, trae paz y vuelve a levantar el corazón.\n\nDios Habla Hoy",
+              "title": "AQUÍ ESTÁS — DemianVelo | Video Oficial | Canción Cristiana",
+              "description": "“Aquí Estás” es una canción cristiana original de DemianVelo sobre sentir la presencia de Dios en cada momento.\n\nUna alabanza contemporánea, íntima y esperanzadora para recordar que Jesús permanece cerca, trae paz y vuelve a levantar el corazón.\n\nSuscribite a DemianVelo y compartí esta canción con alguien que necesite esperanza hoy.\n\nDios Habla Hoy",
               "hashtags": ["#DemianVelo", "#AquiEstas", "#MusicaCristiana", "#Jesus", "#Dios"],
-              "tags": ["DemianVelo", "Aquí Estás", "música cristiana", "Dios Habla Hoy", "Jesús", "pop worship", "alabanza cristiana"],
+              "tags": ["DemianVelo", "Aquí Estás", "música cristiana", "Dios Habla Hoy", "Jesús", "video oficial", "alabanza cristiana", "canción cristiana 2026", "música de fe"],
               "duration_minutes": 4,
               "music_engine_used": "ACE-Step",
               "visual_engine_used": "Wan2.2",
