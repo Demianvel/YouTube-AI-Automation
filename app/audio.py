@@ -118,8 +118,9 @@ def _kokoro_voice(path: Path, text: str) -> None:
     speed = float(os.getenv("KOKORO_SPEED", "0.95"))
     pipeline = KPipeline(lang_code="e")
     chunks: list[np.ndarray] = []
+    clean_text = " ".join(str(text).split())
     for _graphemes, _phonemes, audio in pipeline(
-        text,
+        clean_text,
         voice=voice,
         speed=speed,
         split_pattern=r"(?<=[.!?])\s+",
@@ -128,7 +129,9 @@ def _kokoro_voice(path: Path, text: str) -> None:
             chunks.append(np.asarray(audio, dtype=np.float32))
     if not chunks:
         raise RuntimeError("Kokoro no genero audio en español.")
-    pause = np.zeros(int(24000 * 0.16), dtype=np.float32)
+
+    # Tiny inter-sentence gap: enough for intelligibility, short enough to keep a streamer/influencer flow.
+    pause = np.zeros(int(24000 * 0.035), dtype=np.float32)
     joined: list[np.ndarray] = []
     for index, chunk in enumerate(chunks):
         if index:
@@ -155,7 +158,8 @@ def _chatterbox_voice(path: Path, text: str) -> None:
         if not Path(ref).exists():
             raise RuntimeError("CHATTERBOX_REFERENCE_AUDIO no existe en el runner.")
         kwargs["audio_prompt_path"] = ref
-    wav = model.generate(text, **kwargs)
+    clean_text = " ".join(str(text).split())
+    wav = model.generate(clean_text, **kwargs)
     ta.save(str(path), wav.cpu(), model.sr)
 
 
@@ -247,4 +251,4 @@ def apply_audio(video: Path, out: Path, channel: dict, meta: dict, duration: int
         "-c:v", "copy", "-c:a", "aac", "-b:a", "192k",
         "-movflags", "+faststart", str(out),
     ], check=True)
-    meta["audio_source"] = "natural_spanish_voice_plus_original_instrumental"
+    meta["audio_source"] = "continuous_natural_spanish_voice_plus_original_instrumental"
