@@ -40,7 +40,7 @@ permissions:
   issues: write
 
 concurrency:
-  group: youtube-ai-publisher-${{ github.event_name == 'workflow_dispatch' && inputs.channel || 'schedule' }}-${{ github.event.schedule || github.run_id }}
+  group: youtube-ai-publisher-${{ github.event_name == 'workflow_dispatch' && inputs.channel || github.event.schedule || 'unknown' }}
   cancel-in-progress: false
 
 jobs:
