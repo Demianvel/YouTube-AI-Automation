@@ -9,7 +9,7 @@ from typing import Any
 
 import requests
 
-from .audio import make_pleasant_original_music
+from .audio import _latam_model_dir, make_pleasant_original_music
 from .wikimedia_video import _download as commons_download
 from .wikimedia_video import _search as commons_search
 
@@ -46,10 +46,8 @@ def _edit_landscape(source: Path, out: Path, duration: int, seed: int, botanical
     if source_duration <= duration + 1:
         start = 0.0
     elif botanical and not reuse:
-        # Preserve the beginning of a fresh botanical timelapse when possible.
         start = 0.0
     else:
-        # Reused real footage is cut from another temporal section to avoid an identical scene.
         start = rng.uniform(0.0, max(0.0, source_duration - duration - 0.2))
 
     loop = ["-stream_loop", "-1"] if source_duration < duration else []
@@ -282,7 +280,6 @@ def _get_real_clip(
 ) -> tuple[Path, dict[str, str]]:
     queries = _queries(channel, chapter)
 
-    # Pass 1: prioritize unique real-camera sources.
     result = _try_pexels(channel, meta, index, workdir, queries, used_pexels, allow_used=False)
     if result:
         return result
@@ -290,8 +287,6 @@ def _get_real_clip(
     if result:
         return result
 
-    # Pass 2: never fall back to drawings/photos. Reuse a verified REAL VIDEO source
-    # with a different temporal crop when the open catalog does not have 10 unique matches.
     print(f"Capitulo {index + 1}: no hay fuente real unica suficiente; intentando reutilizar video real verificado.")
     result = _try_pexels(channel, meta, index, workdir, queries, used_pexels, allow_used=True)
     if result:
@@ -316,8 +311,9 @@ def _kokoro_chapters(chapters: list[dict], workdir: Path) -> list[Path]:
     outputs: list[Path] = []
     for index, chapter in enumerate(chapters):
         chunks = []
+        clean = " ".join(str(chapter["narration"]).split())
         for _g, _p, audio in pipeline(
-            str(chapter["narration"]),
+            clean,
             voice=voice,
             speed=speed,
             split_pattern=r"(?<=[.!?])\s+",
@@ -332,16 +328,31 @@ def _kokoro_chapters(chapters: list[dict], workdir: Path) -> list[Path]:
     return outputs
 
 
-def _chatterbox_chapters(chapters: list[dict], workdir: Path) -> list[Path]:
+def _chatterbox_chapters(chapters: list[dict], workdir: Path, latam: bool) -> list[Path]:
     import torch
     import torchaudio as ta
     from chatterbox.mtl_tts import ChatterboxMultilingualTTS
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
-    model = ChatterboxMultilingualTTS.from_pretrained(device=device, t3_model="v3")
+    if latam:
+        model = ChatterboxMultilingualTTS.from_local(
+            _latam_model_dir(),
+            device=device,
+            t3_model="t3_es_mx_latam.safetensors",
+        )
+    else:
+        model = ChatterboxMultilingualTTS.from_pretrained(device=device, t3_model="v3")
+
+    kwargs = {
+        "language_id": "es",
+        "exaggeration": float(os.getenv("CHATTERBOX_EXAGGERATION", "0.60")),
+        "cfg_weight": float(os.getenv("CHATTERBOX_CFG_WEIGHT", "0.38")),
+        "temperature": float(os.getenv("CHATTERBOX_TEMPERATURE", "0.80")),
+    }
     outputs: list[Path] = []
     for index, chapter in enumerate(chapters):
-        wav = model.generate(str(chapter["narration"]), language_id="es")
+        clean = " ".join(str(chapter["narration"]).split())
+        wav = model.generate(clean, **kwargs)
         out = workdir / f"long_voice_{index + 1}.wav"
         ta.save(str(out), wav.cpu(), model.sr)
         outputs.append(out)
@@ -350,10 +361,28 @@ def _chatterbox_chapters(chapters: list[dict], workdir: Path) -> list[Path]:
 
 def _generate_chapter_voices(meta: dict, workdir: Path) -> tuple[list[Path], str]:
     chapters = meta.get("chapters") or []
-    provider = os.getenv("TTS_PROVIDER", "chatterbox").lower().strip()
+    provider = os.getenv("TTS_PROVIDER", "chatterbox_latam").lower().strip()
+
+    if provider in {"chatterbox_latam", "chatterbox-latam", "latam"}:
+        try:
+            return _chatterbox_chapters(chapters, workdir, latam=True), "chatterbox-v3-latam-es-419"
+        except Exception as latam_exc:
+            print(f"Chatterbox LatAm fallo en long-form ({latam_exc}); intentando V3 general.")
+            for path in workdir.glob("long_voice_*.wav"):
+                path.unlink(missing_ok=True)
+            try:
+                return _chatterbox_chapters(chapters, workdir, latam=False), "chatterbox-v3-general-fallback"
+            except Exception as general_exc:
+                if os.getenv("TTS_FALLBACK_KOKORO", "true").lower() != "true":
+                    raise
+                print(f"Chatterbox general fallo en long-form ({general_exc}); usando Kokoro.")
+                for path in workdir.glob("long_voice_*.wav"):
+                    path.unlink(missing_ok=True)
+                return _kokoro_chapters(chapters, workdir), "kokoro-fallback"
+
     if provider == "chatterbox":
         try:
-            return _chatterbox_chapters(chapters, workdir), "chatterbox-v3"
+            return _chatterbox_chapters(chapters, workdir, latam=False), "chatterbox-v3"
         except Exception as exc:
             if os.getenv("TTS_FALLBACK_KOKORO", "true").lower() != "true":
                 raise
@@ -361,6 +390,7 @@ def _generate_chapter_voices(meta: dict, workdir: Path) -> tuple[list[Path], str
             for path in workdir.glob("long_voice_*.wav"):
                 path.unlink(missing_ok=True)
             return _kokoro_chapters(chapters, workdir), "kokoro-fallback"
+
     return _kokoro_chapters(chapters, workdir), "kokoro"
 
 
@@ -371,7 +401,7 @@ def _normalize_voice_segments(voices: list[Path], workdir: Path) -> Path:
         subprocess.run(
             [
                 "ffmpeg", "-y", "-loglevel", "error", "-i", str(voice),
-                "-af", f"highpass=f=70,lowpass=f=9000,acompressor=threshold=-18dB:ratio=1.9:attack=12:release=160,loudnorm=I=-16:TP=-1.5:LRA=8,apad=pad_dur={CHAPTER_SECONDS},atrim=0:{CHAPTER_SECONDS}",
+                "-af", f"highpass=f=70,lowpass=f=10000,acompressor=threshold=-18dB:ratio=1.75:attack=10:release=140,loudnorm=I=-16:TP=-1.5:LRA=8,apad=pad_dur={CHAPTER_SECONDS},atrim=0:{CHAPTER_SECONDS}",
                 "-ar", "48000", "-ac", "1", "-c:a", "pcm_s16le", str(out),
             ],
             check=True,
