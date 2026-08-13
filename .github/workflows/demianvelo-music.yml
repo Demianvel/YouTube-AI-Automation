@@ -128,12 +128,15 @@ jobs:
         env:
           DEMIANVELO_LYRICS: ${{ github.event_name == 'workflow_dispatch' && inputs.lyrics || '' }}
           DEMIANVELO_VOCAL_CHARACTER: ${{ github.event_name == 'workflow_dispatch' && inputs.vocal_character || '' }}
+          DEMIANVELO_STYLE: ${{ steps.select.outputs.style }}
+          DEMIANVELO_ENGINE: ${{ steps.select.outputs.engine }}
+          DEMIANVELO_MINUTES: ${{ steps.select.outputs.minutes }}
+          DEMIANVELO_PUBLISH: ${{ steps.select.outputs.publish }}
         run: |
-          EXTRA=""
-          if [ "${{ steps.select.outputs.publish }}" = "true" ]; then EXTRA="$EXTRA --publish"; fi
-          if [ -n "${{ steps.select.outputs.style }}" ]; then EXTRA="$EXTRA --style '${{ steps.select.outputs.style }}'"; fi
-          EXTRA="$EXTRA --music-engine '${{ steps.select.outputs.engine }}'"
-          python -m app.music_pipeline --minutes "${{ steps.select.outputs.minutes }}" $EXTRA
+          ARGS=(--minutes "$DEMIANVELO_MINUTES" --music-engine "$DEMIANVELO_ENGINE")
+          if [ -n "$DEMIANVELO_STYLE" ]; then ARGS+=(--style "$DEMIANVELO_STYLE"); fi
+          if [ "$DEMIANVELO_PUBLISH" = "true" ]; then ARGS+=(--publish); fi
+          python -m app.music_pipeline "${ARGS[@]}"
 
       - name: Upload dry-run artifact
         if: steps.select.outputs.run == 'true' && steps.select.outputs.publish != 'true' && always()
