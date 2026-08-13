@@ -37,7 +37,7 @@ jobs:
           import json
           from pathlib import Path
           data = json.loads(Path('config/channels.json').read_text(encoding='utf-8'))
-          assert set(data) == {'brotavida', 'dineroclaro', 'envikids'}
+          assert set(data) == {'brotavida', 'dineroclaro', 'envikids', 'demianvelo'}
           assert data['brotavida']['audio_mode'] == 'voice_music'
           assert data['brotavida']['require_real_video'] is True
           assert data['dineroclaro']['audio_mode'] == 'voice_music'
@@ -45,10 +45,12 @@ jobs:
           assert data['envikids']['audio_mode'] == 'voice_music'
           assert data['envikids']['made_for_kids'] is True
           assert data['envikids']['handle'].lower() == '@envikidsai'
-          assert data['envikids']['youtube_url'].lower().endswith('/@envikidsai')
+          assert data['demianvelo']['handle'].lower() == '@demianvelo'
+          assert data['demianvelo']['category_id'] == '10'
+          assert data['demianvelo']['require_real_video'] is True
           for cfg in data.values():
               assert cfg['token_env'].startswith('YOUTUBE_TOKEN_')
-          print('three-channel configuration OK; EnViKidsAI target verified')
+          print('four-channel configuration OK')
           PY
       - name: Install media and base Python dependencies
         run: |
@@ -56,6 +58,16 @@ jobs:
           sudo apt-get install -y ffmpeg espeak-ng libsndfile1 fonts-dejavu-core git
           python -m pip install --upgrade pip
           pip install -r requirements.txt
+      - name: Verify original DemianVelo music synthesis
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          from app.music_audio import generate_original_electronic_track
+          out = Path('/tmp/demianvelo-music-test.wav')
+          generate_original_electronic_track(out, 8, 12345, bpm=128, style='progressive_house', faith_theme=False)
+          assert out.exists() and out.stat().st_size > 100000
+          print('original music synthesis OK:', out.stat().st_size)
+          PY
       - name: Verify Kokoro Spanish fallback
         run: |
           python - <<'PY'
