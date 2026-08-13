@@ -41,13 +41,15 @@ jobs:
           assert data['brotavida']['audio_mode'] == 'voice_music'
           assert data['brotavida']['require_real_video'] is True
           assert data['dineroclaro']['audio_mode'] == 'voice_music'
-          assert data['dineroclaro']['require_real_video'] is True
+          assert data['dineroclaro']['require_real_video'] is False
+          assert data['dineroclaro']['visual_mode'] == 'mixed_finance_entertainment'
           assert data['envikids']['audio_mode'] == 'voice_music'
           assert data['envikids']['made_for_kids'] is True
+          assert data['envikids']['visual_mode'] == 'generated_3d_kids'
           assert data['envikids']['handle'].lower() == '@envikidsai'
           assert data['demianvelo']['handle'].lower() == '@demianvelo'
           assert data['demianvelo']['category_id'] == '10'
-          assert data['demianvelo']['require_real_video'] is True
+          assert data['demianvelo']['require_real_video'] is False
           for cfg in data.values():
               assert cfg['token_env'].startswith('YOUTUBE_TOKEN_')
           print('four-channel configuration OK')
@@ -103,7 +105,29 @@ jobs:
           assert out.exists() and out.stat().st_size > 5000
           print('Chatterbox V3 Spanish OK: CPU', out.stat().st_size)
           PY
-      - name: Smoke test local BrotaVida fallback renderer
+      - name: Smoke test local Dinero Claro premium renderer
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          from app.video import generate_short
+          finance = {
+              'handle': '@DineroClaroAi',
+              'scenes_per_short': 1,
+              'scene_seconds': 1,
+              'audio_mode': 'music_only',
+              'visual_mode': 'finance_animation_test',
+          }
+          meta = {
+              'topic': 'margen de un emprendimiento',
+              'title': 'Entende tu margen',
+              'hook': 'Vender mas no siempre significa ganar mas',
+              'scenes': [{'visual_prompt': 'animated finance dashboard', 'stock_query': 'small business finance', 'narration': ''}],
+          }
+          result = generate_short(finance, meta, Path('/tmp/finance-smoke'))
+          assert result.exists() and result.stat().st_size > 1000
+          print('local finance renderer OK')
+          PY
+      - name: Validate BrotaVida refuses synthetic plant fallback
         run: |
           python - <<'PY'
           from pathlib import Path
@@ -113,15 +137,21 @@ jobs:
               'scenes_per_short': 1,
               'scene_seconds': 1,
               'audio_mode': 'music_only',
-              'visual_mode': 'photoreal_botanical_growth',
+              'visual_mode': 'real_botanical_timelapse',
+              'require_real_video': True,
           }
           meta = {
-              'topic': 'crecimiento real de una planta',
-              'title': 'Asi despierta una semilla',
-              'hook': 'La semilla comienza a abrirse',
-              'scenes': [{'visual_prompt': 'seed sprouting', 'stock_query': 'seed germination timelapse', 'narration': ''}],
+              'topic': 'germinacion de girasol',
+              'title': 'Girasol desde semilla',
+              'hook': 'Mira como despierta',
+              'scenes': [{'visual_prompt': 'sunflower seed germination timelapse', 'stock_query': 'sunflower seed germination timelapse', 'narration': ''}],
           }
-          result = generate_short(plant, meta, Path('/tmp/plant-smoke'))
-          assert result.exists() and result.stat().st_size > 1000
-          print('local renderer OK')
+          try:
+              generate_short(plant, meta, Path('/tmp/plant-policy-smoke'))
+          except RuntimeError as exc:
+              message = str(exc).lower()
+              assert 'no permite plantas sinteticas' in message or 'requiere pexels_api_key' in message
+              print('BrotaVida real-footage policy OK:', exc)
+          else:
+              raise AssertionError('BrotaVida no debe aceptar un fallback sintetico en validacion local')
           PY
