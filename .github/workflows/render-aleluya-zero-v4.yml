@@ -30,15 +30,13 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-          cache: pip
 
       - name: Install FREE production dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y ffmpeg
           python -m pip install --upgrade pip
-          pip install -r requirements.txt
-          pip install gradio_client google-api-python-client google-auth
+          pip install requests gradio_client google-api-python-client google-auth
 
       - name: Render song, cinematic video and publish to DemianVelo
         run: python scripts/render_hallelujah_pop_2026.py --publish
