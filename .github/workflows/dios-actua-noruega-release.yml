@@ -1,0 +1,103 @@
+name: Dios Actua - Norway 4K official release
+
+on:
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: Publicar en @DemianVelo si el master pasa QA
+        required: true
+        default: true
+        type: boolean
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/dios-actua-noruega-release.yml
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: dios-actua-noruega-release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    env:
+      PYTHONPATH: ${{ github.workspace }}
+      HF_TOKEN: ${{ secrets.HF_TOKEN }}
+      PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
+      YOUTUBE_TOKEN_DEMIANVELO: ${{ secrets.YOUTUBE_TOKEN_DEMIANVELO }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Recuperar la referencia vocal Aleluya de DemianVelo
+        uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          name: aleluya-v4-music
+          path: reference_aleluya
+          repository: Demianvel/YouTube-AI-Automation
+          run-id: 31659166745
+          github-token: ${{ github.token }}
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Instalar motor musical, editor 4K y publicación
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg fonts-dejavu-core fonts-liberation2
+          python -m pip install --upgrade pip
+          pip install -U requests gradio_client google-api-python-client google-auth pillow
+
+      - name: Validar credenciales antes del render
+        shell: bash
+        run: |
+          test -n "$YOUTUBE_TOKEN_DEMIANVELO" || { echo "Falta YOUTUBE_TOKEN_DEMIANVELO" >&2; exit 1; }
+          test -s assets/dios-actua/thumbnail-b-emocion-noruega.jpg
+          test -s assets/dios-actua/letra-original.txt
+          if find reference_aleluya -type f \( -iname '*.wav' -o -iname '*.mp3' -o -iname '*.flac' -o -iname '*.m4a' \) -print -quit 2>/dev/null | grep -q .; then
+            echo "VOCAL_REFERENCE_READY=true"
+          else
+            echo "VOCAL_REFERENCE_READY=false; se mantendrá la identidad mediante dirección vocal"
+          fi
+
+      - name: Crear canción original, videoclip cinematográfico 4K y publicar
+        shell: bash
+        run: |
+          ARGS=()
+          if [ "${{ github.event_name }}" = "push" ] || [ "${{ inputs.publish }}" = "true" ]; then
+            ARGS+=(--publish)
+          fi
+          python scripts/render_dios_actua_noruega.py "${ARGS[@]}"
+
+      - name: Verificar publicación y master 4K
+        if: always()
+        shell: bash
+        run: |
+          if [ -f output/dios_actua_demianvelo/final/result.json ]; then
+            cat output/dios_actua_demianvelo/final/result.json
+          fi
+          if [ -f output/dios_actua_demianvelo/final/Dios_Actua_DemianVelo_4K.mp4 ]; then
+            ffprobe -v error -show_entries stream=width,height,codec_name:format=duration,size -of json \
+              output/dios_actua_demianvelo/final/Dios_Actua_DemianVelo_4K.mp4
+          fi
+
+      - name: Guardar master y variantes A/B
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dios-actua-demianvelo-4k-${{ github.run_id }}
+          path: |
+            output/dios_actua_demianvelo/
+            assets/dios-actua/letra-original.txt
+            assets/dios-actua/youtube-metadata.txt
+            assets/dios-actua/thumbnail-a-jesus-noruega.jpg
+            assets/dios-actua/thumbnail-b-emocion-noruega.jpg
+          if-no-files-found: warn
+          compression-level: 0
+          retention-days: 5
