@@ -77,18 +77,14 @@ def _finance(frame: Image.Image, progress: float, meta: dict) -> None:
 
 
 def _kids(frame: Image.Image, progress: float, meta: dict, seed: int) -> None:
-    """Bright local fallback; primary EnViKids path uses generated images."""
     draw = ImageDraw.Draw(frame)
     t = progress * math.tau
-    # soft clouds
     for i in range(5):
         cx = int((80 + i * 150 + progress * 100) % (W + 180)) - 90
         cy = 130 + (i % 2) * 85
         for dx, dy, r in [(-35, 8, 34), (0, -7, 45), (40, 9, 31)]:
             draw.ellipse((cx + dx - r, cy + dy - r, cx + dx + r, cy + dy + r), fill=(248, 251, 255))
-    # ground
     draw.rectangle((0, H - 330, W, H), fill=(109, 199, 106))
-    # cute fictional round character
     bounce = int(math.sin(t * 2) * 20)
     cx, cy = W // 2, H - 520 + bounce
     draw.ellipse((cx - 145, cy - 135, cx + 145, cy + 145), fill=(255, 202, 79), outline=(239, 161, 51), width=8)
@@ -96,7 +92,6 @@ def _kids(frame: Image.Image, progress: float, meta: dict, seed: int) -> None:
     draw.ellipse((cx + 30, cy - 35, cx + 72, cy + 7), fill=(35, 47, 64))
     smile_y = cy + 45
     draw.arc((cx - 55, smile_y - 30, cx + 55, smile_y + 45), 10, 170, fill=(120, 70, 55), width=7)
-    # moving stars/sparkles
     for i in range(8):
         angle = t + i * math.tau / 8
         sx = int(cx + math.cos(angle) * (210 + (i % 3) * 18))
@@ -106,7 +101,6 @@ def _kids(frame: Image.Image, progress: float, meta: dict, seed: int) -> None:
 
 
 def _procedural(channel: dict, meta: dict, out: Path) -> None:
-    """Local fallback. Production prefers real stock or generated media."""
     duration = int(channel["scenes_per_short"]) * int(channel["scene_seconds"])
     frames, seed = duration * FPS, _seed(meta)
     visual_mode = channel.get("visual_mode", "")
@@ -147,6 +141,16 @@ def _procedural(channel: dict, meta: dict, out: Path) -> None:
     apply_audio(silent, out, channel, meta, duration, seed)
 
 
+def _real_stock(channel: dict, metadata: dict, workdir: Path, final: Path) -> None:
+    if os.getenv("PEXELS_API_KEY", "").strip():
+        try:
+            generate_pexels_short(channel, metadata, workdir, final, apply_audio)
+            return
+        except Exception as exc:
+            print(f"Pexels no disponible ({exc}); usando Wikimedia Commons.")
+    generate_wikimedia_short(channel, metadata, workdir, final, apply_audio)
+
+
 def generate_short(channel: dict, metadata: dict, workdir: Path) -> Path:
     workdir.mkdir(parents=True, exist_ok=True)
     final = workdir / "short.mp4"
@@ -161,14 +165,25 @@ def generate_short(channel: dict, metadata: dict, workdir: Path) -> Path:
             _procedural(channel, metadata, final)
             return final
 
+    if "mixed_finance" in visual_mode:
+        # Deterministic alternation: some topics use real B-roll and others an
+        # original animated explainer. A retry keeps the same visual choice.
+        if _seed(metadata) % 2 == 0:
+            _procedural(channel, metadata, final)
+            metadata["visual_source"] = "animated_original"
+            return final
+        try:
+            _real_stock(channel, metadata, workdir, final)
+            metadata["visual_source"] = "real_stock"
+            return final
+        except Exception as exc:
+            print(f"B-roll real no disponible ({exc}); usando animacion financiera original.")
+            _procedural(channel, metadata, final)
+            metadata["visual_source"] = "animated_original_fallback"
+            return final
+
     if VIDEO_PROVIDER == "real_stock":
-        if os.getenv("PEXELS_API_KEY", "").strip():
-            try:
-                generate_pexels_short(channel, metadata, workdir, final, apply_audio)
-                return final
-            except Exception as exc:
-                print(f"Pexels no disponible ({exc}); usando Wikimedia Commons.")
-        generate_wikimedia_short(channel, metadata, workdir, final, apply_audio)
+        _real_stock(channel, metadata, workdir, final)
     elif VIDEO_PROVIDER == "pexels":
         generate_pexels_short(channel, metadata, workdir, final, apply_audio)
     elif VIDEO_PROVIDER == "wikimedia":
