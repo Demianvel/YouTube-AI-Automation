@@ -1,0 +1,435 @@
+name: DemianVelo Aqui Estas - ACE-Step + Wan2.2
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/demianvelo-aqui-estas-wan22.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: demianvelo-aqui-estas-wan22
+  cancel-in-progress: false
+
+jobs:
+  music:
+    name: Canción original con ACE-Step
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    env:
+      HF_TOKEN: ${{ secrets.HF_TOKEN }}
+    steps:
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Instalar cliente
+        run: pip install -U gradio_client
+      - name: Generar Aqui Estas
+        shell: bash
+        run: |
+          mkdir -p output/music
+          python - <<'PY'
+          import base64, os, shutil
+          from pathlib import Path
+          from textwrap import dedent
+          from gradio_client import Client
+
+          prompt = (
+              "Completely original 2026 contemporary Christian worship pop song titled Aqui Estas, 69 BPM, 4/4, warm major key, "
+              "organic premium studio production, grand piano, acoustic guitar, clean electric guitar with subtle delay, "
+              "round electric bass, real acoustic drums, cinematic strings, restrained atmospheric pads, human choir. "
+              "Original adult male tenor-baritone lead vocal in neutral Rioplatense Spanish, warm airy intimate tone in verses, "
+              "slightly raspy projected high notes in choruses, transparent tuning, natural vibrato, close microphone presence. "
+              "Minimal contemplative intro growing into a large congregational chorus, emotional bridge crescendo and monumental final chorus. "
+              "Front-and-center vocal, wide doubles and third/fifth harmonies only in choruses, deep hall reverb with clear predelay, "
+              "controlled low end, silky highs, commercial dynamic master. Faith, comfort, gratitude, hope and spiritual triumph. "
+              "Expressive human delivery with precise Spanish diction and believable breaths. No imitation of any singer, "
+              "no existing melody, no samples, no synthesizer lead, no EDM drop, no trap, no reggaeton."
+          )
+
+          lyrics = dedent(r'''[INTRO]
+          Tu paz desciende sobre este lugar,
+          algo en el alma vuelve a despertar.
+
+          [VERSO 1]
+          Aquí estás, puedo sentir tu paz,
+          tu amor me envuelve y no me suelta más.
+          Aquí estás, respirando en mi interior,
+          llenando el silencio con tu voz.
+
+          [PRE-CORO]
+          Mi corazón se rinde ante tu verdad,
+          y todo lo que soy te quiere adorar.
+
+          [CORO]
+          Aquí estás, cerca de mi corazón,
+          trayendo vida, levantando mi canción.
+          Aquí estás, dando calma y libertad,
+          Jesús, tu amor me vuelve a despertar.
+          Sos mi refugio, mi fuerza y mi verdad;
+          mi Dios, aquí estás.
+
+          [VERSO 2]
+          Aquí estás, abrazando mi dolor,
+          donde hubo miedo hoy florece tu favor.
+          Aquí estás, sosteniendo mi caminar,
+          y cada herida empieza a descansar.
+
+          [PRE-CORO]
+          Mi corazón se rinde ante tu verdad,
+          y todo lo que soy te quiere adorar.
+
+          [CORO]
+          Aquí estás, cerca de mi corazón,
+          trayendo vida, levantando mi canción.
+          Aquí estás, dando calma y libertad,
+          Jesús, tu amor me vuelve a despertar.
+          Sos mi refugio, mi fuerza y mi verdad;
+          mi Dios, aquí estás.
+
+          [PUENTE]
+          Cuando no entiendo, seguís a mi lado;
+          cuando me quiebro, me das nueva fuerza.
+          Si el horizonte parece lejano,
+          tu fidelidad se mantiene despierta.
+          En cada valle, en cada cima,
+          tu gracia me acompañará.
+          Sos el principio de mi vida,
+          mi esperanza hasta el final.
+
+          [BUILD]
+          Aquí estás,
+          yo puedo sentirlo.
+          Aquí estás,
+          tu paz vive en mí.
+          Aquí estás,
+          mi corazón canta.
+          Aquí estás,
+          Jesús, junto a mí.
+
+          [CORO FINAL]
+          Aquí estás, cerca de mi corazón,
+          trayendo vida, levantando mi canción.
+          Aquí estás, dando calma y libertad,
+          Jesús, tu amor me vuelve a despertar.
+          Sos mi refugio, mi fuerza y mi verdad;
+          mi Dios, aquí estás.
+
+          [POST-CORO]
+          Oh-oh, aquí estás,
+          oh-oh, mi Dios está.
+          Oh-oh, aquí estás,
+          por siempre reinarás.
+
+          [OUTRO]
+          Tu paz desciende una vez más;
+          mi Dios, aquí estás.''').strip()
+
+          out = Path("output/music/Aqui_Estas_x_DemianVelo.wav")
+          client = Client("victor/ace-step-jam", token=os.getenv("HF_TOKEN") or None, verbose=False)
+          result = client.predict(prompt, lyrics, 240.0, 16, 7.5, -1, "", 0.82, api_name="/generate")
+
+          def extract(value):
+              if isinstance(value, str):
+                  p = Path(value)
+                  if p.exists():
+                      return p
+                  s = value.strip()
+                  for prefix in ("data:audio/wav;base64,", "data:audio/x-wav;base64,"):
+                      if s.startswith(prefix):
+                          out.write_bytes(base64.b64decode(s[len(prefix):]))
+                          return out
+                  try:
+                      raw = base64.b64decode(s, validate=True)
+                      if len(raw) > 500000:
+                          out.write_bytes(raw)
+                          return out
+                  except Exception:
+                      pass
+              if isinstance(value, dict):
+                  for item in value.values():
+                      found = extract(item)
+                      if found:
+                          return found
+              if isinstance(value, (list, tuple)):
+                  for item in value:
+                      found = extract(item)
+                      if found:
+                          return found
+              return None
+
+          source = extract(result)
+          if not source:
+              raise RuntimeError("ACE-Step no devolvió audio: " + repr(result)[:1500])
+          if source != out:
+              shutil.copy2(source, out)
+          if out.stat().st_size < 500000:
+              raise RuntimeError("El audio generado es demasiado pequeño")
+          print("MUSIC_OK", out, out.stat().st_size)
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: aqui-estas-music
+          path: output/music/
+          retention-days: 7
+
+  video:
+    name: Escena Wan2.2 ${{ matrix.id }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - id: 1
+            space: OpenKing/wan2-video-generation
+            prompt: "Respectful original cinematic depiction of Jesus, a Middle Eastern Jewish man in his early thirties with shoulder-length dark hair and a simple cream robe, walking with diverse adults through a sunlit green meadow and helping them cross a small stream, warm genuine smiles, distant mountains, smooth cinematic dolly, premium 2026 Christian pop music video, human photorealism, natural skin, no celebrity resemblance, no text, no logo, 16:9"
+          - id: 2
+            space: BYTFITY/wan2-video-generation262515414142
+            prompt: "Respectful original cinematic depiction of Jesus, a Middle Eastern Jewish man in his early thirties wearing a simple cream robe, welcoming tired adult hikers at a mountain summit at sunrise, sincere embraces, vast valley and birds, smooth aerial-to-dolly camera, authentic joy and hope, premium human photorealism, no celebrity resemblance, no text, no logo, 16:9"
+          - id: 3
+            space: OpenKing/wan2-video-generation
+            prompt: "Respectful original cinematic depiction of Jesus sharing bread at a warm community gathering beside a lake, diverse adults helping an older man, natural smiles and compassionate gestures, sunlight through olive trees, gentle gimbal movement, premium human photorealism, natural skin and hands, no celebrity resemblance, no text, no logo, 16:9"
+          - id: 4
+            space: BYTFITY/wan2-video-generation262515414142
+            prompt: "Respectful original cinematic depiction of Jesus among a joyful group of diverse adult friends celebrating outdoors at sunset, natural laughter, flowers and ocean horizon, warm lanterns, smooth orbiting camera, elegant premium Christian pop music video cinematography, human photorealism, no celebrity resemblance, no text, no logo, 16:9"
+          - id: 5
+            space: OpenKing/wan2-video-generation
+            prompt: "Respectful original cinematic depiction of Jesus helping an exhausted adult stand after a difficult hike while friends welcome them with hugs, golden rays through a forest, hopeful authentic human emotion, slow cinematic push-in, premium human photorealism, natural hands, no celebrity resemblance, no text, no logo, 16:9"
+          - id: 6
+            space: BYTFITY/wan2-video-generation262515414142
+            prompt: "Respectful original cinematic depiction of Jesus walking with adult friends along a scenic road toward a radiant sunrise, stopping beside waterfalls and wildflowers for moments of prayer and joyful conversation, fluid drone and gimbal shots, uplifting premium human cinematic realism, no celebrity resemblance, no text, no logo, 16:9"
+    steps:
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -U gradio_client
+      - name: Generar escena cinematográfica
+        shell: bash
+        env:
+          SPACE: ${{ matrix.space }}
+          SCENE_ID: ${{ matrix.id }}
+          PROMPT: ${{ matrix.prompt }}
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          mkdir -p output/video
+          python - <<'PY'
+          import os, shutil
+          from pathlib import Path
+          from gradio_client import Client
+
+          client = Client(os.environ["SPACE"], token=os.getenv("HF_TOKEN") or None, verbose=False)
+          api = client.view_api(return_format="dict")
+          named = api.get("named_endpoints", api)
+          candidates = []
+          for name, info in named.items():
+              if not isinstance(info, dict):
+                  continue
+              parameters = info.get("parameters", [])
+              names = [str(p.get("parameter_name") or "").lower() for p in parameters]
+              returns = " ".join(str(r.get("component") or r.get("type") or "") for r in info.get("returns", [])).lower()
+              has_prompt = any("prompt" in n or "description" in n for n in names)
+              generic = len(parameters) >= 7 and all(n.startswith("param_") for n in names)
+              if (has_prompt or generic) and ("video" in returns or "video" in name.lower() or "generate" in name.lower()):
+                  candidates.append((name, info))
+          if not candidates:
+              raise RuntimeError("No se detectó endpoint de Wan2.2: " + repr(named)[:4000])
+          candidates.sort(key=lambda x: (0 if "generate" in x[0].lower() else 1, len(x[1].get("parameters", []))))
+          failures = []
+          source = None
+          for endpoint, spec in candidates[:4]:
+              parameters = spec.get("parameters", [])
+              generic = all(str(p.get("parameter_name") or "").lower().startswith("param_") for p in parameters)
+              args = []
+              for idx, parameter in enumerate(parameters):
+                  name = str(parameter.get("parameter_name") or "").lower().replace("-", "_")
+                  default = parameter.get("default", None)
+                  if generic:
+                      value = {0: os.environ["PROMPT"], 1: None, 2: 1280, 3: 704, 4: 73, 5: 28, 6: 5.0, 7: 2600 + int(os.environ["SCENE_ID"])}.get(idx, default)
+                  elif "image" in name:
+                      value = None
+                  elif "prompt" in name or "description" in name:
+                      value = os.environ["PROMPT"]
+                  elif "height" in name:
+                      value = 704
+                  elif "width" in name:
+                      value = 1280
+                  elif "frame" in name:
+                      value = 73
+                  elif "duration" in name or "seconds" in name:
+                      value = 3.0
+                  elif "sampling" in name or "steps" in name:
+                      value = 28
+                  elif "guide" in name:
+                      value = 5.0
+                  elif "shift" in name:
+                      value = 5.0 if default is None else default
+                  elif "seed" in name:
+                      value = 2600 + int(os.environ["SCENE_ID"])
+                  else:
+                      value = default
+                  args.append(value)
+              try:
+                  result = client.predict(*args, api_name=endpoint)
+                  videos = []
+                  def walk(value):
+                      if isinstance(value, str):
+                          p = Path(value)
+                          if p.exists() and p.suffix.lower() in {".mp4", ".webm", ".mov", ".mkv"}:
+                              videos.append(p)
+                      elif isinstance(value, dict):
+                          for item in value.values(): walk(item)
+                      elif isinstance(value, (list, tuple)):
+                          for item in value: walk(item)
+                  walk(result)
+                  if not videos:
+                      raise RuntimeError("resultado sin video: " + repr(result)[:1000])
+                  source = videos[0]
+                  break
+              except Exception as exc:
+                  failures.append(f"{endpoint}: {type(exc).__name__}: {exc}")
+          if source is None:
+              raise RuntimeError("Wan2.2 no devolvió video: " + " | ".join(failures))
+          target = Path(f"output/video/scene_{int(os.environ['SCENE_ID']):02d}{source.suffix.lower()}")
+          shutil.copy2(source, target)
+          print("VIDEO_OK", target, target.stat().st_size)
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: aqui-estas-wan-${{ matrix.id }}
+          path: output/video/
+          if-no-files-found: warn
+          retention-days: 7
+
+  master:
+    name: Mezcla, videoclip y Short
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    needs: [music, video]
+    if: always() && needs.music.result == 'success'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: aqui-estas-*
+          path: artifacts
+          merge-multiple: true
+      - name: Instalar herramientas
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+      - name: Construir masters
+        shell: bash
+        run: |
+          mkdir -p release /tmp/scenes
+          AUDIO="$(find artifacts -type f \( -iname '*.wav' -o -iname '*.flac' -o -iname '*.mp3' \) | head -n1)"
+          test -n "$AUDIO" || { echo "Falta audio"; exit 1; }
+          mapfile -t SCENES < <(find artifacts -type f \( -iname '*.mp4' -o -iname '*.webm' -o -iname '*.mov' \) | sort)
+          test "${#SCENES[@]}" -ge 1 || { echo "Wan2.2 no entregó escenas"; exit 1; }
+
+          : > /tmp/scenes/list.txt
+          INDEX=0
+          for SCENE in "${SCENES[@]}"; do
+            OUT="/tmp/scenes/scene_${INDEX}.mp4"
+            ffmpeg -y -loglevel error -stream_loop -1 -i "$SCENE" -t 8 \
+              -vf "scale=1920:1080:force_original_aspect_ratio=increase,crop=1920:1080,fps=30,eq=contrast=1.04:saturation=1.06,vignette=PI/10" \
+              -an -c:v libx264 -preset medium -crf 18 -pix_fmt yuv420p "$OUT"
+            echo "file '$OUT'" >> /tmp/scenes/list.txt
+            INDEX=$((INDEX+1))
+          done
+
+          ffmpeg -y -loglevel error -stream_loop -1 -f concat -safe 0 -i /tmp/scenes/list.txt -t 240 \
+            -an -c:v libx264 -preset medium -crf 18 -pix_fmt yuv420p /tmp/visual-long.mp4
+          ffmpeg -y -loglevel error -i /tmp/visual-long.mp4 -i "$AUDIO" -t 240 \
+            -map 0:v:0 -map 1:a:0 -c:v copy \
+            -af "highpass=f=32,lowpass=f=18000,acompressor=threshold=-18dB:ratio=2:attack=20:release=180:makeup=2,alimiter=limit=0.92,loudnorm=I=-12:LRA=8:TP=-1" \
+            -c:a aac -b:a 320k -movflags +faststart release/Aqui_Estas_x_DemianVelo_4min.mp4
+
+          ffmpeg -y -loglevel error -ss 32 -i release/Aqui_Estas_x_DemianVelo_4min.mp4 -t 59 \
+            -vf "scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,fps=30" \
+            -c:v libx264 -preset medium -crf 18 -c:a aac -b:a 320k -movflags +faststart \
+            release/Aqui_Estas_x_DemianVelo_SHORT.mp4
+          ffmpeg -y -loglevel error -i "$AUDIO" \
+            -af "highpass=f=32,lowpass=f=18000,acompressor=threshold=-18dB:ratio=2:attack=20:release=180:makeup=2,alimiter=limit=0.92,loudnorm=I=-12:LRA=8:TP=-1" \
+            -c:a pcm_s24le release/Aqui_Estas_x_DemianVelo_MASTER.wav
+
+          ffmpeg -y -loglevel error -ss 70 -i release/Aqui_Estas_x_DemianVelo_4min.mp4 -frames:v 1 \
+            -vf "scale=1280:720:force_original_aspect_ratio=increase,crop=1280:720" release/thumbnail.jpg
+          ffprobe -v error -show_entries format=duration,size -of json release/Aqui_Estas_x_DemianVelo_4min.mp4 > release/qa-long.json
+          ffprobe -v error -show_entries format=duration,size -of json release/Aqui_Estas_x_DemianVelo_SHORT.mp4 > release/qa-short.json
+      - name: Guardar letra y metadatos
+        shell: bash
+        run: |
+          cat > release/LETRA_Y_METADATA.txt <<'TXT'
+          AQUÍ ESTÁS x DEMIANVELO
+
+          Canción pop worship cristiana original 2026 sobre la presencia de Dios, la esperanza y la fe en Jesús.
+
+          Título YouTube:
+          Aquí Estás x DemianVelo | Canción Cristiana • Dios Habla Hoy
+
+          Descripción:
+          “Aquí Estás” es una canción cristiana original de DemianVelo sobre sentir la presencia de Dios en cada momento. Una alabanza pop moderna, humana y esperanzadora para recordar que Jesús permanece cerca, trae paz y vuelve a levantar el corazón.
+
+          Dios Habla Hoy
+          #DemianVelo #AquiEstas #MusicaCristiana #Jesus #Dios #Worship
+
+          CORO:
+          Aquí estás, cerca de mi corazón,
+          trayendo vida, levantando mi canción.
+          Aquí estás, dando calma y libertad,
+          Jesús, tu amor me vuelve a despertar.
+          Sos mi refugio, mi fuerza y mi verdad;
+          mi Dios, aquí estás.
+          TXT
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Instalar publicador de YouTube
+        run: pip install -U google-api-python-client google-auth
+      - name: Publicar directamente en DemianVelo
+        shell: bash
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+          YOUTUBE_TOKEN_DEMIANVELO: ${{ secrets.YOUTUBE_TOKEN_DEMIANVELO }}
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          from app.config import load_channel
+          from app.youtube import upload_long_video
+
+          video = Path("release/Aqui_Estas_x_DemianVelo_4min.mp4")
+          thumb = Path("release/thumbnail.jpg")
+          channel = load_channel("demianvelo")
+          metadata = {
+              "title": "Aquí Estás x DemianVelo | Canción Cristiana • Dios Habla Hoy",
+              "description": "“Aquí Estás” es una canción cristiana original de DemianVelo sobre sentir la presencia de Dios en cada momento.\n\nUna alabanza pop moderna, humana y esperanzadora para recordar que Jesús permanece cerca, trae paz y vuelve a levantar el corazón.\n\nDios Habla Hoy",
+              "hashtags": ["#DemianVelo", "#AquiEstas", "#MusicaCristiana", "#Jesus", "#Dios"],
+              "tags": ["DemianVelo", "Aquí Estás", "música cristiana", "Dios Habla Hoy", "Jesús", "pop worship", "alabanza cristiana"],
+              "duration_minutes": 4,
+              "music_engine_used": "ACE-Step",
+              "visual_engine_used": "Wan2.2",
+          }
+          video_id = upload_long_video(channel, metadata, video, thumbnail_path=thumb, expected_minutes=4)
+          result = {
+              "status": "uploaded",
+              "video_id": video_id,
+              "url": f"https://youtu.be/{video_id}",
+              "title": metadata["title"],
+              "thumbnail_upload_status": metadata.get("thumbnail_upload_status"),
+          }
+          Path("release/youtube-result.json").write_text(json.dumps(result, ensure_ascii=False, indent=2), encoding="utf-8")
+          print("YOUTUBE_OK", json.dumps(result, ensure_ascii=False))
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: aqui-estas-demianvelo-release
+          path: release/
+          if-no-files-found: error
+          retention-days: 7
