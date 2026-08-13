@@ -36,7 +36,19 @@ jobs:
           mkdir -p music
           gh run download "$SOURCE_RUN" --name aqui-estas-music --dir music
           test -s music/Aqui_Estas_x_DemianVelo.wav
-          ffprobe -v error -show_entries format=duration -of default=nw=1:nk=1 music/Aqui_Estas_x_DemianVelo.wav
+          python - <<'PY'
+          import wave
+          from pathlib import Path
+          audio = Path("music/Aqui_Estas_x_DemianVelo.wav")
+          with wave.open(str(audio), "rb") as wav:
+              duration = wav.getnframes() / wav.getframerate()
+              channels = wav.getnchannels()
+              rate = wav.getframerate()
+          assert 239.0 <= duration <= 241.0, duration
+          assert channels == 2, channels
+          assert rate == 48000, rate
+          print("AUDIO_QA_OK", duration, channels, rate, audio.stat().st_size)
+          PY
           gh run cancel "$SOURCE_RUN" || true
       - name: Instalar herramientas de master y publicación
         run: |
