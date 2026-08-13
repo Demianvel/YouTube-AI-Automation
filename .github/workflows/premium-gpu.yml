@@ -118,6 +118,9 @@ jobs:
         env:
           CHANNEL: envikids
           VIDEO_PROVIDER: real_stock
+          TTS_PROVIDER: kokoro
+          KOKORO_VOICE: ef_dora
+          KOKORO_SPEED: "1.03"
         run: |
           ARGS=(--channel envikids --content-mode voice)
           if [ "${{ inputs.publish }}" != "true" ]; then ARGS+=(--dry-run); fi
