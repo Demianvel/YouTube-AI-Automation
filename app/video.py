@@ -74,7 +74,6 @@ def _finance(frame: Image.Image, progress: float, meta: dict) -> None:
     local = scaled - scene_index
     ease = local * local * (3 - 2 * local)
 
-    # Ambient premium background accents.
     for i in range(7):
         phase = (seed % 97) * 0.01 + i * 0.83
         cx = int(W * (0.10 + (i % 4) * 0.27) + math.sin(progress * math.tau + phase) * 24)
@@ -82,12 +81,10 @@ def _finance(frame: Image.Image, progress: float, meta: dict) -> None:
         r = 34 + (i % 3) * 12
         draw.ellipse((cx-r, cy-r, cx+r, cy+r), fill=(20 + i*3, 42 + i*3, 62 + i*3))
 
-    # Header badge.
     _rounded_card(draw, (70, 76, 430, 150), radius=28, fill=(26, 43, 62), outline=(63, 88, 114))
     badge_font = _font(34, True)
     draw.text((100, 96), "DINERO CLARO", font=badge_font, fill=(235, 242, 249))
 
-    # Main hook / title.
     hook = (meta.get("hook") or meta.get("title") or "Una idea clara").strip()
     title_font = _font(72, True)
     y = 205
@@ -95,12 +92,10 @@ def _finance(frame: Image.Image, progress: float, meta: dict) -> None:
         draw.text((70, y), line, font=title_font, fill=(247, 249, 252))
         y += 86
 
-    # Central glass-style card.
     card_top = max(500, y + 45)
     card_bottom = min(H - 330, card_top + 820)
     _rounded_card(draw, (70, card_top, W-70, card_bottom), radius=44, fill=(18, 28, 43), outline=(65, 91, 119))
 
-    # Animated bar chart varies by topic/scene.
     baseline = card_bottom - 150
     bar_area_h = min(500, card_bottom - card_top - 280)
     bar_w = 120
@@ -119,7 +114,6 @@ def _finance(frame: Image.Image, progress: float, meta: dict) -> None:
         draw.rounded_rectangle((x+12, baseline-h+12, x+bar_w-12, baseline-h+12+glow_h), radius=16,
                                fill=(118 + i*12, 193, 230 - i*8))
 
-    # Coin / decision indicators.
     coin_y = card_top + 120
     for i in range(3):
         pulse = 1.0 + 0.08 * math.sin((progress * 3.2 + i * 0.4) * math.tau)
@@ -128,7 +122,6 @@ def _finance(frame: Image.Image, progress: float, meta: dict) -> None:
         draw.ellipse((cx-rr, coin_y-rr, cx+rr, coin_y+rr), fill=(229, 183 - i*10, 72 + i*8))
         draw.ellipse((cx-rr+8, coin_y-rr+8, cx+rr-8, coin_y+rr-8), outline=(255, 225, 139), width=4)
 
-    # Scene progress markers.
     marker_y = H - 230
     usable = W - 140
     seg_w = (usable - (scene_count - 1) * 18) / scene_count
@@ -139,7 +132,6 @@ def _finance(frame: Image.Image, progress: float, meta: dict) -> None:
         fill = (94, 184, 227) if active else (55, 70, 88)
         draw.rounded_rectangle((int(x1), marker_y, int(x2), marker_y + 18), radius=9, fill=fill)
 
-    # Small scene caption from narration for a creator-like explainer feel.
     if scenes and scene_index < len(scenes):
         caption = " ".join(str(scenes[scene_index].get("narration") or "").split())
         if caption:
@@ -217,13 +209,28 @@ def _procedural(channel: dict, meta: dict, out: Path) -> None:
 
 
 def _real_stock(channel: dict, metadata: dict, workdir: Path, final: Path) -> None:
-    if os.getenv("PEXELS_API_KEY", "").strip():
+    botanical = "botanical" in channel.get("visual_mode", "")
+    pexels_key = os.getenv("PEXELS_API_KEY", "").strip()
+
+    if pexels_key:
         try:
             generate_pexels_short(channel, metadata, workdir, final, apply_audio)
             metadata["render_quality"] = "1080x1920_30fps_real_stock"
             return
         except Exception as exc:
+            if botanical:
+                # BrotaVida must not silently swap a named plant for generic
+                # footage. Its Pexels selector is species-strict; preserve that
+                # failure instead of falling back to a different plant.
+                raise RuntimeError(f"BrotaVida rechazo el metraje por calidad/especie: {exc}") from exc
             print(f"Pexels no disponible ({exc}); usando Wikimedia Commons.")
+
+    if botanical:
+        raise RuntimeError(
+            "BrotaVida requiere PEXELS_API_KEY para publicar germinaciones reales distintas por especie. "
+            "Se cancela antes de reutilizar metraje generico de plantas."
+        )
+
     generate_wikimedia_short(channel, metadata, workdir, final, apply_audio)
     metadata["render_quality"] = "1080x1920_30fps_real_commons"
 
@@ -263,8 +270,12 @@ def generate_short(channel: dict, metadata: dict, workdir: Path) -> Path:
     elif VIDEO_PROVIDER == "pexels":
         generate_pexels_short(channel, metadata, workdir, final, apply_audio)
     elif VIDEO_PROVIDER == "wikimedia":
+        if "botanical" in visual_mode:
+            raise RuntimeError("BrotaVida no permite fallback generico de Wikimedia; usa Pexels con consulta por especie.")
         generate_wikimedia_short(channel, metadata, workdir, final, apply_audio)
     elif VIDEO_PROVIDER == "procedural":
+        if "botanical" in visual_mode:
+            raise RuntimeError("BrotaVida no permite plantas sinteticas como sustituto de un timelapse real.")
         _procedural(channel, metadata, final)
     else:
         raise ValueError(f"VIDEO_PROVIDER no soportado: {VIDEO_PROVIDER}")
