@@ -1,419 +1,53 @@
-name: Render and publish Aleluya 4min FREE
+name: Render and publish Aleluya Pop 2026 FREE
 
 on:
+  workflow_dispatch:
   push:
     branches: [main]
     paths:
+      - scripts/render_hallelujah_pop_2026.py
       - .github/workflows/render-aleluya-zero-v4.yml
-  workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: render-aleluya-4min-free
+  group: render-aleluya-pop-2026-free
   cancel-in-progress: true
 
 jobs:
-  music:
+  render:
     runs-on: ubuntu-latest
-    timeout-minutes: 90
+    timeout-minutes: 240
     env:
+      PYTHONPATH: .
       HF_TOKEN: ${{ secrets.HF_TOKEN }}
-    steps:
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-      - run: |
-          sudo apt-get update
-          sudo apt-get install -y ffmpeg
-          pip install -U gradio_client
-      - name: Generate 3-5 minute ACE-Step song
-        shell: bash
-        run: |
-          mkdir -p output/music
-          python - <<'PY'
-          import base64, os, subprocess
-          from pathlib import Path
-          from gradio_client import Client
-
-          prompt=(
-            'original Christian electronic worship, cinematic pop and progressive house, 122 BPM, '
-            'warm deep original male singer, soft Argentine Spanish pronunciation, magnetic and emotional vocal tone, '
-            'intimate verses, ascending pre-chorus, huge uplifting chorus, luminous synth build and melodic electronic drop, '
-            'modern professional mix, wide stereo image, polished dynamics, hopeful spiritual atmosphere, '
-            'no imitation of any real singer, no copyrighted melody, no commercial samples'
-          )
-          full_lyrics='''[INTRO]
-Cuando la noche parece no terminar,
-Tu luz me encuentra y me vuelve a levantar.
-
-[VERSO 1]
-Caminé entre preguntas buscando una señal,
-y en medio del silencio escuché Tu verdad.
-No fue el ruido del mundo ni una explicación,
-fue Tu paz encendiendo de nuevo el corazón.
-
-[PRE-CORO]
-Y aunque tiemble el suelo bajo mis pies,
-si Tu mano me sostiene, vuelvo a creer.
-
-[CORO]
-Aleluya, Hallelujah,
-mi esperanza vive en Vos.
-Aleluya, Hallelujah,
-late fuerte el corazón.
-Cuando todo se oscurece,
-Tu presencia trae la luz.
-Aleluya, Hallelujah,
-mi camino es con Jesús.
-
-[POST-CORO / DROP]
-Oh-oh, Aleluya,
-oh-oh, Hallelujah,
-Tu amor no se termina,
-Tu luz siempre estará.
-
-[VERSO 2]
-Si el miedo me visita y me quiere detener,
-Tu palabra me recuerda que puedo renacer.
-No necesito verlo para saber que estás,
-porque incluso en la tormenta me enseñás a confiar.
-
-[PRE-CORO]
-Y aunque el mundo cambie alrededor,
-Tu promesa sigue hablando al corazón.
-
-[CORO]
-Aleluya, Hallelujah,
-mi esperanza vive en Vos.
-Aleluya, Hallelujah,
-late fuerte el corazón.
-Cuando todo se oscurece,
-Tu presencia trae la luz.
-Aleluya, Hallelujah,
-mi camino es con Jesús.
-
-[PUENTE]
-Dios de vida, Dios eterno,
-cuando caigo, estás de nuevo.
-En la cima, en el desierto,
-Tu amor sigue siendo cierto.
-Y si un día pierdo el rumbo,
-Tu voz me vuelve a llamar.
-No hay distancia, no hay silencio,
-que me aparte de Tu paz.
-
-[BUILD]
-Aleluya…
-Hallelujah…
-Que lo escuche el cielo entero,
-que lo cante el corazón.
-
-[CORO FINAL]
-Aleluya, Hallelujah,
-mi esperanza vive en Vos.
-Aleluya, Hallelujah,
-para siempre sos mi Dios.
-Cuando todo se oscurece,
-Tu presencia trae la luz.
-Aleluya, Hallelujah,
-mi camino es con Jesús.
-
-[OUTRO]
-Aleluya… Hallelujah…
-Tu luz siempre estará.'''
-
-          token=os.getenv('HF_TOKEN') or None
-          client=Client('victor/ace-step-jam',token=token,verbose=False)
-
-          def decode(result: str, out: Path):
-              if not isinstance(result,str) or not result.startswith('data:audio/') or ';base64,' not in result:
-                  raise RuntimeError('ACE-Step did not return expected base64 audio')
-              _,b64=result.split(';base64,',1)
-              out.write_bytes(base64.b64decode(b64))
-              if out.stat().st_size < 100000:
-                  raise RuntimeError('ACE-Step audio file is too small')
-
-          final=Path('output/music/Aleluya_Hallelujah_x_DemianVelo_4min.wav')
-          try:
-              print('Trying one continuous 240-second ACE-Step generation...')
-              result=client.predict(prompt,full_lyrics,240.0,8,7.0,-1,'',0.8,api_name='/generate')
-              decode(result,final)
-              print('FULL_SONG_SUCCESS',final,final.stat().st_size)
-          except Exception as exc:
-              print('Continuous generation failed, using 4 coherent sections:',type(exc).__name__,exc)
-              sections=[
-                  '''[INTRO]\nCuando la noche parece no terminar,\nTu luz me encuentra y me vuelve a levantar.\n\n[VERSO 1]\nCaminé entre preguntas buscando una señal,\ny en medio del silencio escuché Tu verdad.\nNo fue el ruido del mundo ni una explicación,\nfue Tu paz encendiendo de nuevo el corazón.\n\n[PRE-CORO]\nY aunque tiemble el suelo bajo mis pies,\nsi Tu mano me sostiene, vuelvo a creer.\n\n[CORO]\nAleluya, Hallelujah,\nmi esperanza vive en Vos.\nAleluya, Hallelujah,\nlate fuerte el corazón.''',
-                  '''[CORO]\nCuando todo se oscurece,\nTu presencia trae la luz.\nAleluya, Hallelujah,\nmi camino es con Jesús.\n\n[POST-CORO / DROP]\nOh-oh, Aleluya,\noh-oh, Hallelujah,\nTu amor no se termina,\nTu luz siempre estará.\n\n[VERSO 2]\nSi el miedo me visita y me quiere detener,\nTu palabra me recuerda que puedo renacer.\nNo necesito verlo para saber que estás,\nporque incluso en la tormenta me enseñás a confiar.''',
-                  '''[PRE-CORO]\nY aunque el mundo cambie alrededor,\nTu promesa sigue hablando al corazón.\n\n[CORO]\nAleluya, Hallelujah,\nmi esperanza vive en Vos.\nAleluya, Hallelujah,\nlate fuerte el corazón.\nCuando todo se oscurece,\nTu presencia trae la luz.\nAleluya, Hallelujah,\nmi camino es con Jesús.\n\n[PUENTE]\nDios de vida, Dios eterno,\ncuando caigo, estás de nuevo.\nEn la cima, en el desierto,\nTu amor sigue siendo cierto.''',
-                  '''[PUENTE]\nY si un día pierdo el rumbo,\nTu voz me vuelve a llamar.\nNo hay distancia, no hay silencio,\nque me aparte de Tu paz.\n\n[BUILD]\nAleluya…\nHallelujah…\nQue lo escuche el cielo entero,\nque lo cante el corazón.\n\n[CORO FINAL]\nAleluya, Hallelujah,\nmi esperanza vive en Vos.\nAleluya, Hallelujah,\npara siempre sos mi Dios.\nCuando todo se oscurece,\nTu presencia trae la luz.\nAleluya, Hallelujah,\nmi camino es con Jesús.\n\n[OUTRO]\nAleluya… Hallelujah…\nTu luz siempre estará.'''
-              ]
-              segs=[]
-              for i,lyrics in enumerate(sections,1):
-                  print('Generating section',i)
-                  result=client.predict(prompt+f', coherent song section {i} of 4',lyrics,60.0,8,7.0,1200+i,'',0.8,api_name='/generate')
-                  seg=Path(f'output/music/section_{i}.wav')
-                  decode(result,seg)
-                  segs.append(seg)
-              cmd=['ffmpeg','-y','-loglevel','error']
-              for seg in segs: cmd += ['-i',str(seg)]
-              filt='[0:a][1:a]acrossfade=d=1:c1=tri:c2=tri[a01];[a01][2:a]acrossfade=d=1:c1=tri:c2=tri[a012];[a012][3:a]acrossfade=d=1:c1=tri:c2=tri[outa]'
-              cmd += ['-filter_complex',filt,'-map','[outa]','-c:a','pcm_s16le',str(final)]
-              subprocess.run(cmd,check=True)
-              print('SEGMENTED_SONG_SUCCESS',final,final.stat().st_size)
-
-          probe=subprocess.run(['ffprobe','-v','error','-show_entries','format=duration','-of','default=nw=1:nk=1',str(final)],capture_output=True,text=True,check=True)
-          duration=float(probe.stdout.strip())
-          if not 180 <= duration <= 300:
-              raise RuntimeError(f'Final song duration outside requested 3-5 minutes: {duration}')
-          print('MUSIC_VALIDATED duration=',duration,'bytes=',final.stat().st_size)
-          PY
-      - uses: actions/upload-artifact@v4
-        with:
-          name: aleluya-4min-music
-          path: output/music/Aleluya_Hallelujah_x_DemianVelo_4min.wav
-          if-no-files-found: error
-          retention-days: 5
-
-  wan_video:
-    runs-on: ubuntu-latest
-    timeout-minutes: 60
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - id: 1
-            seed: 701
-            prompt: "Original fictional adult male Christian electronic singer performing emotionally on a minimal cinematic stage, warm expressive face, natural body movement, volumetric blue and golden lighting, realistic premium music video cinematography, no celebrity resemblance, no logos, no text"
-          - id: 2
-            seed: 702
-            prompt: "Epic sunrise over mountain landscape, golden rays breaking through dramatic clouds, smooth cinematic drone movement, hopeful spiritual atmosphere, photorealistic premium Christian electronic music video, no logos, no text"
-          - id: 3
-            seed: 703
-            prompt: "Fictional adult male singer walking slowly through a rain-wet city street at blue hour, cinematic neon reflections, emotional performance, realistic commercial music video camera movement, no brands, no celebrity resemblance"
-          - id: 4
-            seed: 704
-            prompt: "Ocean cliffs at golden hour, powerful waves and warm sun beams through clouds, cinematic aerial motion, spiritual hopeful atmosphere, photorealistic premium music video, no text, no logos"
-    env:
-      HF_TOKEN: ${{ secrets.HF_TOKEN }}
-    steps:
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-      - run: pip install -U gradio_client
-      - name: Generate FREE Wan2.2 cinematic hero shot
-        shell: bash
-        env:
-          SCENE_ID: ${{ matrix.id }}
-          SEED: ${{ matrix.seed }}
-          PROMPT: ${{ matrix.prompt }}
-        run: |
-          mkdir -p output/wan
-          python - <<'PY'
-          import os, shutil
-          from pathlib import Path
-          from gradio_client import Client
-
-          spaces=[
-              'shafqat786/Wan-AI-Wan2.2-TI2V-5B',
-              'Teheby63736363/Wan-AI-Wan2.2-TI2V-5B',
-              'skrov/Wan-AI-Wan2.2-TI2V-5B',
-              'anomen-2/Wan-AI-Wan2.2-TI2V-5B',
-          ]
-          token=os.getenv('HF_TOKEN') or None
-          errors=[]
-
-          def collect(v,files):
-              if isinstance(v,str):
-                  p=Path(v)
-                  if p.exists() and p.suffix.lower() in {'.mp4','.webm','.mov'}: files.append(p)
-              elif isinstance(v,dict):
-                  for x in v.values(): collect(x,files)
-              elif isinstance(v,(list,tuple)):
-                  for x in v: collect(x,files)
-
-          for space in spaces:
-              try:
-                  print('TRY_WAN_SPACE',space)
-                  c=Client(space,token=token,verbose=False)
-                  api=c.view_api(return_format='dict')
-                  named=api.get('named_endpoints',api)
-                  candidates=[]
-                  for endpoint,spec in named.items():
-                      if not isinstance(spec,dict): continue
-                      returns=' '.join(str(r.get('type') or '') for r in spec.get('returns',[])).lower()
-                      params=spec.get('parameters',[])
-                      if 'video' in returns and len(params)>=5:
-                          candidates.append((endpoint,spec))
-                  if not candidates:
-                      raise RuntimeError('No video generation endpoint exposed')
-                  endpoint,spec=max(candidates,key=lambda x: len(x[1].get('parameters',[])))
-                  params=spec.get('parameters',[])
-                  names=[str(p.get('parameter_name') or '').lower().replace('-','_') for p in params]
-                  print('WAN_ENDPOINT',endpoint,'PARAMS',names)
-                  if len(params)>=9 and all(n.startswith('param_') or not n for n in names):
-                      args=[None,os.environ['PROMPT'],704,1280,3.5,10,5.0,5.0,int(os.environ['SEED'])]
-                      args += [p.get('default',None) for p in params[len(args):]]
-                  else:
-                      args=[]
-                      for pos,p in enumerate(params):
-                          n=names[pos]; default=p.get('default',None)
-                          if 'image' in n: value=None
-                          elif 'prompt' in n: value=os.environ['PROMPT']
-                          elif 'height' in n: value=704
-                          elif 'width' in n: value=1280
-                          elif 'duration' in n or 'seconds' in n: value=3.5
-                          elif 'sampling' in n or n=='steps': value=10
-                          elif 'guide' in n or 'scale' in n: value=5.0
-                          elif 'shift' in n: value=5.0
-                          elif 'seed' in n: value=int(os.environ['SEED'])
-                          else: value=default
-                          args.append(value)
-                  result=c.predict(*args,api_name=endpoint)
-                  files=[]; collect(result,files)
-                  if not files:
-                      raise RuntimeError('Wan2.2 returned no downloadable video')
-                  src=files[0]
-                  dst=Path(f"output/wan/wan_{int(os.environ['SCENE_ID']):02d}{src.suffix.lower()}")
-                  shutil.copy2(src,dst)
-                  if dst.stat().st_size < 50000:
-                      raise RuntimeError('Wan2.2 scene file is too small')
-                  print('WAN_SUCCESS',space,dst,dst.stat().st_size)
-                  break
-              except Exception as exc:
-                  msg=f'{space}: {type(exc).__name__}: {exc}'
-                  errors.append(msg); print('WAN_FAIL',msg)
-          else:
-              raise RuntimeError('All free Wan2.2 Spaces failed: '+' | '.join(errors))
-          PY
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: aleluya-wan-${{ matrix.id }}
-          path: output/wan/
-          if-no-files-found: warn
-          retention-days: 5
-
-  assemble_and_upload:
-    needs: [music, wan_video]
-    if: always() && needs.music.result == 'success'
-    runs-on: ubuntu-latest
-    timeout-minutes: 120
-    env:
       PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
       YOUTUBE_TOKEN_DEMIANVELO: ${{ secrets.YOUTUBE_TOKEN_DEMIANVELO }}
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v4
-        with:
-          pattern: aleluya-*
-          path: input
-          merge-multiple: true
+
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
-      - run: |
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install FREE production dependencies
+        run: |
           sudo apt-get update
           sudo apt-get install -y ffmpeg
-          pip install requests google-api-python-client google-auth
-      - name: Build professional 1080p hybrid cinematic video
-        shell: bash
-        run: |
-          mkdir -p output/final
-          python - <<'PY'
-          import glob, json, subprocess
-          from pathlib import Path
-          from app.music_video import _get_real_segment
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install gradio_client google-api-python-client google-auth
 
-          def dur(path):
-              r=subprocess.run(['ffprobe','-v','error','-show_entries','format=duration','-of','default=nw=1:nk=1',str(path)],capture_output=True,text=True,check=True)
-              return float(r.stdout.strip())
+      - name: Render song, cinematic video and publish to DemianVelo
+        run: python scripts/render_hallelujah_pop_2026.py --publish
 
-          audio=next((Path(p) for p in glob.glob('input/**/*',recursive=True) if Path(p).suffix.lower() in {'.wav','.mp3','.flac','.m4a'}),None)
-          wan=sorted(Path(p) for p in glob.glob('input/**/*',recursive=True) if Path(p).suffix.lower() in {'.mp4','.webm','.mov'})
-          if audio is None: raise RuntimeError('Missing ACE-Step song')
-          if not wan: raise RuntimeError('No Wan2.2 scene succeeded, refusing to publish a fallback-only video')
-          target=dur(audio)
-          if not 180 <= target <= 300: raise RuntimeError(f'Audio duration invalid: {target}')
-
-          work=Path('output/final')
-          meta={'topic':'Aleluya Hallelujah Christian electronic worship','title':'Aleluya (Hallelujah) x DemianVelo'}
-          queries=[
-              'cinematic sunrise mountains golden hour',
-              'ocean waves golden hour cinematic',
-              'night city lights cinematic street',
-              'empty highway night cinematic',
-              'church architecture sunlight cinematic',
-              'dramatic clouds sun rays cinematic',
-              'forest sunlight rays cinematic',
-              'mountain lake sunrise cinematic',
-          ]
-          used=set(); stock=[]; credits=[]
-          for i,q in enumerate(queries,1):
-              clip,credit=_get_real_segment(q,work,100+i,30,False,used,8000+i,target_4k=False)
-              stock.append(clip); credits.append(credit)
-
-          wan_norm=[]
-          for i,src in enumerate(wan,1):
-              dst=work/f'wan_norm_{i}.mp4'
-              vf='scale=1920:1080:force_original_aspect_ratio=increase,crop=1920:1080,setsar=1,eq=contrast=1.05:saturation=1.08,unsharp=5:5:0.15:5:5:0,fps=30'
-              subprocess.run(['ffmpeg','-y','-loglevel','error','-stream_loop','-1','-i',str(src),'-t','5','-vf',vf,'-an','-c:v','libx264','-preset','medium','-crf','19','-pix_fmt','yuv420p',str(dst)],check=True)
-              wan_norm.append(dst)
-
-          sequence=[]
-          w=0
-          for i,s in enumerate(stock):
-              sequence.append(s)
-              if w < len(wan_norm) and i in {0,2,4,6}:
-                  sequence.append(wan_norm[w]); w+=1
-          while w < len(wan_norm): sequence.append(wan_norm[w]); w+=1
-
-          manifest=work/'concat.txt'
-          manifest.write_text('\n'.join("file '"+str(p.resolve()).replace("'","'\\''")+"'" for p in sequence),encoding='utf-8')
-          visual=work/'visual_1080p.mp4'
-          subprocess.run(['ffmpeg','-y','-loglevel','error','-f','concat','-safe','0','-i',str(manifest),'-stream_loop','-1','-t',f'{target:.3f}','-an','-c:v','libx264','-preset','medium','-crf','18','-pix_fmt','yuv420p','-movflags','+faststart',str(visual)],check=True)
-
-          final=work/'Aleluya_Hallelujah_x_DemianVelo_4min.mp4'
-          subprocess.run(['ffmpeg','-y','-loglevel','error','-i',str(visual),'-i',str(audio),'-map','0:v:0','-map','1:a:0','-t',f'{target:.3f}','-c:v','copy','-c:a','aac','-b:a','256k','-movflags','+faststart',str(final)],check=True)
-          fd=dur(final)
-          if not 180 <= fd <= 300 or final.stat().st_size < 5_000_000:
-              raise RuntimeError(f'Final video failed validation duration={fd} size={final.stat().st_size}')
-          (work/'credits.json').write_text(json.dumps(credits,ensure_ascii=False,indent=2),encoding='utf-8')
-          print('FINAL_VIDEO_OK',final,'duration=',fd,'bytes=',final.stat().st_size,'wan_scenes=',len(wan_norm))
-          PY
-      - name: Upload to DemianVelo
-        shell: bash
-        run: |
-          python - <<'PY'
-          import json
-          from pathlib import Path
-          from app.config import load_channel
-          from app.youtube import upload_long_video
-
-          channel=load_channel('demianvelo')
-          lyrics='''[INTRO]\nCuando la noche parece no terminar,\nTu luz me encuentra y me vuelve a levantar.\n\n[VERSO 1]\nCaminé entre preguntas buscando una señal,\ny en medio del silencio escuché Tu verdad.\nNo fue el ruido del mundo ni una explicación,\nfue Tu paz encendiendo de nuevo el corazón.\n\n[PRE-CORO]\nY aunque tiemble el suelo bajo mis pies,\nsi Tu mano me sostiene, vuelvo a creer.\n\n[CORO]\nAleluya, Hallelujah,\nmi esperanza vive en Vos.\nAleluya, Hallelujah,\nlate fuerte el corazón.\nCuando todo se oscurece,\nTu presencia trae la luz.\nAleluya, Hallelujah,\nmi camino es con Jesús.\n\n[POST-CORO / DROP]\nOh-oh, Aleluya,\noh-oh, Hallelujah,\nTu amor no se termina,\nTu luz siempre estará.\n\n[VERSO 2]\nSi el miedo me visita y me quiere detener,\nTu palabra me recuerda que puedo renacer.\nNo necesito verlo para saber que estás,\nporque incluso en la tormenta me enseñás a confiar.\n\n[PUENTE]\nDios de vida, Dios eterno,\ncuando caigo, estás de nuevo.\nEn la cima, en el desierto,\nTu amor sigue siendo cierto.\nY si un día pierdo el rumbo,\nTu voz me vuelve a llamar.\nNo hay distancia, no hay silencio,\nque me aparte de Tu paz.\n\n[CORO FINAL]\nAleluya, Hallelujah,\nmi esperanza vive en Vos.\nAleluya, Hallelujah,\npara siempre sos mi Dios.\nCuando todo se oscurece,\nTu presencia trae la luz.\nAleluya, Hallelujah,\nmi camino es con Jesús.'''
-          credits=json.loads(Path('output/final/credits.json').read_text(encoding='utf-8'))
-          meta={
-              'title':'Aleluya (Hallelujah) x DemianVelo | Música Cristiana Electrónica',
-              'description':'Canción cristiana original de DemianVelo sobre Dios, Jesucristo, fe, esperanza y encontrar luz incluso en los momentos difíciles. Música original generada para esta producción, con videoclip cinematográfico híbrido y escenas Wan2.2.\n\nLETRA:\n'+lyrics,
-              'hashtags':['#DemianVelo','#Aleluya','#Hallelujah','#MusicaCristiana','#Jesus'],
-              'tags':['DemianVelo','Aleluya','Hallelujah','música cristiana','musica cristiana electronica','Jesus','Dios','fe','esperanza','electronic worship','progressive house','EDM cristiano','Christian music','Christian EDM'],
-              'source_credits':credits,
-          }
-          video=Path('output/final/Aleluya_Hallelujah_x_DemianVelo_4min.mp4')
-          video_id=upload_long_video(channel,meta,video,expected_minutes=4)
-          result={'status':'uploaded','video_id':video_id,'title':meta['title']}
-          Path('output/final/result.json').write_text(json.dumps(result,ensure_ascii=False,indent=2),encoding='utf-8')
-          print('YOUTUBE_UPLOAD_SUCCESS',json.dumps(result,ensure_ascii=False))
-          PY
-      - uses: actions/upload-artifact@v4
+      - name: Upload production artifact
         if: always()
+        uses: actions/upload-artifact@v4
         with:
-          name: aleluya-final-4min-upload
-          path: |
-            output/final/Aleluya_Hallelujah_x_DemianVelo_4min.mp4
-            output/final/result.json
-            output/final/credits.json
+          name: demianvelo-hallelujah-pop-2026-${{ github.run_id }}
+          path: output/hallelujah_pop_2026/
           if-no-files-found: warn
           retention-days: 5
