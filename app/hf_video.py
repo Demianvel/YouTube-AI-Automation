@@ -2,16 +2,19 @@ from __future__ import annotations
 
 import hashlib
 import os
+import shutil
 import subprocess
 from pathlib import Path
 
+from gradio_client import Client
 from huggingface_hub import InferenceClient
 
 W, H, FPS = 1080, 1920, 30
+LTX_SPACE = os.getenv("HF_ZERO_VIDEO_SPACE", "Lightricks/LTX-2-3").strip()
 
 
 def available() -> bool:
-    return bool(os.getenv("HF_TOKEN", "").strip()) and os.getenv("HF_VIDEO_ENABLED", "true").lower() == "true"
+    return os.getenv("HF_VIDEO_ENABLED", "true").lower() == "true"
 
 
 def _seed(meta: dict, index: int) -> int:
@@ -63,48 +66,90 @@ def _normalize(source: Path, out: Path, duration: int) -> None:
         "-pix_fmt", "yuv420p", "-movflags", "+faststart", str(out),
     ], check=True)
     if not out.exists() or out.stat().st_size < 50_000:
-        raise RuntimeError("Hugging Face genero un clip que no pudo normalizarse correctamente.")
+        raise RuntimeError("El clip generado no pudo normalizarse correctamente.")
 
 
-def generate_hf_short(channel: dict, meta: dict, workdir: Path, final: Path, apply_audio_fn) -> None:
-    if not available():
-        raise RuntimeError("HF video no disponible: falta HF_TOKEN o HF_VIDEO_ENABLED=false.")
+def _space_video(prompt: str, out: Path, duration: int, seed: int) -> str:
+    client = Client(LTX_SPACE, verbose=False)
+    result = client.predict(
+        None,
+        prompt,
+        float(max(1, min(10, duration))),
+        True,
+        int(seed),
+        False,
+        1536,
+        1024,
+        api_name="/generate_video",
+    )
+    video_ref = result[0] if isinstance(result, (tuple, list)) else result
+    source = Path(str(video_ref))
+    if not source.exists():
+        raise RuntimeError("LTX ZeroGPU no devolvio un archivo de video local.")
+    shutil.copyfile(source, out)
+    if out.stat().st_size < 50_000:
+        raise RuntimeError("LTX ZeroGPU devolvio un video invalido.")
+    return f"Hugging Face Space {LTX_SPACE} / LTX-2.3 Distilled ZeroGPU"
 
-    token = os.environ["HF_TOKEN"].strip()
+
+def _provider_video(prompt: str, out: Path, seed: int) -> str:
+    token = os.getenv("HF_TOKEN", "").strip()
+    if not token:
+        raise RuntimeError("No hay HF_TOKEN para Inference Providers.")
     provider = os.getenv("HF_VIDEO_PROVIDER", "auto").strip() or "auto"
     model = os.getenv("HF_VIDEO_MODEL", "Wan-AI/Wan2.2-TI2V-5B").strip()
     frames = int(os.getenv("HF_VIDEO_NUM_FRAMES", "81"))
     steps = int(os.getenv("HF_VIDEO_STEPS", "20"))
     guidance = float(os.getenv("HF_VIDEO_GUIDANCE", "5.0"))
-    scene_duration = int(channel["scene_seconds"])
-
     client = InferenceClient(provider=provider, api_key=token)
+    video_bytes = client.text_to_video(
+        prompt,
+        model=model,
+        seed=seed,
+        num_frames=frames,
+        num_inference_steps=steps,
+        guidance_scale=guidance,
+        negative_prompt=[
+            "text", "logo", "watermark", "brand", "copyrighted character", "duplicate subject",
+            "deformed hands", "extra fingers", "flicker", "low quality", "static image", "species morph",
+            "plastic plant", "television static", "white noise visual"
+        ],
+    )
+    out.write_bytes(video_bytes)
+    if out.stat().st_size < 50_000:
+        raise RuntimeError("Wan2.2 Inference Provider devolvio un video invalido.")
+    return f"Hugging Face Inference Providers / {model}"
+
+
+def generate_hf_short(channel: dict, meta: dict, workdir: Path, final: Path, apply_audio_fn) -> None:
+    if not available():
+        raise RuntimeError("HF video esta deshabilitado.")
+
+    scene_duration = int(channel["scene_seconds"])
     clips: list[Path] = []
     prompts: list[str] = []
+    providers: list[str] = []
 
     for index, scene in enumerate(meta.get("scenes") or []):
         prompt = _channel_prompt(channel, scene)
         prompts.append(prompt)
         raw = workdir / f"hf_raw_{index + 1}.mp4"
         clip = workdir / f"hf_scene_{index + 1}.mp4"
-        video_bytes = client.text_to_video(
-            prompt,
-            model=model,
-            seed=_seed(meta, index),
-            num_frames=frames,
-            num_inference_steps=steps,
-            guidance_scale=guidance,
-            negative_prompt=[
-                "text", "logo", "watermark", "brand", "copyrighted character", "duplicate subject",
-                "deformed hands", "extra fingers", "flicker", "low quality", "static image", "species morph",
-                "plastic plant", "television static", "white noise visual"
-            ],
-        )
-        raw.write_bytes(video_bytes)
-        if raw.stat().st_size < 50_000:
-            raise RuntimeError(f"Hugging Face devolvio un video invalido para la escena {index + 1}.")
+        provider_label = ""
+        space_error = None
+        try:
+            provider_label = _space_video(prompt, raw, scene_duration, _seed(meta, index))
+        except Exception as exc:
+            space_error = exc
+            try:
+                provider_label = _provider_video(prompt, raw, _seed(meta, index))
+            except Exception as provider_exc:
+                raise RuntimeError(
+                    f"No hubo video gratuito disponible. LTX ZeroGPU: {space_error}; Wan2.2 provider: {provider_exc}"
+                ) from provider_exc
         _normalize(raw, clip, scene_duration)
         clips.append(clip)
+        providers.append(provider_label)
 
     if not clips:
         raise RuntimeError("Hugging Face no genero escenas.")
@@ -119,8 +164,7 @@ def generate_hf_short(channel: dict, meta: dict, workdir: Path, final: Path, app
     ], check=True)
 
     total_duration = int(channel["scenes_per_short"]) * scene_duration
-    meta["generated_visual_provider"] = f"Hugging Face Inference Providers / {model}"
-    meta["generated_video_model"] = model
+    meta["generated_visual_provider"] = providers
     meta["generated_video_prompts"] = prompts
     meta["synthetic_visual"] = True
     meta["render_quality"] = "1080x1920_30fps_hf_ai_video"
