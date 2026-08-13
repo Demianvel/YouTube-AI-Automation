@@ -17,6 +17,7 @@ concurrency:
 
 jobs:
   music:
+    if: github.event_name == 'workflow_dispatch'
     name: Recuperar máster ACE-Step verificado
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -54,6 +55,7 @@ jobs:
           retention-days: 7
 
   video:
+    if: github.event_name == 'workflow_dispatch'
     name: Escena Wan2.2 ${{ matrix.id }}
     runs-on: ubuntu-latest
     timeout-minutes: 180
@@ -197,7 +199,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 60
     needs: [music, video]
-    if: always() && needs.music.result == 'success'
+    if: github.event_name == 'workflow_dispatch' && always() && needs.music.result == 'success'
     steps:
       - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4

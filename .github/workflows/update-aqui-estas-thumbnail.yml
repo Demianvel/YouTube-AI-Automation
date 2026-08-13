@@ -1,0 +1,63 @@
+name: Update Aqui Estas premium thumbnail
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/update-aqui-estas-thumbnail.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: update-aqui-estas-thumbnail
+  cancel-in-progress: true
+
+jobs:
+  update-thumbnail:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      PYTHONPATH: ${{ github.workspace }}
+      YOUTUBE_TOKEN_DEMIANVELO: ${{ secrets.YOUTUBE_TOKEN_DEMIANVELO }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Instalar cliente de YouTube
+        run: pip install -U google-api-python-client google-auth
+      - name: Aplicar miniatura premium al video publicado
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          from app.config import load_channel
+          from app.youtube import set_custom_thumbnail
+
+          video_id = "EYL7Q8fcwwQ"
+          thumbnail = Path("assets/aqui-estas/thumbnail-aqui-estas-demianvelo.jpg")
+          if not thumbnail.exists() or thumbnail.stat().st_size >= 2 * 1024 * 1024:
+              raise RuntimeError("La miniatura premium no existe o supera 2 MB")
+          channel = load_channel("demianvelo")
+          set_custom_thumbnail(channel, video_id, thumbnail)
+          result = {
+              "status": "thumbnail_updated",
+              "video_id": video_id,
+              "url": f"https://youtu.be/{video_id}",
+              "thumbnail": str(thumbnail),
+          }
+          Path("thumbnail-result.json").write_text(
+              json.dumps(result, ensure_ascii=False, indent=2), encoding="utf-8"
+          )
+          print("THUMBNAIL_OK", json.dumps(result, ensure_ascii=False))
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: aqui-estas-thumbnail-result
+          path: thumbnail-result.json
+          if-no-files-found: warn
+          retention-days: 5
