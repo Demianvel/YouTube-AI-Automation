@@ -13,6 +13,8 @@ on:
     branches: [main]
     paths:
       - .github/workflows/dios-actua-noruega-release.yml
+  schedule:
+    - cron: '15 12 14 8 *'
 
 permissions:
   contents: read
@@ -24,7 +26,7 @@ concurrency:
 
 jobs:
   release:
-    if: github.event_name == 'workflow_dispatch'
+    if: github.event_name != 'push'
     runs-on: ubuntu-latest
     timeout-minutes: 360
     env:
@@ -35,7 +37,18 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Habilitar únicamente el reintento programado de 2026
+        id: release_gate
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] || [ "$(date -u +%F)" = "2026-08-14" ]; then
+            echo "run_release=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "run_release=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Recuperar la referencia vocal Aleluya de DemianVelo
+        if: steps.release_gate.outputs.run_release == 'true'
         uses: actions/download-artifact@v4
         continue-on-error: true
         with:
@@ -46,10 +59,12 @@ jobs:
           github-token: ${{ github.token }}
 
       - uses: actions/setup-python@v5
+        if: steps.release_gate.outputs.run_release == 'true'
         with:
           python-version: "3.11"
 
       - name: Instalar motor musical, editor 4K y publicación
+        if: steps.release_gate.outputs.run_release == 'true'
         run: |
           sudo apt-get update
           sudo apt-get install -y ffmpeg fonts-dejavu-core fonts-liberation2
@@ -57,6 +72,7 @@ jobs:
           pip install -U requests gradio_client google-api-python-client google-auth pillow
 
       - name: Validar credenciales antes del render
+        if: steps.release_gate.outputs.run_release == 'true'
         shell: bash
         run: |
           test -n "$YOUTUBE_TOKEN_DEMIANVELO" || { echo "Falta YOUTUBE_TOKEN_DEMIANVELO" >&2; exit 1; }
@@ -69,16 +85,17 @@ jobs:
           fi
 
       - name: Crear canción original, videoclip cinematográfico 4K y publicar
+        if: steps.release_gate.outputs.run_release == 'true'
         shell: bash
         run: |
           ARGS=()
-          if [ "${{ github.event_name }}" = "push" ] || [ "${{ inputs.publish }}" = "true" ]; then
+          if [ "${{ github.event_name }}" = "schedule" ] || [ "${{ inputs.publish }}" = "true" ]; then
             ARGS+=(--publish)
           fi
           python scripts/render_dios_actua_noruega.py "${ARGS[@]}"
 
       - name: Verificar publicación y master 4K
-        if: always()
+        if: always() && steps.release_gate.outputs.run_release == 'true'
         shell: bash
         run: |
           if [ -f output/dios_actua_demianvelo/final/result.json ]; then
@@ -90,7 +107,7 @@ jobs:
           fi
 
       - name: Guardar master y variantes A/B
-        if: always()
+        if: always() && steps.release_gate.outputs.run_release == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: dios-actua-demianvelo-4k-${{ github.run_id }}

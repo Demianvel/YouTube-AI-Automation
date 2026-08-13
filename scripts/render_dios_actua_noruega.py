@@ -182,7 +182,7 @@ def parameter_value(name: str, default: Any, reference: Path | None) -> Any:
     if "batch" in key and "chunk" not in key:
         return 1
     if "audio_format" in key or key == "format":
-        return "wav"
+        return "flac"
     if "temperature" in key:
         return 0.82
     if "cfg_scale" in key:
@@ -204,6 +204,27 @@ def try_reference_generation(reference: Path, raw: Path) -> str | None:
     for space in spaces:
         try:
             client = Client(space, token=token, verbose=False)
+            if space == "ACE-Step/Ace-Step-v1.5":
+                try:
+                    args = [
+                        "acestep-v15-turbo", "custom",
+                        "Dios Actúa, canción cristiana original melódica y cinematográfica para DemianVelo.", "es",
+                        STYLE_PROMPT, LYRICS, BPM, "G Major", "4", "es", 8, 7.0, False, "20260813",
+                        handle_file(str(reference)), float(TARGET_SECONDS), 1, None, "", 0.0, -1,
+                        "Fill the audio semantic mask based on the given conditions:", 0.46, "text2music", False,
+                        0.0, 1.0, 3.0, "ode", "", "flac", 0.82, True, 2.0, 0, 0.9,
+                        "EDM, trap, reggaeton, harsh autotune, celebrity imitation, copyrighted melody, low quality",
+                        True, True, True, False, True, False, True, 0.5, 8, "vocals", [], False,
+                    ]
+                    print("ACE_REFERENCE_ATTEMPT", space, "/generation_wrapper")
+                    result = client.predict(*args, api_name="/generation_wrapper")
+                    decode_audio(result, raw)
+                    if 180 <= duration(raw) <= 300:
+                        return f"{space}/generation_wrapper Aleluya reference-audio"
+                    raw.unlink(missing_ok=True)
+                except Exception as exc:
+                    print("ACE_REFERENCE_FAIL", space, "/generation_wrapper", type(exc).__name__, exc)
+                    raw.unlink(missing_ok=True)
             named = client.view_api(return_format="dict").get("named_endpoints", {})
             choices: list[tuple[str, dict[str, Any]]] = []
             for endpoint, spec in named.items():
@@ -211,7 +232,8 @@ def try_reference_generation(reference: Path, raw: Path) -> str | None:
                     continue
                 names = [str(p.get("parameter_name") or "").lower() for p in spec.get("parameters", [])]
                 blob = endpoint.lower() + " " + " ".join(names)
-                if "lyric" in blob and any(
+                excluded = any(word in endpoint.lower() for word in ("capture", "restore", "params", "settings", "lambda"))
+                if not excluded and "lyric" in blob and any(
                     "reference_audio" in name or "refer_audio" in name or "ref_audio" in name for name in names
                 ):
                     choices.append((endpoint, spec))
