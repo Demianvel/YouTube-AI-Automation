@@ -1,0 +1,383 @@
+name: DemianVelo Hallelujah Pop 2026 FREE
+
+on:
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: Publicar en @DemianVelo cuando termine bien
+        required: true
+        default: true
+        type: boolean
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/demianvelo-hallelujah-pop-2026.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: demianvelo-hallelujah-pop-2026
+  cancel-in-progress: false
+
+jobs:
+  music:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    env:
+      HF_TOKEN: ${{ secrets.HF_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install free music client
+        run: pip install -U gradio_client
+      - name: Generate original 4-minute ACE-Step song
+        shell: bash
+        run: |
+          mkdir -p output/music
+          python - <<'PY'
+          import base64, os, shutil
+          from pathlib import Path
+          from gradio_client import Client
+
+          prompt = (
+              "Original 2026 Christian pop worship song for DemianVelo, modern polished pop, 112 BPM, "
+              "warm magnetic original adult male lead vocal in Rioplatense/Argentine Spanish, intimate verses, "
+              "emotional pre-chorus, huge anthemic chorus, piano and atmospheric synths, clean electric guitar textures, "
+              "warm bass, punchy modern drums, subtle cinematic strings, tasteful electronic production, "
+              "wide layered final chorus, radio-ready contemporary mix, expressive dynamics, memorable original hook, "
+              "hopeful spiritual atmosphere about God and Jesus, no imitation of any real singer, no copyrighted melody, no samples."
+          )
+
+          lyrics = r'''[INTRO]
+Hay momentos en que el cielo parece callar,
+y aun así Tu luz me vuelve a encontrar.
+
+[VERSO 1]
+Cuando el camino se hace largo frente a mí,
+cuando las fuerzas ya no alcanzan para seguir,
+Tu presencia llega suave al corazón,
+y me recuerda que jamás camino solo, Dios.
+
+[PRE-CORO]
+Aunque no vea lo que viene después,
+si Tu mano me sostiene, vuelvo a creer.
+
+[CORO]
+Aleluya, Hallelujah,
+mi esperanza vive en Vos.
+Aleluya, Hallelujah,
+late fuerte el corazón.
+Cuando todo se oscurece,
+Tu presencia trae la luz.
+Aleluya, Hallelujah,
+mi camino es con Jesús.
+
+[VERSO 2]
+No necesito comprender cada razón,
+para confiar en Tu promesa y Tu dirección.
+Si la tormenta vuelve a hablar más fuerte que mi fe,
+Tu voz me dice que de nuevo venceré.
+
+[PRE-CORO]
+Aunque el mundo cambie alrededor,
+Tu palabra sigue viva en mi interior.
+
+[CORO]
+Aleluya, Hallelujah,
+mi esperanza vive en Vos.
+Aleluya, Hallelujah,
+late fuerte el corazón.
+Cuando todo se oscurece,
+Tu presencia trae la luz.
+Aleluya, Hallelujah,
+mi camino es con Jesús.
+
+[PUENTE]
+Dios de vida, Dios eterno,
+en la calma y el desierto,
+si me pierdo, Vos me llamás,
+si me caigo, me levantás.
+No hay distancia, no hay silencio,
+que me aparte de Tu amor,
+y aunque tiemble todo el suelo,
+sigo firme en Tu favor.
+
+[BUILD]
+Aleluya…
+Hallelujah…
+Que lo cante el corazón,
+que lo escuche el mundo entero:
+mi esperanza está en Dios.
+
+[CORO FINAL]
+Aleluya, Hallelujah,
+mi esperanza vive en Vos.
+Aleluya, Hallelujah,
+para siempre sos mi Dios.
+Cuando todo se oscurece,
+Tu presencia trae la luz.
+Aleluya, Hallelujah,
+mi camino es con Jesús.
+
+[POST-CORO]
+Oh-oh, Aleluya,
+oh-oh, Hallelujah,
+Tu amor no se termina,
+Tu luz siempre estará.
+
+[OUTRO]
+Aleluya… Hallelujah…
+Tu luz siempre estará.'''
+
+          token = os.getenv('HF_TOKEN') or None
+          client = Client('victor/ace-step-jam', hf_token=token, verbose=False)
+          result = client.predict(
+              prompt,
+              lyrics,
+              240.0,
+              12,
+              7.0,
+              -1,
+              '',
+              0.8,
+              api_name='/generate',
+          )
+
+          out = Path('output/music/Aleluya_Hallelujah_x_DemianVelo_4min.wav')
+          def extract(v):
+              if isinstance(v, str):
+                  p = Path(v)
+                  if p.exists():
+                      return p
+                  s = v.strip()
+                  # Some ACE-Step Spaces return base64 WAV strings.
+                  for prefix in ('data:audio/wav;base64,', 'data:audio/x-wav;base64,'):
+                      if s.startswith(prefix):
+                          out.write_bytes(base64.b64decode(s[len(prefix):]))
+                          return out
+                  try:
+                      raw = base64.b64decode(s, validate=True)
+                      if len(raw) > 100000:
+                          out.write_bytes(raw)
+                          return out
+                  except Exception:
+                      pass
+              if isinstance(v, dict):
+                  for x in v.values():
+                      r = extract(x)
+                      if r: return r
+              if isinstance(v, (list, tuple)):
+                  for x in v:
+                      r = extract(x)
+                      if r: return r
+              return None
+
+          src = extract(result)
+          if not src:
+              raise RuntimeError('ACE-Step no devolvio audio descargable: '+repr(result)[:1000])
+          if src != out:
+              shutil.copy2(src, out)
+          if out.stat().st_size < 500000:
+              raise RuntimeError('Audio ACE-Step demasiado pequeño')
+          print('MUSIC_SUCCESS', out, out.stat().st_size)
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: demianvelo-hallelujah-pop-music
+          path: output/music/
+          retention-days: 5
+
+  video:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - id: 1
+            space: shafqat786/Wan-AI-Wan2.2-TI2V-5B
+            prompt: "Original fictional adult male Christian pop singer on a minimal cinematic stage at blue hour, expressive emotional performance, warm golden rim light, realistic clothing without logos, smooth dolly-in, premium music video cinematography, no celebrity resemblance, no text, 16:9"
+          - id: 2
+            space: Teheby63736363/Wan-AI-Wan2.2-TI2V-5B
+            prompt: "Epic sunrise over mountains and clouds, golden rays breaking through, cinematic drone movement, hopeful spiritual atmosphere, premium modern Christian pop music video, realistic natural lighting, no text, no logos, 16:9"
+          - id: 3
+            space: shafqat786/Wan-AI-Wan2.2-TI2V-5B
+            prompt: "Night city street after rain, reflections and soft bokeh, original fictional male singer walking slowly while performing, tasteful modern wardrobe without logos, emotional cinematic pop video, realistic camera motion, no celebrity resemblance, no text, 16:9"
+          - id: 4
+            space: Teheby63736363/Wan-AI-Wan2.2-TI2V-5B
+            prompt: "Ocean cliffs at sunset, wind moving through grass, hopeful cinematic atmosphere, wide aerial camera, warm orange and blue color grade, premium Christian pop music video, no text, no logos, 16:9"
+    steps:
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install free Wan client
+        run: pip install -U gradio_client
+      - name: Generate Wan2.2 cinematic scene
+        shell: bash
+        env:
+          SPACE: ${{ matrix.space }}
+          SCENE_ID: ${{ matrix.id }}
+          PROMPT: ${{ matrix.prompt }}
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          mkdir -p output/video
+          python - <<'PY'
+          import os, shutil
+          from pathlib import Path
+          from gradio_client import Client
+
+          c = Client(os.environ['SPACE'], hf_token=os.getenv('HF_TOKEN') or None, verbose=False)
+          api = c.view_api(return_format='dict')
+          named = api.get('named_endpoints', api)
+          endpoint = None
+          spec = None
+          for name, info in named.items():
+              if not isinstance(info, dict):
+                  continue
+              params = info.get('parameters', [])
+              names = [str(p.get('parameter_name') or '').lower() for p in params]
+              returns = ' '.join(str(r.get('component') or r.get('type') or '') for r in info.get('returns', [])).lower()
+              if any('prompt' in n for n in names) and ('video' in returns or 'video' in name.lower()):
+                  endpoint, spec = name, info
+                  break
+          if endpoint is None:
+              # Common Wan Space APIs use a single unnamed generate endpoint. Print the API for diagnostics.
+              raise RuntimeError('No Wan2.2 generation endpoint detected: '+repr(named)[:4000])
+
+          args=[]
+          for p in spec.get('parameters', []):
+              n=str(p.get('parameter_name') or '').lower().replace('-','_')
+              default=p.get('default', None)
+              if n in {'image','input_image'} or 'image' in n:
+                  value=None
+              elif 'prompt' in n:
+                  value=os.environ['PROMPT']
+              elif n=='height' or 'height' in n:
+                  value=704
+              elif n=='width' or 'width' in n:
+                  value=1280
+              elif 'duration' in n or 'seconds' in n:
+                  value=5.0
+              elif 'sampling' in n or 'steps' in n:
+                  value=20
+              elif 'guide' in n:
+                  value=5.0
+              elif n=='shift' or 'shift' in n:
+                  value=5.0 if default is None else default
+              elif 'seed' in n:
+                  value=1000+int(os.environ['SCENE_ID'])
+              else:
+                  value=default
+              args.append(value)
+          print('WAN_ENDPOINT', os.environ['SPACE'], endpoint)
+          result=c.predict(*args, api_name=endpoint)
+
+          files=[]
+          def walk(v):
+              if isinstance(v,str):
+                  p=Path(v)
+                  if p.exists() and p.suffix.lower() in {'.mp4','.webm','.mov','.mkv'}:
+                      files.append(p)
+              elif isinstance(v,dict):
+                  for x in v.values(): walk(x)
+              elif isinstance(v,(list,tuple)):
+                  for x in v: walk(x)
+          walk(result)
+          if not files:
+              raise RuntimeError('Wan2.2 no devolvio video descargable: '+repr(result)[:2000])
+          src=files[0]
+          dst=Path(f"output/video/scene_{int(os.environ['SCENE_ID']):02d}{src.suffix.lower()}")
+          shutil.copy2(src,dst)
+          print('VIDEO_SUCCESS',dst,dst.stat().st_size)
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: demianvelo-hallelujah-wan-scene-${{ matrix.id }}
+          path: output/video/
+          if-no-files-found: warn
+          retention-days: 5
+
+  assemble-and-publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    needs: [music, video]
+    if: always() && needs.music.result == 'success'
+    env:
+      YOUTUBE_TOKEN_DEMIANVELO: ${{ secrets.YOUTUBE_TOKEN_DEMIANVELO }}
+      PYTHONPATH: .
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: demianvelo-hallelujah-*
+          path: artifacts
+          merge-multiple: true
+      - name: Install FFmpeg and upload dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+          pip install google-api-python-client google-auth
+      - name: Build 4-minute professional music video
+        shell: bash
+        run: |
+          mkdir -p output/final
+          AUDIO="$(find artifacts -type f \( -iname '*.wav' -o -iname '*.mp3' -o -iname '*.flac' \) | head -n1)"
+          test -n "$AUDIO" || { echo 'Falta audio'; exit 1; }
+          mapfile -t SCENES < <(find artifacts -type f \( -iname '*.mp4' -o -iname '*.webm' -o -iname '*.mov' \) | sort)
+          if [ "${#SCENES[@]}" -lt 1 ]; then
+            echo "Wan2.2 no entrego ninguna escena valida; se cancela para no subir un video defectuoso."
+            exit 1
+          fi
+          : > /tmp/list.txt
+          for s in "${SCENES[@]}"; do
+            ffmpeg -y -loglevel error -stream_loop -1 -i "$s" -t 20 \
+              -vf "scale=1920:1080:force_original_aspect_ratio=increase,crop=1920:1080,fps=30,eq=contrast=1.04:saturation=1.06" \
+              -an -c:v libx264 -preset medium -crf 19 -pix_fmt yuv420p "/tmp/$(basename "$s").mp4"
+            echo "file '/tmp/$(basename "$s").mp4'" >> /tmp/list.txt
+          done
+          ffmpeg -y -loglevel error -stream_loop -1 -f concat -safe 0 -i /tmp/list.txt -t 240 \
+            -c:v libx264 -preset medium -crf 19 -pix_fmt yuv420p /tmp/visual.mp4
+          ffmpeg -y -loglevel error -i /tmp/visual.mp4 -i "$AUDIO" -t 240 \
+            -map 0:v:0 -map 1:a:0 -c:v copy -c:a aac -b:a 256k -movflags +faststart \
+            output/final/Aleluya_Hallelujah_x_DemianVelo_2026.mp4
+          ffprobe -v error -show_entries format=duration -of default=nw=1 output/final/Aleluya_Hallelujah_x_DemianVelo_2026.mp4
+      - name: Upload to DemianVelo
+        if: ${{ github.event_name == 'push' || inputs.publish == true }}
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          from app.config import load_channel
+          from app.youtube import upload_long_video
+
+          channel=load_channel('demianvelo')
+          video=Path('output/final/Aleluya_Hallelujah_x_DemianVelo_2026.mp4')
+          meta={
+            'title':'Aleluya (Hallelujah) x DemianVelo | Música Cristiana Pop 2026',
+            'description':(
+              'Aleluya (Hallelujah) x DemianVelo. Canción cristiana original sobre fe, esperanza, Dios y Jesucristo.\n\n'
+              'Una producción pop moderna con atmósfera cinematográfica, voz masculina original y un mensaje de luz para los momentos difíciles.\n\n'
+              '#DemianVelo #Aleluya #Hallelujah #MusicaCristiana #Jesus'
+            ),
+            'hashtags':['#DemianVelo','#Aleluya','#Hallelujah','#MusicaCristiana','#Jesus'],
+            'tags':['DemianVelo','Aleluya','Hallelujah','música cristiana','musica cristiana 2026','Jesús','Jesus','Dios','fe','esperanza','christian pop','worship pop','música de adoración','Argentina'],
+            'duration_minutes':4,
+            'long_form':True,
+          }
+          video_id=upload_long_video(channel,meta,video,thumbnail_path=None,expected_minutes=4)
+          print('YOUTUBE_VIDEO_ID',video_id)
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: demianvelo-hallelujah-pop-2026-final
+          path: output/final/
+          if-no-files-found: warn
+          retention-days: 5
