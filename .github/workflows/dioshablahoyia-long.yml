@@ -18,13 +18,16 @@ on:
         required: true
         default: false
         type: boolean
+  push:
+    paths:
+      - "triggers/dioshablahoyia-long.txt"
 
 permissions:
   contents: write
   issues: write
 
 concurrency:
-  group: dioshablahoyia-long-${{ inputs.minutes }}
+  group: dioshablahoyia-long-${{ github.event_name == 'workflow_dispatch' && inputs.minutes || '10' }}
   cancel-in-progress: false
 
 jobs:
@@ -59,6 +62,20 @@ jobs:
           python-version: "3.11"
           cache: pip
 
+      - name: Resolve test or manual settings
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            MINUTES="${{ inputs.minutes }}"
+            PUBLISH="${{ inputs.publish }}"
+          else
+            MINUTES="10"
+            PUBLISH="true"
+          fi
+          echo "MINUTES=$MINUTES" >> "$GITHUB_ENV"
+          echo "PUBLISH=$PUBLISH" >> "$GITHUB_ENV"
+          echo "Long-form settings: ${MINUTES}min, publish=${PUBLISH}"
+
       - name: Install media and Python dependencies
         run: |
           sudo apt-get update
@@ -70,7 +87,7 @@ jobs:
         shell: bash
         run: |
           test -n "$GEMINI_API_KEY" || { echo "Falta GEMINI_API_KEY"; exit 1; }
-          if [ "${{ inputs.publish }}" = "true" ]; then
+          if [ "$PUBLISH" = "true" ]; then
             test -n "$YOUTUBE_TOKEN_DIOSHABLAHOYIA" || { echo "Falta YOUTUBE_TOKEN_DIOSHABLAHOYIA"; exit 1; }
           fi
 
@@ -78,10 +95,10 @@ jobs:
         shell: bash
         run: |
           EXTRA=""
-          if [ "${{ inputs.publish }}" = "true" ]; then
+          if [ "$PUBLISH" = "true" ]; then
             EXTRA="--publish"
           fi
-          python -m app.spiritual_long_runner --minutes "${{ inputs.minutes }}" $EXTRA
+          python -m app.spiritual_long_runner --minutes "$MINUTES" $EXTRA
 
       - name: Persist spiritual anti-repeat history
         if: success()
@@ -117,7 +134,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: dioshablahoyia-${{ inputs.minutes }}min-${{ github.run_id }}
+          name: dioshablahoyia-${{ github.event_name == 'workflow_dispatch' && inputs.minutes || '10' }}min-${{ github.run_id }}
           path: output/dioshablahoyia-long/
           retention-days: 3
 
