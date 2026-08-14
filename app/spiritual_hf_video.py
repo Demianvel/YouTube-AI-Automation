@@ -16,14 +16,16 @@ def _seed(meta: dict, index: int) -> int:
 
 def _character_style() -> str:
     return (
-        "Reverent original artistic representation of Jesus as the SAME recurring character in every scene: "
+        "Reverent original artistic representation of Jesus as the SAME recurring fictional character in every scene: "
         "serene adult man, long wavy dark-brown hair, full neat brown beard, warm hazel-brown eyes, compassionate expression, "
         "natural cream or ivory linen robe, beige mantle or occasional muted deep-red mantle, historically inspired simple clothing, "
         "no resemblance to a specific actor or celebrity. Premium photoreal cinematic spiritual drama, realistic skin and fabric, "
         "warm golden sunrise or sunset light, subtle volumetric rays, mountains, valleys, rivers, lakes, olive trees or stone paths when appropriate. "
+        "When the scene calls for speaking, show restrained natural speech motion: subtle mouth and jaw articulation, gentle breathing, occasional blinks, "
+        "small head movement, calm eye contact toward camera and one or two slow open-hand gestures. Avoid exaggerated lip movement or theatrical acting. "
         "Visible natural motion throughout the shot: walking, extending a hand, robe moving in a light breeze, water ripples, clouds drifting, leaves moving, "
-        "camera dolly or slow orbit. Respectful peaceful mood. No horror, no sensational apocalypse imagery, no readable text, no subtitles, no logo, no watermark. "
-        "Vertical 9:16 composition for a premium YouTube Short."
+        "camera dolly or slow orbit. Respectful peaceful mood. No claim that this is a real recording or a real actor. No horror, no sensational apocalypse imagery, "
+        "no readable text, no subtitles, no logo, no watermark. Vertical 9:16 composition for a premium YouTube Short."
     )
 
 
@@ -86,5 +88,6 @@ def generate_spiritual_hf_short(channel: dict, meta: dict, workdir: Path, final:
     meta["synthetic_visual"] = True
     meta["text_to_video_engine"] = "huggingface_ltx23_then_wan22_spiritual"
     meta["character_reference_profile"] = "dioshablahoyia_recurring_jesus_v1"
+    meta["character_speaking_motion_requested"] = True
     meta["render_quality"] = "1080x1920_30fps_hf_ai_video"
     apply_audio_fn(visual, final, channel, meta, total_duration, _seed(meta, 999))
