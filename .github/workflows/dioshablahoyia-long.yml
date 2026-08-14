@@ -20,7 +20,7 @@ on:
         type: boolean
 
 permissions:
-  contents: read
+  contents: write
   issues: write
 
 concurrency:
@@ -51,6 +51,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - uses: actions/setup-python@v5
         with:
@@ -79,7 +81,37 @@ jobs:
           if [ "${{ inputs.publish }}" = "true" ]; then
             EXTRA="--publish"
           fi
-          python -m app.spiritual_long_pipeline --minutes "${{ inputs.minutes }}" $EXTRA
+          python -m app.spiritual_long_runner --minutes "${{ inputs.minutes }}" $EXTRA
+
+      - name: Persist spiritual anti-repeat history
+        if: success()
+        shell: bash
+        run: |
+          HISTORY="state/dioshablahoyia_long_history.jsonl"
+          if [ ! -f "$HISTORY" ]; then
+            exit 0
+          fi
+          NEW_RECORD="$(tail -n 1 "$HISTORY")"
+          git config user.name "youtube-ai-bot"
+          git config user.email "actions@users.noreply.github.com"
+          for attempt in 1 2 3 4 5; do
+            git fetch origin main
+            git reset --hard origin/main
+            mkdir -p state
+            touch "$HISTORY"
+            if ! grep -Fqx "$NEW_RECORD" "$HISTORY"; then
+              printf '%s\n' "$NEW_RECORD" >> "$HISTORY"
+            fi
+            git add "$HISTORY"
+            if git diff --cached --quiet; then
+              exit 0
+            fi
+            git commit -m "chore: update Dios Habla Hoy long history"
+            if git push origin HEAD:main; then
+              exit 0
+            fi
+          done
+          exit 1
 
       - name: Upload result artifact
         if: always()
