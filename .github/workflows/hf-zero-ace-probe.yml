@@ -15,18 +15,28 @@ jobs:
   probe:
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    env:
+      HF_TOKEN: ${{ secrets.HF_TOKEN }}
     steps:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
       - run: pip install -U gradio_client
+      - name: Verify HF authentication without exposing token
+        shell: bash
+        run: |
+          if [ -z "$HF_TOKEN" ]; then
+            echo "HF_TOKEN_MISSING=true"
+            exit 1
+          fi
+          echo "HF_TOKEN_PRESENT=true"
       - name: Print only useful ACE-Step endpoints
         run: |
           python - <<'PY'
           from gradio_client import Client
-          import json
+          import json, os
 
-          c = Client('ACE-Step/Ace-Step-v1.5', verbose=False)
+          c = Client('ACE-Step/Ace-Step-v1.5', token=os.environ['HF_TOKEN'], verbose=False)
           api = c.view_api(return_format='dict')
           named = api.get('named_endpoints', api)
           for name, spec in named.items():
