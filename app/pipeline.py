@@ -159,7 +159,7 @@ def run(channel_slug: str, dry_run: bool = False, content_mode: str = "auto") ->
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--channel", required=True, choices=["brotavida", "dineroclaro", "envikids"])
+    parser.add_argument("--channel", required=True, choices=["brotavida", "dineroclaro", "envikids", "dioshablahoyia"])
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--content-mode", default="auto", choices=["auto", "asmr", "music", "voice"])
     args = parser.parse_args()
