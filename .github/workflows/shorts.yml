@@ -27,6 +27,9 @@ on:
         required: true
         default: true
         type: boolean
+  push:
+    paths:
+      - "triggers/dioshablahoyia-short.txt"
   schedule:
     # Horarios UTC. Argentina (UTC-3):
     # BrotaVida 10:00,12:00,14:00,16:00,18:00
@@ -41,7 +44,7 @@ permissions:
   issues: write
 
 concurrency:
-  group: youtube-ai-publisher-${{ github.event_name == 'workflow_dispatch' && inputs.channel || github.event.schedule || 'unknown' }}
+  group: youtube-ai-publisher-${{ github.event_name == 'workflow_dispatch' && inputs.channel || github.event_name == 'push' && 'dioshablahoyia' || github.event.schedule || 'unknown' }}
   cancel-in-progress: false
 
 jobs:
@@ -88,6 +91,9 @@ jobs:
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             CHANNEL="${{ inputs.channel }}"
             CONTENT_MODE="${{ inputs.content_mode }}"
+          elif [ "${{ github.event_name }}" = "push" ]; then
+            CHANNEL="dioshablahoyia"
+            CONTENT_MODE="voice"
           elif [ "${{ github.event.schedule }}" = "0 13,15,17,19,21 * * *" ]; then
             CHANNEL="brotavida"
             CONTENT_MODE="asmr"
@@ -138,6 +144,10 @@ jobs:
         if: env.CHANNEL != ''
         shell: bash
         run: |
+          if [ "${{ github.event_name }}" = "push" ] && [ "$CHANNEL" = "dioshablahoyia" ] && [ -z "$YOUTUBE_TOKEN_DIOSHABLAHOYIA" ]; then
+            echo "Falta YOUTUBE_TOKEN_DIOSHABLAHOYIA: el smoke test debe probar una subida real."
+            exit 1
+          fi
           if [ "${{ github.event_name }}" = "schedule" ] && [ "$CHANNEL" = "envikids" ] && [ -z "$YOUTUBE_TOKEN_ENVIKIDS" ]; then
             echo "ready=false" >> "$GITHUB_OUTPUT"
             echo "EnViKidsAI programado pero OAuth ausente: se omite sin gastar generacion."
