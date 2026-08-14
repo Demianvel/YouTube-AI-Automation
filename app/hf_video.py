@@ -12,16 +12,24 @@ from huggingface_hub import InferenceClient
 
 W, H, FPS = 1080, 1920, 30
 LTX_SPACE = os.getenv("HF_ZERO_VIDEO_SPACE", "Lightricks/LTX-2-3").strip()
+MAX_SIGNED_SEED = 2_147_483_647
 
 
 def available() -> bool:
     return os.getenv("HF_VIDEO_ENABLED", "true").lower() == "true"
 
 
+def _safe_seed(value: int) -> int:
+    # Gradio/LTX uses a signed 32-bit integer input. Keep every renderer seed in
+    # the same portable range so retries/providers receive a valid value.
+    return int(value) % MAX_SIGNED_SEED
+
+
 def _seed(meta: dict, index: int) -> int:
     marker = os.getenv("GITHUB_RUN_ID", "") or os.getenv("GITHUB_RUN_NUMBER", "")
     raw = f"{meta.get('topic','')}|{meta.get('title','')}|{index}|{marker}"
-    return int(hashlib.sha256(raw.encode()).hexdigest()[:8], 16)
+    value = int(hashlib.sha256(raw.encode()).hexdigest()[:8], 16)
+    return _safe_seed(value)
 
 
 def _botanical_phase(index: int, total: int) -> str:
@@ -111,6 +119,7 @@ def _result_path(video_ref) -> Path:
 def _space_video(prompt: str, out: Path, duration: int, seed: int) -> str:
     attempts = max(1, int(os.getenv("HF_ZERO_RETRIES", "2")))
     last_error: Exception | None = None
+    seed = _safe_seed(seed)
     for attempt in range(1, attempts + 1):
         try:
             client = Client(LTX_SPACE, verbose=False)
@@ -153,7 +162,7 @@ def _provider_video(prompt: str, out: Path, seed: int) -> str:
     video_bytes = client.text_to_video(
         prompt,
         model=model,
-        seed=seed,
+        seed=_safe_seed(seed),
         num_frames=frames,
         num_inference_steps=steps,
         guidance_scale=guidance,
