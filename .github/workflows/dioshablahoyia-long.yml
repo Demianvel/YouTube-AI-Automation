@@ -1,0 +1,97 @@
+name: Dios Habla Hoy IA long-form
+
+on:
+  workflow_dispatch:
+    inputs:
+      minutes:
+        description: Duracion objetivo del video
+        required: true
+        default: "10"
+        type: choice
+        options:
+          - "10"
+          - "20"
+          - "30"
+          - "40"
+      publish:
+        description: Publicar en YouTube al terminar
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: dioshablahoyia-long-${{ inputs.minutes }}
+  cancel-in-progress: false
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    env:
+      PYTHONPATH: .
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      GEMINI_TEXT_MODEL: gemini-3.6-flash
+      POLLINATIONS_API_KEY: ${{ secrets.POLLINATIONS_API_KEY }}
+      POLLINATIONS_IMAGE_MODEL: flux
+      HF_VIDEO_ENABLED: "true"
+      HF_ZERO_VIDEO_SPACE: Lightricks/LTX-2-3
+      HF_ZERO_RETRIES: "1"
+      HF_TOKEN: ${{ secrets.HF_TOKEN }}
+      HF_VIDEO_PROVIDER: auto
+      HF_VIDEO_MODEL: Wan-AI/Wan2.2-TI2V-5B
+      SPIRITUAL_LONG_AI_CLIPS: "4"
+      TTS_PROVIDER: kokoro
+      KOKORO_VOICE: em_alex
+      KOKORO_SPEED: "0.91"
+      YOUTUBE_TOKEN_DIOSHABLAHOYIA: ${{ secrets.YOUTUBE_TOKEN_DIOSHABLAHOYIA }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install media and Python dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg espeak-ng libsndfile1 fonts-dejavu-core
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Verify required configuration
+        shell: bash
+        run: |
+          test -n "$GEMINI_API_KEY" || { echo "Falta GEMINI_API_KEY"; exit 1; }
+          if [ "${{ inputs.publish }}" = "true" ]; then
+            test -n "$YOUTUBE_TOKEN_DIOSHABLAHOYIA" || { echo "Falta YOUTUBE_TOKEN_DIOSHABLAHOYIA"; exit 1; }
+          fi
+
+      - name: Generate and optionally publish long video
+        shell: bash
+        run: |
+          EXTRA=""
+          if [ "${{ inputs.publish }}" = "true" ]; then
+            EXTRA="--publish"
+          fi
+          python -m app.spiritual_long_pipeline --minutes "${{ inputs.minutes }}" $EXTRA
+
+      - name: Upload result artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dioshablahoyia-${{ inputs.minutes }}min-${{ github.run_id }}
+          path: output/dioshablahoyia-long/
+          retention-days: 3
+
+      - name: Open issue on failure
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh issue create --title "Automation failure: Dios Habla Hoy IA long-form" --body "El workflow long-form fallo. Revisar Actions run $GITHUB_RUN_ID."
