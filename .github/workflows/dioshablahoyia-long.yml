@@ -23,13 +23,19 @@ on:
   push:
     paths:
       - "triggers/dioshablahoyia-long.txt"
+  schedule:
+    # Argentina UTC-3: 08:00, 12:00, 16:00 y 20:00 todos los dias.
+    - cron: "0 11 * * *"
+    - cron: "0 15 * * *"
+    - cron: "0 19 * * *"
+    - cron: "0 23 * * *"
 
 permissions:
   contents: write
   issues: write
 
 concurrency:
-  group: dioshablahoyia-long-${{ github.event_name == 'workflow_dispatch' && inputs.minutes || '10' }}
+  group: dioshablahoyia-long-${{ github.run_id }}
   cancel-in-progress: false
 
 jobs:
@@ -67,12 +73,21 @@ jobs:
           python-version: "3.11"
           cache: pip
 
-      - name: Resolve test or manual settings
+      - name: Resolve test, manual or daily settings
         shell: bash
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             MINUTES="${{ inputs.minutes }}"
             PUBLISH="${{ inputs.publish }}"
+          elif [ "${{ github.event_name }}" = "schedule" ]; then
+            case "${{ github.event.schedule }}" in
+              "0 11 * * *") MINUTES="5" ;;
+              "0 15 * * *") MINUTES="10" ;;
+              "0 19 * * *") MINUTES="15" ;;
+              "0 23 * * *") MINUTES="20" ;;
+              *) MINUTES="10" ;;
+            esac
+            PUBLISH="true"
           else
             MINUTES="10"
             PUBLISH="true"
@@ -139,7 +154,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: dioshablahoyia-${{ github.event_name == 'workflow_dispatch' && inputs.minutes || '10' }}min-${{ github.run_id }}
+          name: dioshablahoyia-${{ github.run_id }}
           path: output/dioshablahoyia-long/
           retention-days: 3
 
