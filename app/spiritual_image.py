@@ -8,13 +8,16 @@ from urllib.parse import quote
 
 import requests
 
+from .hf_video import _safe_seed
+from .spiritual_local_art import make_local_speaking_clip
+
 BASE = "https://gen.pollinations.ai/image/"
 W, H = 1080, 1920
 
 
 def _seed(meta: dict, index: int) -> int:
     raw = f"spiritual|{meta.get('topic','')}|{meta.get('title','')}|{index}"
-    return int(hashlib.sha256(raw.encode()).hexdigest()[:8], 16)
+    return _safe_seed(int(hashlib.sha256(raw.encode()).hexdigest()[:8], 16))
 
 
 def _style() -> str:
@@ -35,7 +38,7 @@ def _download(prompt: str, out: Path, seed: int) -> None:
         "model": os.getenv("POLLINATIONS_IMAGE_MODEL", "flux"),
         "width": W,
         "height": H,
-        "seed": seed,
+        "seed": _safe_seed(seed),
         "nologo": "true",
         "enhance": "true",
     }
@@ -78,13 +81,21 @@ def generate_spiritual_short(channel: dict, meta: dict, workdir: Path, final: Pa
     scene_duration = int(channel["scene_seconds"])
     clips: list[Path] = []
     prompts: list[str] = []
+    provider_labels: list[str] = []
+
     for index, scene in enumerate(meta.get("scenes") or []):
         prompt = str(scene.get("visual_prompt") or scene.get("stock_query") or "Jesus walking through a peaceful valley at golden sunrise")
         prompts.append(prompt)
         image = workdir / f"spiritual_generated_{index + 1}.jpg"
         clip = workdir / f"spiritual_scene_{index + 1}.mp4"
-        _download(prompt, image, _seed(meta, index))
-        _animate(image, clip, scene_duration, index)
+        try:
+            _download(prompt, image, _seed(meta, index))
+            _animate(image, clip, scene_duration, index)
+            provider_labels.append("Pollinations image API + cinematic motion")
+        except Exception as exc:
+            print(f"Imagen espiritual externa no disponible ({exc}); usando personaje ilustrado local con microanimacion de habla.")
+            make_local_speaking_clip(clip, scene_duration, _seed(meta, index), index=index)
+            provider_labels.append("local original spiritual character + speaking micro-animation")
         clips.append(clip)
 
     if not clips:
@@ -100,9 +111,10 @@ def generate_spiritual_short(channel: dict, meta: dict, workdir: Path, final: Pa
     ], check=True)
 
     total_duration = int(channel["scenes_per_short"]) * scene_duration
-    meta["generated_visual_provider"] = "Pollinations image API + cinematic motion spiritual fallback"
+    meta["generated_visual_provider"] = provider_labels
     meta["generated_video_prompts"] = prompts
     meta["synthetic_visual"] = True
     meta["character_reference_profile"] = "dioshablahoyia_recurring_jesus_v1"
+    meta["fallback_character_speaking_motion"] = any("speaking micro-animation" in x for x in provider_labels)
     meta["render_quality"] = "1080x1920_30fps_spiritual_fallback"
     apply_audio_fn(visual, final, channel, meta, total_duration, _seed(meta, 999))
