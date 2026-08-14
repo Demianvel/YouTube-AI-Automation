@@ -58,9 +58,9 @@ def _pick_reference_seed(minutes: int) -> list[dict]:
 
 def _metadata_prompt(channel: dict, minutes: int, sections: int, references: list[dict]) -> str:
     refs = "\n".join(f"- {item['reference']}: {item['theme']}" for item in references)
-    # Each section occupies roughly two minutes. This word target keeps the
-    # narration dense enough to flow almost continuously without padding gaps.
-    target_words = max(245, min(270, round((minutes * 128) / max(1, sections))))
+    # Keep roughly 128 spoken words per minute across the full video. The
+    # lower floor is deliberately small enough for the new 5-minute format.
+    target_words = max(115, min(270, round((minutes * 128) / max(1, sections))))
     return f"""
 Eres guionista senior de documentales y reflexiones cristianas para YouTube.
 Canal: {channel['display_name']} ({channel['handle']}).
@@ -385,8 +385,8 @@ def _thumbnail(video: Path, workdir: Path) -> Path:
 
 
 def run(minutes: int, publish: bool = False) -> dict:
-    if minutes not in {10, 20, 30, 40}:
-        raise ValueError("minutes debe ser 10, 20, 30 o 40")
+    if minutes not in {5, 10, 15, 20, 30, 40}:
+        raise ValueError("minutes debe ser 5, 10, 15, 20, 30 o 40")
     channel = load_channel("dioshablahoyia")
     meta = _generate_metadata(channel, minutes)
     stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
@@ -424,7 +424,7 @@ def run(minutes: int, publish: bool = False) -> dict:
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--minutes", required=True, type=int, choices=[10, 20, 30, 40])
+    parser.add_argument("--minutes", required=True, type=int, choices=[5, 10, 15, 20, 30, 40])
     parser.add_argument("--publish", action="store_true")
     args = parser.parse_args()
     run(args.minutes, publish=args.publish)
