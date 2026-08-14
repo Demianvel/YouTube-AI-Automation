@@ -1,0 +1,39 @@
+{
+  "version": "2026-08-14",
+  "video": {
+    "primary_zero_gpu_space": "Lightricks/LTX-2-3",
+    "provider_fallbacks": [
+      "Lightricks/LTX-Video-0.9.8-13B-distilled",
+      "tencent/HunyuanVideo",
+      "Wan-AI/Wan2.2-TI2V-5B"
+    ],
+    "purpose": "photorealistic cinematic text-to-video and image-to-video",
+    "quality_policy": "prefer live-action photorealism; never silently replace Dios Habla Hoy with cartoon/3D/still-image output"
+  },
+  "voice": {
+    "primary": "ResembleAI/Chatterbox-Multilingual-es-mx-latam",
+    "secondary": "ResembleAI/Chatterbox-Multilingual-es-es",
+    "general": "ResembleAI/chatterbox",
+    "fallback": "hexgrad/Kokoro-82M",
+    "purpose": "natural continuous Spanish narration; original synthetic voice, no cloning of real singers without authorization"
+  },
+  "music": {
+    "primary_space": "ACE-Step/Ace-Step-v1.5",
+    "primary_model": "ACE-Step/acestep-v15-xl-turbo",
+    "diffusers_model": "ACE-Step/acestep-v15-xl-turbo-diffusers",
+    "lighter_model": "ACE-Step/acestep-v15-base",
+    "purpose": "original stereo songs with lyrics/vocals and instrumental music",
+    "language": "es",
+    "max_song_seconds": 600
+  },
+  "lip_sync": {
+    "engine": "MuseTalk",
+    "repository": "TMElyralab/MuseTalk",
+    "purpose": "audio-driven mouth/lip synchronization when a CUDA runner is available"
+  },
+  "security": {
+    "hf_token_env": "HF_TOKEN",
+    "never_commit_tokens": true,
+    "download_weights_to_git": false
+  }
+}
