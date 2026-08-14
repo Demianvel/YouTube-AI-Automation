@@ -11,8 +11,9 @@ on:
           - brotavida
           - dineroclaro
           - envikids
+          - dioshablahoyia
       content_mode:
-        description: Formato de audio (BrotaVida); DineroClaro/EnViKids usan voz
+        description: Formato de audio; los canales narrados usan voz
         required: true
         default: auto
         type: choice
@@ -73,6 +74,7 @@ jobs:
       YOUTUBE_TOKEN_BROTAVIDA: ${{ secrets.YOUTUBE_TOKEN_BROTAVIDA }}
       YOUTUBE_TOKEN_DINEROCLARO: ${{ secrets.YOUTUBE_TOKEN_DINEROCLARO }}
       YOUTUBE_TOKEN_ENVIKIDS: ${{ secrets.YOUTUBE_TOKEN_ENVIKIDS }}
+      YOUTUBE_TOKEN_DIOSHABLAHOYIA: ${{ secrets.YOUTUBE_TOKEN_DIOSHABLAHOYIA }}
 
     steps:
       - uses: actions/checkout@v4
@@ -100,7 +102,7 @@ jobs:
             CONTENT_MODE="auto"
           fi
 
-          if [ "$CHANNEL" = "dineroclaro" ] || [ "$CHANNEL" = "envikids" ]; then
+          if [ "$CHANNEL" = "dineroclaro" ] || [ "$CHANNEL" = "envikids" ] || [ "$CHANNEL" = "dioshablahoyia" ]; then
             CONTENT_MODE="voice"
           fi
 
@@ -121,6 +123,13 @@ jobs:
             echo "TTS_PROVIDER=chatterbox_latam" >> "$GITHUB_ENV"
             echo "KOKORO_VOICE=em_alex" >> "$GITHUB_ENV"
             echo "KOKORO_SPEED=1.00" >> "$GITHUB_ENV"
+          elif [ "$CHANNEL" = "dioshablahoyia" ]; then
+            echo "TTS_PROVIDER=chatterbox_latam" >> "$GITHUB_ENV"
+            echo "KOKORO_VOICE=em_alex" >> "$GITHUB_ENV"
+            echo "KOKORO_SPEED=0.91" >> "$GITHUB_ENV"
+            echo "CHATTERBOX_EXAGGERATION=0.46" >> "$GITHUB_ENV"
+            echo "CHATTERBOX_CFG_WEIGHT=0.42" >> "$GITHUB_ENV"
+            echo "CHATTERBOX_TEMPERATURE=0.72" >> "$GITHUB_ENV"
           fi
           echo "Seleccionado: $CHANNEL / $CONTENT_MODE"
 
@@ -153,6 +162,8 @@ jobs:
           elif [ "$CHANNEL" = "dineroclaro" ] && [ -n "$YOUTUBE_TOKEN_DINEROCLARO" ]; then
             READY=true
           elif [ "$CHANNEL" = "envikids" ] && [ -n "$YOUTUBE_TOKEN_ENVIKIDS" ]; then
+            READY=true
+          elif [ "$CHANNEL" = "dioshablahoyia" ] && [ -n "$YOUTUBE_TOKEN_DIOSHABLAHOYIA" ]; then
             READY=true
           fi
           echo "ready=$READY" >> "$GITHUB_OUTPUT"
