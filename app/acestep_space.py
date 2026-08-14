@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 import shutil
+import subprocess
 from pathlib import Path
 
 from gradio_client import Client
@@ -53,50 +54,50 @@ def generate_song_space(
     # Parameters mirror the current official /generation_wrapper endpoint.
     # Keep batch_size=1 to minimize ZeroGPU usage while preserving XL Turbo quality.
     args = [
-        MODEL,                 # selected_model
-        "custom",             # generation_mode
-        "",                   # simple_query_input
-        vocal_language,        # simple_vocal_language
-        prompt,                # Prompt
-        lyrics or "[Instrumental]",  # Lyrics
-        tempo,                 # BPM
-        "",                   # Key signature
-        "4",                  # Time signature
-        vocal_language,        # Vocal language
-        8,                     # DiT inference steps (turbo default)
-        7.0,                   # guidance UI value (ignored by distilled turbo where applicable)
-        True,                  # random seed
-        "-1",                 # seed
-        None,                  # reference audio
-        duration,              # audio duration
-        1,                     # batch size
-        None,                  # source audio
-        "",                   # audio codes
-        0.0,                   # repaint start
-        -1,                    # repaint end
+        MODEL,
+        "custom",
+        "",
+        vocal_language,
+        prompt,
+        lyrics or "[Instrumental]",
+        tempo,
+        "",
+        "4",
+        vocal_language,
+        8,
+        7.0,
+        True,
+        "-1",
+        None,
+        duration,
+        1,
+        None,
+        "",
+        0.0,
+        -1,
         "Fill the audio semantic mask based on the given conditions:",
-        1.0,                   # cover strength
-        "text2music",         # task type
+        1.0,
+        "text2music",
         False,
         0.0,
         1.0,
-        3.0,                   # shift
-        "ode",                # inference method
-        "",                   # custom timesteps
-        "flac",               # lossless output
-        0.80,                  # LM temperature
-        True,                  # thinking
-        2.0,                   # LM CFG
-        0,                     # LM top-k
-        0.90,                  # LM top-p
+        3.0,
+        "ode",
+        "",
+        "flac",
+        0.80,
+        True,
+        2.0,
+        0,
+        0.90,
         "NO USER INPUT",
         True,
         True,
         True,
         False,
         True,
-        False,                 # quality scoring off: save GPU quota
-        False,                 # LRC off: save GPU quota
+        False,
+        False,
         0.5,
         8,
         None,
@@ -112,17 +113,24 @@ def generate_song_space(
         source = _path_from_file_ref(value)
         if source and source.stat().st_size > 100_000:
             break
-    if source is None:
-        # The ninth return is the list of all generated files in the current API.
-        if len(values) > 8 and isinstance(values[8], (list, tuple)):
-            for value in values[8]:
-                source = _path_from_file_ref(value)
-                if source and source.stat().st_size > 100_000:
-                    break
+    if source is None and len(values) > 8 and isinstance(values[8], (list, tuple)):
+        for value in values[8]:
+            source = _path_from_file_ref(value)
+            if source and source.stat().st_size > 100_000:
+                break
     if source is None:
         raise RuntimeError("ACE-Step ZeroGPU termino sin devolver un archivo de audio utilizable.")
 
     out.parent.mkdir(parents=True, exist_ok=True)
-    shutil.copyfile(source, out)
+    # The official Space exposes MP3/FLAC. The rest of this pipeline expects WAV,
+    # so decode and normalize explicitly instead of saving FLAC bytes with .wav.
+    if out.suffix.lower() == ".wav":
+        subprocess.run([
+            "ffmpeg", "-y", "-loglevel", "error", "-i", str(source),
+            "-ar", "48000", "-ac", "2", "-c:a", "pcm_s24le", str(out),
+        ], check=True)
+    else:
+        shutil.copyfile(source, out)
+
     if not out.exists() or out.stat().st_size < 100_000:
         raise RuntimeError("ACE-Step ZeroGPU devolvio un archivo de audio invalido.")
