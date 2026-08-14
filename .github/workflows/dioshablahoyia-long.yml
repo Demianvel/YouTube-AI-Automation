@@ -9,7 +9,9 @@ on:
         default: "10"
         type: choice
         options:
+          - "5"
           - "10"
+          - "15"
           - "20"
           - "30"
           - "40"
@@ -46,10 +48,13 @@ jobs:
       HF_TOKEN: ${{ secrets.HF_TOKEN }}
       HF_VIDEO_PROVIDER: auto
       HF_VIDEO_MODEL: Wan-AI/Wan2.2-TI2V-5B
-      SPIRITUAL_LONG_AI_CLIPS: "4"
+      SPIRITUAL_REQUIRE_LIVE_ACTION: "true"
+      SPIRITUAL_ALLOW_STILL_FALLBACK: "false"
+      SPIRITUAL_LONG_AI_CLIPS: "20"
+      SPIRITUAL_LONG_LIPSYNC_ENABLED: "true"
       TTS_PROVIDER: kokoro
       KOKORO_VOICE: em_alex
-      KOKORO_SPEED: "0.91"
+      KOKORO_SPEED: "0.96"
       YOUTUBE_TOKEN_DIOSHABLAHOYIA: ${{ secrets.YOUTUBE_TOKEN_DIOSHABLAHOYIA }}
 
     steps:
