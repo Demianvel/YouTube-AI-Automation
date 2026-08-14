@@ -12,6 +12,7 @@ from .config import ROOT
 from .hf_video import _safe_seed
 from .history import similarity
 from .spiritual_local_art import make_spiritual_art
+from .spiritual_long_talking import make_landscape_speaking_clip
 
 HISTORY_FILE = ROOT / "state" / "dioshablahoyia_long_history.jsonl"
 
@@ -134,7 +135,7 @@ def _enhance_metadata(meta: dict, previous: list[dict], minutes: int) -> dict:
     title, variants = _safe_title(meta, previous, minutes)
     meta["title"] = title
     meta["title_variants"] = variants
-    meta["spiritual_quality_profile"] = "premium_long_varied_truthful_v2"
+    meta["spiritual_quality_profile"] = "premium_long_varied_truthful_v3"
     meta["synthetic_character_disclosure"] = True
     meta["character_is_fictional_artistic_representation"] = True
 
@@ -171,6 +172,7 @@ def run(minutes: int, publish: bool = False) -> dict:
     original_generate = base._generate_metadata
     original_seed = base._seed
     original_download = base._download_image
+    original_visual = base._visual_for_section
     captured: dict = {}
 
     base._pick_reference_seed = _reference_picker(previous)
@@ -190,6 +192,18 @@ def run(minutes: int, publish: bool = False) -> dict:
             print("POLLINATIONS_API_KEY ausente; usando arte espiritual local original sin depender de una API externa.")
         make_spiritual_art(out, base.W, base.H, _safe_seed(seed), index=_safe_seed(seed) % 9, mouth_open=0)
 
+    def visual_with_talking_fallback(meta: dict, section: dict, index: int, workdir, ai_slots: int, duration: int):
+        visual, provider = original_visual(meta, section, index, workdir, ai_slots, duration)
+        provider_text = str(provider).lower()
+        # HF text-to-video already requests natural speaking movement. When a
+        # hosted AI scene is unavailable, guarantee visible speaking character
+        # shots at regular intervals instead of falling back to static imagery only.
+        if "hugging face" not in provider_text and "ltx" not in provider_text and index % 3 == 0:
+            talking = workdir / f"spiritual_talking_fallback_{index + 1}.mp4"
+            make_landscape_speaking_clip(talking, duration, safe_base_seed(meta, index), index=index)
+            return talking, "local original spiritual character + visible speaking micro-animation"
+        return visual, provider
+
     def generate(channel: dict, requested_minutes: int) -> dict:
         meta = original_generate(channel, requested_minutes)
         meta = _enhance_metadata(meta, previous, requested_minutes)
@@ -198,6 +212,7 @@ def run(minutes: int, publish: bool = False) -> dict:
 
     base._seed = safe_base_seed
     base._download_image = resilient_download
+    base._visual_for_section = visual_with_talking_fallback
     base._generate_metadata = generate
     try:
         result = base.run(minutes, publish=publish)
@@ -206,6 +221,7 @@ def run(minutes: int, publish: bool = False) -> dict:
         base._generate_metadata = original_generate
         base._seed = original_seed
         base._download_image = original_download
+        base._visual_for_section = original_visual
 
     meta = captured.get("meta") or {}
     record = {
