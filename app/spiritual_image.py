@@ -9,7 +9,6 @@ from urllib.parse import quote
 import requests
 
 from .hf_video import _safe_seed
-from .spiritual_local_art import make_local_speaking_clip
 
 BASE = "https://gen.pollinations.ai/image/"
 W, H = 1080, 1920
@@ -22,11 +21,11 @@ def _seed(meta: dict, index: int) -> int:
 
 def _style() -> str:
     return (
-        "premium photoreal cinematic spiritual scene, reverent original artistic representation of Jesus as the same recurring character, "
-        "serene adult man with long wavy dark-brown hair, full neat brown beard, warm hazel-brown eyes, compassionate expression, "
-        "cream or ivory linen robe, beige mantle or occasional muted deep-red mantle, warm golden sunrise or sunset, subtle volumetric rays, "
-        "mountains valleys rivers lakes olive trees stone paths, realistic fabric and skin, peaceful hopeful atmosphere, vertical 9:16, "
-        "no resemblance to a specific actor or celebrity, no text, no subtitles, no logo, no watermark, no horror"
+        "premium live-action photoreal cinematic spiritual scene, fully synthetic human representation of Jesus that looks like a real filmed adult man, "
+        "shoulder-length wavy dark-brown hair with individual strands, full groomed beard, hazel-brown eyes, natural skin pores and fine facial detail, "
+        "cream or ivory woven linen robe, beige mantle, realistic anatomy and hands, physically plausible golden sunlight, real-looking mountains valleys rivers lakes forests desert or aurora landscape, "
+        "cinematic depth of field and photographic optics, peaceful hopeful atmosphere, vertical 9:16, no resemblance to a specific actor or celebrity, "
+        "ABSOLUTELY NO cartoon, no illustration, no painting, no anime, no stylized 3D, no videogame look, no plastic CGI, no doll face, no text, no subtitles, no logo, no watermark"
     )
 
 
@@ -48,7 +47,7 @@ def _download(prompt: str, out: Path, seed: int) -> None:
     response = requests.get(url, params=params, headers=headers, timeout=(20, 180))
     response.raise_for_status()
     if len(response.content) < 20_000:
-        raise RuntimeError("El generador de imagenes no devolvio una imagen espiritual valida.")
+        raise RuntimeError("El generador de imagenes no devolvio una imagen espiritual fotorrealista valida.")
     out.write_bytes(response.content)
 
 
@@ -78,28 +77,28 @@ def _animate(source: Path, out: Path, duration: int, index: int) -> None:
 
 
 def generate_spiritual_short(channel: dict, meta: dict, workdir: Path, final: Path, apply_audio_fn) -> None:
+    if os.getenv("SPIRITUAL_ALLOW_STILL_FALLBACK", "false").lower().strip() != "true":
+        raise RuntimeError(
+            "El fallback de imagen fija esta deshabilitado para Dios Habla Hoy IA: se exige video humano fotorrealista con movimiento."
+        )
+
     scene_duration = int(channel["scene_seconds"])
     clips: list[Path] = []
     prompts: list[str] = []
     provider_labels: list[str] = []
 
     for index, scene in enumerate(meta.get("scenes") or []):
-        prompt = str(scene.get("visual_prompt") or scene.get("stock_query") or "Jesus walking through a peaceful valley at golden sunrise")
+        prompt = str(scene.get("visual_prompt") or scene.get("stock_query") or "photoreal synthetic Jesus walking through a real peaceful valley at golden sunrise")
         prompts.append(prompt)
         image = workdir / f"spiritual_generated_{index + 1}.jpg"
         clip = workdir / f"spiritual_scene_{index + 1}.mp4"
-        try:
-            _download(prompt, image, _seed(meta, index))
-            _animate(image, clip, scene_duration, index)
-            provider_labels.append("Pollinations image API + cinematic motion")
-        except Exception as exc:
-            print(f"Imagen espiritual externa no disponible ({exc}); usando personaje ilustrado local con microanimacion de habla.")
-            make_local_speaking_clip(clip, scene_duration, _seed(meta, index), index=index)
-            provider_labels.append("local original spiritual character + speaking micro-animation")
+        _download(prompt, image, _seed(meta, index))
+        _animate(image, clip, scene_duration, index)
+        provider_labels.append("Pollinations photoreal image API + cinematic camera motion")
         clips.append(clip)
 
     if not clips:
-        raise RuntimeError("No se generaron escenas espirituales de respaldo.")
+        raise RuntimeError("No se generaron escenas espirituales fotorrealistas de respaldo.")
 
     manifest = workdir / "spiritual_concat.txt"
     manifest.write_text("\n".join(f"file '{p.resolve()}'" for p in clips), encoding="utf-8")
@@ -114,7 +113,7 @@ def generate_spiritual_short(channel: dict, meta: dict, workdir: Path, final: Pa
     meta["generated_visual_provider"] = provider_labels
     meta["generated_video_prompts"] = prompts
     meta["synthetic_visual"] = True
-    meta["character_reference_profile"] = "dioshablahoyia_recurring_jesus_v1"
-    meta["fallback_character_speaking_motion"] = any("speaking micro-animation" in x for x in provider_labels)
-    meta["render_quality"] = "1080x1920_30fps_spiritual_fallback"
+    meta["character_reference_profile"] = "dioshablahoyia_photoreal_human_v2"
+    meta["render_quality"] = "1080x1920_30fps_photoreal_still_fallback"
+    meta["still_fallback_explicitly_enabled"] = True
     apply_audio_fn(visual, final, channel, meta, total_duration, _seed(meta, 999))
