@@ -190,6 +190,9 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y ffmpeg espeak-ng libsndfile1 fonts-dejavu-core git
           python -m pip install --upgrade pip
+          # Hosted runners do not expose an NVIDIA GPU to this pipeline. Preinstall
+          # CPU PyTorch so Kokoro does not pull several GB of CUDA 13 packages.
+          pip install torch==2.6.0 --index-url https://download.pytorch.org/whl/cpu
           pip install -r requirements.txt
 
       - name: Install Chatterbox V3 family
