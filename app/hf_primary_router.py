@@ -8,6 +8,7 @@ from .hf_video import available as hf_video_available
 from .hf_video import generate_hf_short
 from .premium_audio import apply_audio as apply_premium_audio
 from .spiritual_hf_video import generate_spiritual_hf_short
+from .spiritual_image import generate_spiritual_short as generate_spiritual_image_short
 
 
 def _brotavida_prompts(metadata: dict) -> list[str]:
@@ -35,6 +36,15 @@ def _restore(metadata: dict, originals: list[str]) -> None:
         scene["visual_prompt"] = original
 
 
+def _spiritual_fallback(channel: dict, metadata: dict, workdir: Path) -> Path:
+    final = workdir / "short.mp4"
+    workdir.mkdir(parents=True, exist_ok=True)
+    generate_spiritual_image_short(channel, metadata, workdir, final, apply_premium_audio)
+    metadata["visual_source"] = "generated_spiritual_image_motion_fallback"
+    metadata["hf_fallback_used"] = True
+    return final
+
+
 def generate_short(channel: dict, metadata: dict, workdir: Path) -> Path:
     visual_mode = str(channel.get("visual_mode") or "").lower()
     botanical = "botanical" in visual_mode
@@ -54,6 +64,8 @@ def generate_short(channel: dict, metadata: dict, workdir: Path) -> Path:
             raise RuntimeError("Hugging Face text-to-video esta deshabilitado y HF_VIDEO_STRICT=true.")
         metadata["hf_primary_failed"] = "HF video deshabilitado"
         metadata["hf_fallback_used"] = True
+        if spiritual:
+            return _spiritual_fallback(channel, metadata, workdir)
         return base_video.generate_short(channel, metadata, workdir)
 
     final = workdir / "short.mp4"
@@ -90,6 +102,8 @@ def generate_short(channel: dict, metadata: dict, workdir: Path) -> Path:
         if strict:
             raise RuntimeError(f"Hugging Face no pudo generar el Short y HF_VIDEO_STRICT=true: {exc}") from exc
         print(f"Hugging Face text-to-video no disponible ({exc}); usando renderer estable del canal como fallback.")
+        if spiritual:
+            return _spiritual_fallback(channel, metadata, workdir)
         return base_video.generate_short(channel, metadata, workdir)
     finally:
         if botanical and originals:
