@@ -22,32 +22,46 @@ jobs:
         with:
           python-version: '3.11'
       - run: pip install -U gradio_client
-      - name: Verify HF authentication without exposing token
+      - name: Check HF authentication without exposing token
         shell: bash
         run: |
           if [ -z "$HF_TOKEN" ]; then
-            echo "HF_TOKEN_MISSING=true"
-            exit 1
+            echo "HF_TOKEN_PRESENT=false; probing public Space anonymously."
+          else
+            echo "HF_TOKEN_PRESENT=true"
           fi
-          echo "HF_TOKEN_PRESENT=true"
-      - name: Print only useful ACE-Step endpoints
+      - name: Export useful ACE-Step endpoints
         run: |
           python - <<'PY'
           from gradio_client import Client
           import json, os
 
-          c = Client('ACE-Step/Ace-Step-v1.5', token=os.environ['HF_TOKEN'], verbose=False)
+          token = os.environ.get('HF_TOKEN') or None
+          c = Client('ACE-Step/Ace-Step-v1.5', token=token, verbose=False)
           api = c.view_api(return_format='dict')
           named = api.get('named_endpoints', api)
+          lines = []
           for name, spec in named.items():
               low = name.lower()
               blob = json.dumps(spec, ensure_ascii=False).lower()
               if any(k in low or k in blob for k in ['generate', 'audio', 'music', 'song', 'task']):
-                  print('\nENDPOINT', name)
+                  lines.append(f'ENDPOINT {name}')
                   params = spec.get('parameters', []) if isinstance(spec, dict) else []
                   for i, p in enumerate(params, 1):
-                      print(' PARAM', i, p.get('parameter_name'), '|', p.get('type'), '| default=', p.get('default'))
+                      lines.append(f" PARAM {i} {p.get('parameter_name')} | {p.get('type')} | default={p.get('default')!r}")
                   returns = spec.get('returns', []) if isinstance(spec, dict) else []
                   for i, r in enumerate(returns, 1):
-                      print(' RETURN', i, r.get('type'), '| label=', r.get('label'))
+                      lines.append(f" RETURN {i} {r.get('type')} | label={r.get('label')}")
+                  lines.append('')
+          text = '\n'.join(lines)
+          print(text)
+          open('ace_api.txt', 'w', encoding='utf-8').write(text)
+          open('ace_api_full.json', 'w', encoding='utf-8').write(json.dumps(api, ensure_ascii=False, indent=2))
           PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ace-step-api-${{ github.run_id }}
+          path: |
+            ace_api.txt
+            ace_api_full.json
+          retention-days: 2
