@@ -14,6 +14,7 @@ from .history import append_history, read_history
 from .performance import enrich_history_with_youtube_stats
 from .premium_audio import apply_audio as premium_apply_audio
 from .hf_primary_router import generate_short
+from .spiritual_quality import enforce_spiritual_metadata
 from .youtube import upload_video
 
 
@@ -124,6 +125,8 @@ def run(channel_slug: str, dry_run: bool = False, content_mode: str = "auto") ->
 
     resolved_mode = _apply_content_mode(channel_slug, channel, content_mode, previous)
     metadata = generate_metadata(channel, previous)
+    if channel_slug == "dioshablahoyia":
+        metadata = enforce_spiritual_metadata(metadata, previous)
     metadata["content_mode"] = resolved_mode
     metadata["analytics_used"] = bool(channel.get("_analytics_digest"))
 
@@ -149,6 +152,7 @@ def run(channel_slug: str, dry_run: bool = False, content_mode: str = "auto") ->
         "content_family": metadata.get("content_family"),
         "topic": metadata.get("topic"),
         "title": metadata.get("title"),
+        "bible_reference": metadata.get("bible_reference"),
         "video_id": video_id,
         "status": status,
     }
