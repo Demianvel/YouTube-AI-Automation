@@ -16,9 +16,6 @@ on:
         required: true
         default: false
         type: boolean
-  schedule:
-    # UTC. Argentina UTC-3: 10:40, 12:40, 14:40, 16:40 y 18:40.
-    - cron: "40 13,15,17,19,21 * * *"
 
 permissions:
   contents: read
@@ -47,41 +44,22 @@ jobs:
         id: select
         shell: bash
         run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            MINUTES="${{ inputs.minutes }}"
-            WANT_PUBLISH="${{ inputs.publish }}"
-          else
-            HOUR="$(date -u +%H)"
-            if [ $((10#$H % 4)) -eq 1 ]; then
-              MINUTES="10"
-            else
-              MINUTES="5"
-            fi
-            WANT_PUBLISH="true"
-          fi
-
-          SHOULD_RUN=true
+          MINUTES="${{ inputs.minutes }}"
+          WANT_PUBLISH="${{ inputs.publish }}"
           PUBLISH=false
-          if [ "${{ github.event_name }}" = "schedule" ] && [ -z "$YOUTUBE_TOKEN_ENVIKIDS" ]; then
-            SHOULD_RUN=false
-            echo "OAuth EnViKids ausente: ejecucion programada omitida para no gastar generacion."
-          elif [ "$WANT_PUBLISH" = "true" ] && [ -n "$YOUTUBE_TOKEN_ENVIKIDS" ]; then
+          if [ "$WANT_PUBLISH" = "true" ] && [ -n "$YOUTUBE_TOKEN_ENVIKIDS" ]; then
             PUBLISH=true
           fi
-
           echo "minutes=$MINUTES" >> "$GITHUB_OUTPUT"
           echo "publish=$PUBLISH" >> "$GITHUB_OUTPUT"
-          echo "should_run=$SHOULD_RUN" >> "$GITHUB_OUTPUT"
-          echo "EnViKids ${MINUTES}min / run=${SHOULD_RUN} / publish=${PUBLISH}"
+          echo "EnViKids manual ${MINUTES}min / publish=${PUBLISH}"
 
       - uses: actions/setup-python@v5
-        if: steps.select.outputs.should_run == 'true'
         with:
           python-version: "3.11"
           cache: pip
 
       - name: Install EnViKids generation dependencies
-        if: steps.select.outputs.should_run == 'true'
         run: |
           sudo apt-get update
           sudo apt-get install -y ffmpeg espeak-ng libsndfile1 fonts-dejavu-core
@@ -89,7 +67,6 @@ jobs:
           pip install -r requirements.txt
 
       - name: Generate EnViKids long video
-        if: steps.select.outputs.should_run == 'true'
         shell: bash
         run: |
           EXTRA=""
@@ -97,7 +74,7 @@ jobs:
           python -m app.kids_long_pipeline --minutes "${{ steps.select.outputs.minutes }}" $EXTRA
 
       - name: Upload compact artifact
-        if: steps.select.outputs.should_run == 'true' && always()
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: envikids-${{ steps.select.outputs.minutes }}min-${{ github.run_id }}
