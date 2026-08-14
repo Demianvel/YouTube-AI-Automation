@@ -64,8 +64,13 @@ jobs:
       GEMINI_TEXT_MODEL: gemini-3.6-flash
       PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
       YOUTUBE_TOKEN_DEMIANVELO: ${{ secrets.YOUTUBE_TOKEN_DEMIANVELO }}
+      HF_TOKEN: ${{ secrets.HF_TOKEN }}
       ACESTEP_API_URL: ${{ secrets.ACESTEP_API_URL }}
       ACESTEP_API_KEY: ${{ secrets.ACESTEP_API_KEY }}
+      ACESTEP_HF_SPACE_ENABLED: "true"
+      ACESTEP_HF_SPACE: ACE-Step/Ace-Step-v1.5
+      ACESTEP_HF_MODEL: acestep-v15-xl-turbo
+      ACESTEP_MODEL: acestep-v15-xl-turbo
     steps:
       - uses: actions/checkout@v4
 
@@ -121,6 +126,18 @@ jobs:
           sudo apt-get install -y ffmpeg libsndfile1
           python -m pip install --upgrade pip
           pip install -r requirements.txt
+
+      - name: Show AI stack readiness
+        if: steps.select.outputs.run == 'true'
+        shell: bash
+        run: |
+          echo "ACE-Step Space: $ACESTEP_HF_SPACE"
+          echo "ACE-Step model: $ACESTEP_HF_MODEL"
+          if [ -n "$HF_TOKEN" ]; then
+            echo "HF_TOKEN_PRESENT=true"
+          else
+            echo "HF_TOKEN_PRESENT=false; public Space may still work but authenticated ZeroGPU quota will not be available."
+          fi
 
       - name: Generate original track and cinematic video
         if: steps.select.outputs.run == 'true'
