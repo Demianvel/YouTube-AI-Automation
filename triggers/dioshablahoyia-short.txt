@@ -1,0 +1,2 @@
+Smoke publish requested 2026-08-14T10:39:00-03:00
+Purpose: verify real Short upload to @dioshablahoyia using connected OAuth.
