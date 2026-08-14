@@ -3,6 +3,7 @@ from __future__ import annotations
 import math
 import os
 import random
+import re
 import shutil
 import struct
 import subprocess
@@ -102,22 +103,89 @@ def make_botanical_asmr(path: Path, duration: int, seed: int) -> None:
             wf.writeframes(buffer)
 
 
+def continuous_speech_text(text: str) -> str:
+    """Turn scripted prose into a flowing spoken paragraph with no dramatic pauses."""
+    clean = " ".join(str(text or "").split())
+    clean = clean.replace("…", ", ").replace("...", ", ")
+    clean = re.sub(r"\s*[—–;:]\s*", ", ", clean)
+    clean = re.sub(r"[.!?]+\s+(?=\S)", ", ", clean)
+    clean = re.sub(r"\s*,\s*,+\s*", ", ", clean)
+    clean = re.sub(r"\s+", " ", clean).strip(" ,.;:!?")
+    return (clean + ".") if clean else ""
+
+
+def _probe_audio_duration(path: Path) -> float:
+    result = subprocess.run(
+        ["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "default=noprint_wrappers=1:nokey=1", str(path)],
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    return max(0.0, float(result.stdout.strip() or 0.0))
+
+
+def _tighten_voice(path: Path) -> None:
+    """Remove only long artificial gaps while keeping tiny natural breathing pauses."""
+    temp = path.with_name(path.stem + ".tight.wav")
+    try:
+        subprocess.run([
+            "ffmpeg", "-y", "-loglevel", "error", "-i", str(path),
+            "-af",
+            "silenceremove=start_periods=1:start_duration=0.04:start_threshold=-52dB:"
+            "stop_periods=-1:stop_duration=0.30:stop_threshold=-52dB,atempo=1.015",
+            "-ac", "1", str(temp),
+        ], check=True)
+        if temp.exists() and temp.stat().st_size > 1000:
+            temp.replace(path)
+    except Exception as exc:
+        print(f"No se pudo compactar silencios de la voz ({exc}); se conserva el audio original.")
+        temp.unlink(missing_ok=True)
+
+
+def fit_voice_to_duration(path: Path, target_seconds: float) -> None:
+    """Gently fit narration close to the visual duration without robotic speed changes."""
+    if target_seconds <= 1:
+        return
+    current = _probe_audio_duration(path)
+    if current <= 0.25:
+        return
+    desired = max(1.0, float(target_seconds) * 0.985)
+    tempo = current / desired
+    tempo = max(0.90, min(1.10, tempo))
+    if abs(tempo - 1.0) < 0.012:
+        return
+    temp = path.with_name(path.stem + ".fit.wav")
+    subprocess.run([
+        "ffmpeg", "-y", "-loglevel", "error", "-i", str(path),
+        "-af", f"atempo={tempo:.6f}", "-ac", "1", str(temp),
+    ], check=True)
+    if temp.exists() and temp.stat().st_size > 1000:
+        temp.replace(path)
+
+
+def _set_tts_seed(torch_module) -> None:
+    seed = int(os.getenv("CHATTERBOX_VOICE_SEED", "24021996")) & 0x7FFFFFFF
+    torch_module.manual_seed(seed)
+    if hasattr(torch_module, "cuda") and torch_module.cuda.is_available():
+        torch_module.cuda.manual_seed_all(seed)
+
+
 def _kokoro_voice(path: Path, text: str) -> None:
     import numpy as np
     import soundfile as sf
     from kokoro import KPipeline
 
     voice = os.getenv("KOKORO_VOICE", "em_alex").strip() or "em_alex"
-    speed = float(os.getenv("KOKORO_SPEED", "0.95"))
+    speed = float(os.getenv("KOKORO_SPEED", "1.00"))
     pipeline = KPipeline(lang_code="e")
     chunks: list[np.ndarray] = []
-    clean_text = " ".join(str(text).split())
+    clean_text = continuous_speech_text(text)
     for _graphemes, _phonemes, audio in pipeline(clean_text, voice=voice, speed=speed, split_pattern=r"(?<=[.!?])\s+"):
         if audio is not None and len(audio):
             chunks.append(np.asarray(audio, dtype=np.float32))
     if not chunks:
         raise RuntimeError("Kokoro no genero audio en español.")
-    pause = np.zeros(int(24000 * 0.035), dtype=np.float32)
+    pause = np.zeros(int(24000 * 0.012), dtype=np.float32)
     joined: list[np.ndarray] = []
     for index, chunk in enumerate(chunks):
         if index:
@@ -135,21 +203,21 @@ def _chatterbox_general_voice(path: Path, text: str) -> None:
     import torchaudio as ta
     from chatterbox.mtl_tts import ChatterboxMultilingualTTS
 
+    _set_tts_seed(torch)
     device = "cuda" if torch.cuda.is_available() else "cpu"
     model = ChatterboxMultilingualTTS.from_pretrained(device=device, t3_model="v3")
     kwargs: dict = {
         "language_id": "es",
-        "exaggeration": float(os.getenv("CHATTERBOX_EXAGGERATION", "0.62")),
-        "cfg_weight": float(os.getenv("CHATTERBOX_CFG_WEIGHT", "0.38")),
-        "temperature": float(os.getenv("CHATTERBOX_TEMPERATURE", "0.80")),
+        "exaggeration": float(os.getenv("CHATTERBOX_EXAGGERATION", "0.48")),
+        "cfg_weight": float(os.getenv("CHATTERBOX_CFG_WEIGHT", "0.42")),
+        "temperature": float(os.getenv("CHATTERBOX_TEMPERATURE", "0.72")),
     }
     ref = os.getenv("CHATTERBOX_REFERENCE_AUDIO", "").strip()
     if ref:
         if not Path(ref).exists():
             raise RuntimeError("CHATTERBOX_REFERENCE_AUDIO no existe en el runner.")
         kwargs["audio_prompt_path"] = ref
-    clean_text = " ".join(str(text).split())
-    wav = model.generate(clean_text, **kwargs)
+    wav = model.generate(continuous_speech_text(text), **kwargs)
     ta.save(str(path), wav.cpu(), model.sr)
 
 
@@ -164,13 +232,7 @@ def _link_or_copy(src: Path, dst: Path) -> None:
 
 
 def _latam_model_dir() -> Path:
-    """Merge official base companion assets with the official LatAm Spanish V3 finetune.
-
-    ResembleAI's LatAm pack contains its regional T3 and V3 S3Gen assets, while the shared
-    base repository contains the voice encoder/default conditionals. Chatterbox's from_local
-    loader accepts an arbitrary .safetensors T3 filename, so the two official snapshots can
-    be combined without modifying model weights.
-    """
+    """Merge official base companion assets with the official LatAm Spanish V3 finetune."""
     from huggingface_hub import snapshot_download
 
     cache = Path(os.getenv("CHATTERBOX_LATAM_CACHE", Path.home() / ".cache/chatterbox-latam-v3")).expanduser()
@@ -206,6 +268,7 @@ def _chatterbox_latam_voice(path: Path, text: str) -> None:
     import torchaudio as ta
     from chatterbox.mtl_tts import ChatterboxMultilingualTTS
 
+    _set_tts_seed(torch)
     device = "cuda" if torch.cuda.is_available() else "cpu"
     model = ChatterboxMultilingualTTS.from_local(
         _latam_model_dir(),
@@ -214,17 +277,16 @@ def _chatterbox_latam_voice(path: Path, text: str) -> None:
     )
     kwargs: dict = {
         "language_id": "es",
-        "exaggeration": float(os.getenv("CHATTERBOX_EXAGGERATION", "0.62")),
-        "cfg_weight": float(os.getenv("CHATTERBOX_CFG_WEIGHT", "0.38")),
-        "temperature": float(os.getenv("CHATTERBOX_TEMPERATURE", "0.80")),
+        "exaggeration": float(os.getenv("CHATTERBOX_EXAGGERATION", "0.48")),
+        "cfg_weight": float(os.getenv("CHATTERBOX_CFG_WEIGHT", "0.42")),
+        "temperature": float(os.getenv("CHATTERBOX_TEMPERATURE", "0.72")),
     }
     ref = os.getenv("CHATTERBOX_REFERENCE_AUDIO", "").strip()
     if ref:
         if not Path(ref).exists():
             raise RuntimeError("CHATTERBOX_REFERENCE_AUDIO no existe en el runner.")
         kwargs["audio_prompt_path"] = ref
-    clean_text = " ".join(str(text).split())
-    wav = model.generate(clean_text, **kwargs)
+    wav = model.generate(continuous_speech_text(text), **kwargs)
     ta.save(str(path), wav.cpu(), model.sr)
 
 
@@ -264,6 +326,7 @@ def make_natural_spanish_voice(path: Path, text: str) -> str:
 
     if not path.exists() or path.stat().st_size < 1000:
         raise RuntimeError(f"{used} genero un archivo de voz invalido.")
+    _tighten_voice(path)
     return used
 
 
@@ -304,19 +367,26 @@ def apply_audio(video: Path, out: Path, channel: dict, meta: dict, duration: int
     if not text:
         raise RuntimeError("El canal requiere narracion y no se genero texto.")
 
+    precomputed = str(meta.pop("_precomputed_voice_path", "") or "").strip()
+    precomputed_provider = str(meta.pop("_precomputed_tts_provider", "") or "").strip()
     requested = os.getenv("TTS_PROVIDER", "chatterbox_latam").lower().strip()
-    voice_path = out.with_name(f"narration_{requested.replace('-', '_')}.wav")
-    used = make_natural_spanish_voice(voice_path, text)
+    voice_path = Path(precomputed) if precomputed else out.with_name(f"narration_{requested.replace('-', '_')}.wav")
+    if precomputed and voice_path.exists():
+        used = precomputed_provider or "precomputed-continuous-voice"
+    else:
+        used = make_natural_spanish_voice(voice_path, text)
+    fit_voice_to_duration(voice_path, duration)
     meta["tts_provider_used"] = used
+    meta["voice_delivery"] = "continuous_tight_no_long_pauses"
 
     music = out.with_name("soft_music.wav")
     make_pleasant_original_music(music, duration, seed ^ 0xD1E0)
-    music_volume = "0.032"
+    music_volume = "0.028"
     subprocess.run([
         "ffmpeg", "-y", "-loglevel", "error", "-i", str(video), "-i", str(voice_path), "-i", str(music),
         "-filter_complex",
-        f"[1:a]highpass=f=70,lowpass=f=10000,acompressor=threshold=-18dB:ratio=1.75:attack=10:release=140,loudnorm=I=-16:TP=-1.5:LRA=8,apad=pad_dur={duration}[v];"
-        f"[2:a]volume={music_volume}[m];[v][m]amix=inputs=2:duration=first:dropout_transition=1[a]",
+        f"[1:a]highpass=f=70,lowpass=f=10000,acompressor=threshold=-18dB:ratio=1.75:attack=10:release=140,loudnorm=I=-16:TP=-1.5:LRA=7,apad=pad_dur={duration}[v];"
+        f"[2:a]volume={music_volume}[m];[v][m]amix=inputs=2:duration=first:dropout_transition=0.25[a]",
         "-map", "0:v:0", "-map", "[a]", "-t", str(duration), "-c:v", "copy", "-c:a", "aac", "-b:a", "192k",
         "-movflags", "+faststart", str(out),
     ], check=True)
