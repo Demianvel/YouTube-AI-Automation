@@ -11,8 +11,6 @@ from . import spiritual_long_pipeline as base
 from .config import ROOT
 from .hf_video import _safe_seed
 from .history import similarity
-from .spiritual_local_art import make_spiritual_art
-from .spiritual_long_talking import make_landscape_speaking_clip
 
 HISTORY_FILE = ROOT / "state" / "dioshablahoyia_long_history.jsonl"
 
@@ -27,17 +25,28 @@ _TITLE_TEMPLATES = (
     "Volver a confiar: {topic}",
 )
 
+_REAL_ENVIRONMENTS = (
+    "real alpine green valley at golden sunrise, clear river, distant snow mountains and natural atmospheric haze",
+    "real Nordic mountain landscape beneath a vivid aurora borealis, cold night air, natural stars and subtle snow",
+    "real warm desert dunes at sunrise, wind moving fine sand and physically plausible long shadows",
+    "real Mediterranean olive grove at golden hour, natural leaves and branches moving in a light breeze",
+    "real rocky ocean coastline at dawn, natural waves, sea spray and moving clouds",
+    "real high mountain ridge at sunset, layered valleys and cinematic atmospheric perspective",
+    "real forest clearing after rain, wet leaves, mist and sun rays passing through moving branches",
+    "real lakeside meadow with wildflowers, moving water and warm late-afternoon sunlight",
+    "real snowy mountain pass, visible cold breath, wind moving robe fabric and natural blue-hour light",
+    "real canyon riverbank with detailed rock, flowing water and warm sunset light",
+)
+
 _VISUAL_MOTIFS = (
-    "medium close-up of the recurring fictional Jesus character speaking softly toward camera with subtle natural mouth and jaw movement, compassionate eye contact and one slow open-hand gesture",
-    "wide tracking shot of the recurring fictional Jesus character walking along a mountain path while speaking calmly, robe and mantle moving in a light breeze",
-    "lakeside medium shot of the recurring fictional Jesus character speaking with restrained facial movement and a gentle open-palm gesture, water moving behind him",
-    "olive grove at golden hour, the recurring fictional Jesus character speaks naturally with calm eye contact and small hand gestures, leaves moving in the wind",
-    "riverbank close-up, the recurring fictional Jesus character speaks peacefully toward camera, subtle head movement and breathing, flowing water and warm light",
-    "sunrise valley dolly shot, the recurring fictional Jesus character walks slowly toward camera while speaking, soft clouds and rays changing naturally",
-    "stone courtyard with ancient-inspired architecture, the recurring fictional Jesus character speaks serenely with restrained gestures and realistic fabric movement",
-    "mountain overlook at sunset, the recurring fictional Jesus character speaks reflectively, briefly looks to the horizon, then returns eye contact to camera",
-    "quiet meadow after light rain, the recurring fictional Jesus character speaks gently while walking, grasses moving and soft sun breaking through clouds",
-    "shoreline at dawn, the recurring fictional Jesus character speaks with a peaceful expression and slow natural hand motion, waves and sky moving behind him",
+    "live-action medium close-up of the recurring photoreal synthetic Jesus character speaking continuously toward camera, natural lips jaw cheeks blinking breathing and small head movement",
+    "live-action full-body tracking shot of the recurring photoreal synthetic Jesus character walking while speaking continuously, realistic legs balance robe movement and one calm open-hand gesture",
+    "live-action waist-up moving shot of the recurring photoreal synthetic Jesus character speaking continuously and extending one hand naturally toward camera, realistic fingers wrist elbow and shoulder",
+    "live-action three-quarter body shot of the recurring photoreal synthetic Jesus character turning slightly while speaking, both hands moving naturally and realistic weight shifting through hips and legs",
+    "live-action intimate close-up of the recurring photoreal synthetic Jesus character speaking continuously with natural eye focus facial micro-expression and restrained nodding",
+    "live-action wide cinematic shot of the recurring photoreal synthetic Jesus character walking through the environment while speaking, natural arm swing posture steps and moving fabric",
+    "live-action medium shot of the recurring photoreal synthetic Jesus character speaking and gently raising then lowering one hand, natural shoulder elbow wrist and finger articulation",
+    "live-action full-body dolly shot of the recurring photoreal synthetic Jesus character slowly approaching camera while speaking continuously, realistic knees feet torso balance and robe folds",
 )
 
 
@@ -64,7 +73,7 @@ def _append_history(item: dict) -> None:
 
 def _run_seed(minutes: int) -> int:
     marker = os.getenv("GITHUB_RUN_ID", "") or os.getenv("GITHUB_RUN_NUMBER", "") or datetime.now(timezone.utc).isoformat()
-    value = int(hashlib.sha256(f"spiritual-long-v2|{minutes}|{marker}".encode()).hexdigest()[:8], 16)
+    value = int(hashlib.sha256(f"spiritual-long-v4|{minutes}|{marker}".encode()).hexdigest()[:8], 16)
     return _safe_seed(value)
 
 
@@ -83,8 +92,7 @@ def _reference_picker(previous: list[dict]):
         old = [item for item in refs if item not in fresh]
         rng.shuffle(fresh)
         rng.shuffle(old)
-        ordered = fresh + old
-        return ordered[: min(10, len(ordered))]
+        return (fresh + old)[: min(10, len(refs))]
 
     return pick
 
@@ -93,7 +101,6 @@ def _safe_title(meta: dict, previous: list[dict], minutes: int) -> tuple[str, li
     topic = " ".join(str(meta.get("topic") or "Fe, Biblia y esperanza").split())
     original = " ".join(str(meta.get("title") or "").split()).strip()
     seed = _run_seed(minutes)
-
     risky = (
         "dios te dice",
         "jesus te dice",
@@ -135,9 +142,14 @@ def _enhance_metadata(meta: dict, previous: list[dict], minutes: int) -> dict:
     title, variants = _safe_title(meta, previous, minutes)
     meta["title"] = title
     meta["title_variants"] = variants
-    meta["spiritual_quality_profile"] = "premium_long_varied_truthful_v3"
+    meta["spiritual_quality_profile"] = "premium_long_live_action_photoreal_v4"
     meta["synthetic_character_disclosure"] = True
     meta["character_is_fictional_artistic_representation"] = True
+    meta["photoreal_human_required"] = True
+    meta["no_cartoon_no_3d_animation"] = True
+    meta["continuous_speech_requested"] = True
+    meta["lip_sync_requested"] = True
+    meta["full_body_motion_requested"] = True
 
     refs = []
     for section in meta.get("sections") or []:
@@ -149,19 +161,21 @@ def _enhance_metadata(meta: dict, previous: list[dict], minutes: int) -> dict:
     description = str(meta.get("description") or "").strip()
     if refs:
         description += "\n\nReferencias bíblicas tratadas: " + ", ".join(refs[:8]) + "."
-    if "representación artística" not in description.lower() and "representacion artistica" not in description.lower():
-        description += "\n\nLa imagen de Jesús es una representación artística ficticia generada para acompañar esta reflexión."
+    if "representación humana digital" not in description.lower() and "representacion humana digital" not in description.lower():
+        description += "\n\nLa figura de Jesús es una representación humana digital fotorrealista generada con IA; no es una grabación de una persona real."
     meta["description"] = description[:4700].strip()
 
     seed = _run_seed(minutes)
     sections = list(meta.get("sections") or [])
     for index, section in enumerate(sections):
         motif = _VISUAL_MOTIFS[(seed + index * 3) % len(_VISUAL_MOTIFS)]
+        environment = _REAL_ENVIRONMENTS[((seed // 5) + index * 2) % len(_REAL_ENVIRONMENTS)]
         original = " ".join(str(section.get("visual_prompt") or "").split())
         section["visual_prompt"] = (
-            f"{motif}. {original}. Keep the recurring fictional character identity consistent while making this section's setting, camera distance, gesture and movement visibly different from neighboring sections. "
-            "Premium cinematic realism, natural facial micro-expressions, no exaggerated lip motion, no readable text, no subtitles, no logo, no watermark, no celebrity likeness."
-        )[:1600]
+            f"{motif}, filmed in a {environment}. {original}. SAME recurring identity in all sections: adult Middle Eastern/Mediterranean-looking synthetic man, shoulder-length wavy dark-brown hair, groomed full brown beard, hazel-brown eyes, natural skin pores and individual hair strands, ivory or cream woven linen robe and beige mantle. "
+            "Premium live-action cinema, realistic anatomy, five fingers per hand, natural hands arms head torso hips knees legs and walking balance, realistic cloth and environmental physics, photographic optics, natural depth of field and physically plausible lighting. "
+            "Continuous believable speech performance suitable for audio-driven lip-sync. ABSOLUTELY NO cartoon, illustration, painting, anime, stylized 3D, game character, plastic CGI skin, doll face, frozen pose, malformed hands, readable text, subtitles, logo, watermark or celebrity likeness."
+        )[:1900]
     meta["sections"] = sections
     return meta
 
@@ -171,38 +185,12 @@ def run(minutes: int, publish: bool = False) -> dict:
     original_picker = base._pick_reference_seed
     original_generate = base._generate_metadata
     original_seed = base._seed
-    original_download = base._download_image
-    original_visual = base._visual_for_section
     captured: dict = {}
 
     base._pick_reference_seed = _reference_picker(previous)
 
     def safe_base_seed(meta: dict, index: int) -> int:
         return _safe_seed(original_seed(meta, index))
-
-    def resilient_download(prompt: str, out, seed: int) -> None:
-        key = os.getenv("POLLINATIONS_API_KEY", "").strip()
-        if key:
-            try:
-                original_download(prompt, out, _safe_seed(seed))
-                return
-            except Exception as exc:
-                print(f"Imagen IA externa no disponible ({exc}); usando arte espiritual local original.")
-        else:
-            print("POLLINATIONS_API_KEY ausente; usando arte espiritual local original sin depender de una API externa.")
-        make_spiritual_art(out, base.W, base.H, _safe_seed(seed), index=_safe_seed(seed) % 9, mouth_open=0)
-
-    def visual_with_talking_fallback(meta: dict, section: dict, index: int, workdir, ai_slots: int, duration: int):
-        visual, provider = original_visual(meta, section, index, workdir, ai_slots, duration)
-        provider_text = str(provider).lower()
-        # HF text-to-video already requests natural speaking movement. When a
-        # hosted AI scene is unavailable, guarantee visible speaking character
-        # shots at regular intervals instead of falling back to static imagery only.
-        if "hugging face" not in provider_text and "ltx" not in provider_text and index % 3 == 0:
-            talking = workdir / f"spiritual_talking_fallback_{index + 1}.mp4"
-            make_landscape_speaking_clip(talking, duration, safe_base_seed(meta, index), index=index)
-            return talking, "local original spiritual character + visible speaking micro-animation"
-        return visual, provider
 
     def generate(channel: dict, requested_minutes: int) -> dict:
         meta = original_generate(channel, requested_minutes)
@@ -211,8 +199,6 @@ def run(minutes: int, publish: bool = False) -> dict:
         return meta
 
     base._seed = safe_base_seed
-    base._download_image = resilient_download
-    base._visual_for_section = visual_with_talking_fallback
     base._generate_metadata = generate
     try:
         result = base.run(minutes, publish=publish)
@@ -220,8 +206,6 @@ def run(minutes: int, publish: bool = False) -> dict:
         base._pick_reference_seed = original_picker
         base._generate_metadata = original_generate
         base._seed = original_seed
-        base._download_image = original_download
-        base._visual_for_section = original_visual
 
     meta = captured.get("meta") or {}
     record = {
