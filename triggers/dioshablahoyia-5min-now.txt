@@ -1,1 +1,2 @@
-trigger 5 - 2026-08-14T20:17:00-03:00
+trigger manual - 2026-08-14T20:21:00-03:00
+Objetivo: generar y publicar Short fotorrealista biblico en @dioshablahoyia.
