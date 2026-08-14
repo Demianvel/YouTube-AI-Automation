@@ -1,2 +1,2 @@
-trigger manual - 2026-08-14T20:21:00-03:00
-Objetivo: generar y publicar Short fotorrealista biblico en @dioshablahoyia.
+trigger post-fix - 2026-08-15
+Objetivo: probar video HF primero y fallback fotorrealista con voz si ZeroGPU no tiene cuota.
