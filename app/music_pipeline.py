@@ -6,6 +6,7 @@ import os
 from datetime import datetime, timezone
 
 from .acestep_client import generate_song
+from .acestep_space import generate_song_space
 from .channel_analytics import analytics_digest, collect_channel_analytics
 from .config import OUTPUT_DIR, load_channel
 from .music_audio import generate_original_electronic_track
@@ -22,6 +23,7 @@ def _ace_prompt(meta: dict) -> str:
     return (
         f"Original {style} song for DemianVelo. {vocal}. Spanish lyrics, charismatic lead vocal, "
         "memorable but original melodic phrasing, polished modern production, professional dynamics, "
+        "clean stereo master, natural vocal phrasing, clear lead voice, wide but controlled mix, "
         "no imitation of any real singer, no copyrighted melody or sample." + faith
     )
 
@@ -62,24 +64,36 @@ def run(
     music = workdir / f"demianvelo_original_{minutes}min.wav"
     seed = abs(hash(f"{meta.get('title')}|{stamp}")) & 0x7FFFFFFF
 
-    ace_available = bool(os.getenv("ACESTEP_API_URL", "").strip())
-    use_ace = music_engine == "acestep" or (music_engine == "auto" and bool(lyrics) and ace_available)
-    if music_engine == "acestep" and not ace_available:
-        raise RuntimeError(
-            "Se pidio ACE-Step pero ACESTEP_API_URL no esta configurado. "
-            "Conecta un servidor ACE-Step 1.5/self-hosted GPU o usa --music-engine local."
-        )
+    self_hosted_ace = bool(os.getenv("ACESTEP_API_URL", "").strip())
+    hf_space_enabled = os.getenv("ACESTEP_HF_SPACE_ENABLED", "true").lower() == "true"
+    use_ace = music_engine == "acestep" or (music_engine == "auto" and bool(lyrics) and (self_hosted_ace or hf_space_enabled))
 
     if use_ace:
-        generate_song(
-            music,
-            prompt=_ace_prompt(meta),
-            lyrics=lyrics,
-            duration_seconds=int(meta["duration_seconds"]),
-            bpm=int(meta.get("bpm") or 128),
-            vocal_language="es",
-        )
-        meta["music_engine_used"] = "ACE-Step-1.5"
+        if self_hosted_ace:
+            generate_song(
+                music,
+                prompt=_ace_prompt(meta),
+                lyrics=lyrics,
+                duration_seconds=int(meta["duration_seconds"]),
+                bpm=int(meta.get("bpm") or 128),
+                vocal_language="es",
+                model=os.getenv("ACESTEP_MODEL", "acestep-v15-xl-turbo"),
+            )
+            meta["music_engine_used"] = "ACE-Step-1.5-self-hosted"
+        elif hf_space_enabled:
+            generate_song_space(
+                music,
+                prompt=_ace_prompt(meta),
+                lyrics=lyrics,
+                duration_seconds=int(meta["duration_seconds"]),
+                bpm=int(meta.get("bpm") or 128),
+                vocal_language="es",
+            )
+            meta["music_engine_used"] = "ACE-Step-1.5-XL-Turbo-HF-ZeroGPU"
+        else:
+            raise RuntimeError(
+                "ACE-Step solicitado pero no hay servidor propio y ACESTEP_HF_SPACE_ENABLED=false."
+            )
         meta["has_sung_vocals"] = bool(lyrics)
     else:
         if lyrics:
