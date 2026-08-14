@@ -1,0 +1,54 @@
+name: Verify Dios Habla Hoy IA OAuth
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - triggers/verify-dioshablahoyia-oauth.txt
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      YOUTUBE_TOKEN_DIOSHABLAHOYIA: ${{ secrets.YOUTUBE_TOKEN_DIOSHABLAHOYIA }}
+    steps:
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install official Google YouTube client
+        run: |
+          python -m pip install -U google-api-python-client google-auth
+
+      - name: Verify token belongs to @dioshablahoyia
+        shell: bash
+        run: |
+          test -n "$YOUTUBE_TOKEN_DIOSHABLAHOYIA" || { echo "Falta YOUTUBE_TOKEN_DIOSHABLAHOYIA"; exit 1; }
+          python - <<'PY'
+          import json, os
+          from google.oauth2.credentials import Credentials
+          from googleapiclient.discovery import build
+
+          payload = json.loads(os.environ['YOUTUBE_TOKEN_DIOSHABLAHOYIA'])
+          creds = Credentials.from_authorized_user_info(payload)
+          yt = build('youtube', 'v3', credentials=creds, cache_discovery=False)
+          response = yt.channels().list(part='id,snippet', mine=True).execute()
+          items = response.get('items') or []
+          if not items:
+              raise SystemExit('OAuth válido pero no devolvió un canal de YouTube.')
+          item = items[0]
+          snippet = item.get('snippet') or {}
+          custom = str(snippet.get('customUrl') or '').strip().lower().rstrip('/')
+          title = str(snippet.get('title') or '').strip()
+          channel_id = str(item.get('id') or '').strip()
+          expected = '@dioshablahoyia'
+          print(f'Canal OAuth: {title} | {custom} | {channel_id}')
+          if custom != expected:
+              raise SystemExit(f'El OAuth pertenece a {custom or title}, no a {expected}.')
+          print('OK: Google OAuth/YouTube Data API conectado a @dioshablahoyia.')
+          PY
