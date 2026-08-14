@@ -5,7 +5,9 @@ import os
 import subprocess
 from pathlib import Path
 
+from .audio import fit_voice_to_duration, make_natural_spanish_voice
 from .hf_video import _normalize, _provider_video, _safe_seed, _space_video, available
+from .spiritual_lipsync import apply_musetalk_lipsync, available as lipsync_available
 
 
 def _seed(meta: dict, index: int) -> int:
@@ -16,28 +18,41 @@ def _seed(meta: dict, index: int) -> int:
 
 def _character_style() -> str:
     return (
-        "Reverent original artistic representation of Jesus as the SAME recurring fictional character in every scene: "
-        "serene adult man, long wavy dark-brown hair, full neat brown beard, warm hazel-brown eyes, compassionate expression, "
-        "natural cream or ivory linen robe, beige mantle or occasional muted deep-red mantle, historically inspired simple clothing, "
-        "no resemblance to a specific actor or celebrity. Premium photoreal cinematic spiritual drama, realistic skin and fabric, "
-        "warm golden sunrise or sunset light, subtle volumetric rays, mountains, valleys, rivers, lakes, olive trees or stone paths when appropriate. "
-        "When the scene calls for speaking, show restrained natural speech motion: subtle mouth and jaw articulation, gentle breathing, occasional blinks, "
-        "small head movement, calm eye contact toward camera and one or two slow open-hand gestures. Avoid exaggerated lip movement or theatrical acting. "
-        "Visible natural motion throughout the shot: walking, extending a hand, robe moving in a light breeze, water ripples, clouds drifting, leaves moving, "
-        "camera dolly or slow orbit. Respectful peaceful mood. No claim that this is a real recording or a real actor. No horror, no sensational apocalypse imagery, "
-        "no readable text, no subtitles, no logo, no watermark. Vertical 9:16 composition for a premium YouTube Short."
+        "The SAME recurring fully synthetic photoreal human representation of Jesus in every scene, visually like premium live-action cinema rather than animation: "
+        "serene adult Middle Eastern/Mediterranean-looking man, shoulder-length wavy dark-brown hair with individual natural strands, full groomed brown beard, warm hazel-brown eyes, natural skin pores, subtle facial lines and realistic teeth, "
+        "ivory or cream woven linen robe, beige mantle or occasional muted deep-red mantle, historically inspired simple clothing, no resemblance to any actor, celebrity or identifiable real person. "
+        "The synthetic character must perform like a real human actor: continuous speaking performance without frozen pauses, natural phoneme-like mouth and jaw motion, cheek motion, blinking, breathing, tiny eye refocusing, head turns and nods, "
+        "realistic shoulder, elbow, wrist and finger articulation, five fingers on each hand, natural open-palm gestures, torso weight shifts, hip and knee motion, believable full-body walking when visible, robe folds reacting to legs and wind. "
+        "Real landscapes only in appearance: green valleys and rivers, alpine mountains, Nordic aurora borealis, desert dunes, rocky coastline, olive groves, snowy ridges, forests after rain, lakes and mountain paths. "
+        "Physically plausible sunlight or moonlight, realistic atmospheric depth, natural water, cloud and vegetation motion, cinematic depth of field, slow dolly/orbit/tracking camera. "
+        "ABSOLUTELY NO cartoon, no illustration, no painting, no anime, no stylized 3D, no videogame look, no plastic CGI skin, no doll face, no frozen mannequin pose, no malformed hands, no extra fingers. "
+        "No readable text, no subtitles, no logo, no watermark. This is synthetic AI imagery, not a recording of a real person or a claim of literal divine footage. Vertical 9:16 premium YouTube Short."
     )
 
 
 def _prompt(scene: dict, index: int, total: int) -> str:
     visual = " ".join(str(scene.get("visual_prompt") or scene.get("stock_query") or "").split())
     continuity = (
-        "Preserve identical face, hair, beard, approximate age, robe palette and body proportions from all previous scenes. "
+        "Preserve identical face, hair, beard, approximate age, eye color, body proportions and robe palette from all previous scenes. "
         if index > 0 else
-        "Establish the recurring character clearly so later scenes can preserve the same face, hair, beard, age and robe palette. "
+        "Establish the recurring face and body identity clearly so later scenes preserve the same person. "
     )
     progression = f"Scene {index + 1} of {total}. {continuity}"
     return f"{visual}. {progression}{_character_style()}"
+
+
+def _continuous_voice(meta: dict, workdir: Path, duration: int) -> tuple[Path, str]:
+    text = " ".join(
+        str(scene.get("narration") or "").strip()
+        for scene in (meta.get("scenes") or [])
+        if str(scene.get("narration") or "").strip()
+    )
+    if not text:
+        raise RuntimeError("No hay narracion para generar la voz continua del Short espiritual.")
+    voice = workdir / "spiritual_continuous_voice.wav"
+    used = make_natural_spanish_voice(voice, text)
+    fit_voice_to_duration(voice, duration)
+    return voice, used
 
 
 def generate_spiritual_hf_short(channel: dict, meta: dict, workdir: Path, final: Path, apply_audio_fn) -> None:
@@ -46,6 +61,12 @@ def generate_spiritual_hf_short(channel: dict, meta: dict, workdir: Path, final:
 
     scene_duration = int(channel["scene_seconds"])
     scenes = list(meta.get("scenes") or [])
+    total_duration = int(channel["scenes_per_short"]) * scene_duration
+    voice_path, voice_provider = _continuous_voice(meta, workdir, total_duration)
+    meta["_precomputed_voice_path"] = str(voice_path)
+    meta["_precomputed_tts_provider"] = voice_provider
+    meta["voice_delivery"] = "single_continuous_narration_track"
+
     clips: list[Path] = []
     prompts: list[str] = []
     providers: list[str] = []
@@ -82,12 +103,30 @@ def generate_spiritual_hf_short(channel: dict, meta: dict, workdir: Path, final:
         "-movflags", "+faststart", str(visual),
     ], check=True)
 
-    total_duration = int(channel["scenes_per_short"]) * scene_duration
+    audio_visual = visual
+    meta["lip_sync_requested"] = True
+    if lipsync_available():
+        synced = workdir / "spiritual_hf_visual_lipsynced.mp4"
+        try:
+            meta["lip_sync_provider"] = apply_musetalk_lipsync(visual, voice_path, synced)
+            meta["lip_sync_mode"] = "audio_driven_exact_mouth_sync"
+            audio_visual = synced
+        except Exception as exc:
+            meta["lip_sync_failed"] = str(exc)
+            meta["lip_sync_mode"] = "prompted_natural_speech_motion_fallback"
+            print(f"MuseTalk no pudo completar lip-sync ({exc}); se conserva movimiento facial generado por el motor de video.")
+    else:
+        meta["lip_sync_mode"] = "prompted_natural_speech_motion_no_gpu"
+        meta["lip_sync_note"] = "Para sincronizacion fonema-a-fonema se requiere un runner CUDA con MUSETALK_DIR preparado."
+
     meta["generated_visual_provider"] = providers
     meta["generated_video_prompts"] = prompts
     meta["synthetic_visual"] = True
-    meta["text_to_video_engine"] = "huggingface_ltx23_then_wan22_spiritual"
-    meta["character_reference_profile"] = "dioshablahoyia_recurring_jesus_v1"
+    meta["text_to_video_engine"] = "huggingface_ltx23_then_wan22_spiritual_live_action"
+    meta["character_reference_profile"] = "dioshablahoyia_photoreal_human_v2"
     meta["character_speaking_motion_requested"] = True
-    meta["render_quality"] = "1080x1920_30fps_hf_ai_video"
-    apply_audio_fn(visual, final, channel, meta, total_duration, _seed(meta, 999))
+    meta["full_body_motion_requested"] = True
+    meta["photoreal_human_required"] = True
+    meta["no_cartoon_no_3d_animation"] = True
+    meta["render_quality"] = "1080x1920_30fps_hf_ai_live_action"
+    apply_audio_fn(audio_visual, final, channel, meta, total_duration, _seed(meta, 999))
