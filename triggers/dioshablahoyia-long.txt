@@ -1,0 +1,2 @@
+Smoke publish requested 2026-08-14T10:43:00-03:00
+Purpose: verify real 10-minute long-form upload to @dioshablahoyia using connected OAuth.
