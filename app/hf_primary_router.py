@@ -7,6 +7,7 @@ from . import video as base_video
 from .hf_video import available as hf_video_available
 from .hf_video import generate_hf_short
 from .premium_audio import apply_audio as apply_premium_audio
+from .spiritual_hf_video import generate_spiritual_hf_short
 
 
 def _brotavida_prompts(metadata: dict) -> list[str]:
@@ -37,7 +38,8 @@ def _restore(metadata: dict, originals: list[str]) -> None:
 def generate_short(channel: dict, metadata: dict, workdir: Path) -> Path:
     visual_mode = str(channel.get("visual_mode") or "").lower()
     botanical = "botanical" in visual_mode
-    eligible = botanical or "kids" in visual_mode or "mixed_finance" in visual_mode
+    spiritual = "jesus_spiritual" in visual_mode or "spiritual" in visual_mode
+    eligible = botanical or "kids" in visual_mode or "mixed_finance" in visual_mode or spiritual
 
     # HF remains the primary renderer, but free ZeroGPU quotas are finite.
     # Defaulting to non-strict prevents a quota outage from killing publication.
@@ -60,11 +62,17 @@ def generate_short(channel: dict, metadata: dict, workdir: Path) -> Path:
     try:
         if botanical:
             originals = _brotavida_prompts(metadata)
-        # All successful Hugging Face Shorts use the premium audio engine.
-        # BrotaVida ASMR combines non-continuous water/leaf/soil foley with
-        # a rotating original ambient palette so consecutive posts differ.
-        generate_hf_short(channel, metadata, workdir, final, apply_premium_audio)
-        metadata["visual_source"] = "huggingface_seed_germination_text_to_video" if botanical else "huggingface_text_to_video_primary"
+
+        if spiritual:
+            generate_spiritual_hf_short(channel, metadata, workdir, final, apply_premium_audio)
+        else:
+            generate_hf_short(channel, metadata, workdir, final, apply_premium_audio)
+
+        metadata["visual_source"] = (
+            "huggingface_spiritual_text_to_video" if spiritual else
+            "huggingface_seed_germination_text_to_video" if botanical else
+            "huggingface_text_to_video_primary"
+        )
         metadata["hf_primary"] = True
         metadata["hf_strict"] = strict
         metadata["hf_fallback_used"] = False
@@ -72,6 +80,8 @@ def generate_short(channel: dict, metadata: dict, workdir: Path) -> Path:
         if botanical:
             metadata["botanical_source_type"] = "synthetic_ai_seed_germination_timelapse"
             metadata["visual_format"] = "seed germination time lapse"
+        if spiritual:
+            metadata["spiritual_character_profile"] = "dioshablahoyia_recurring_jesus_v1"
         return final
     except Exception as exc:
         metadata["hf_primary_failed"] = str(exc)
