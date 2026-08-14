@@ -11,8 +11,9 @@ from .spiritual_lipsync import apply_musetalk_lipsync, available as lipsync_avai
 
 
 def _seed(meta: dict, index: int) -> int:
+    """Use one visual identity seed per video so scene changes do not reshuffle the face."""
     marker = os.getenv("GITHUB_RUN_ID", "") or os.getenv("GITHUB_RUN_NUMBER", "")
-    raw = f"spiritual|{meta.get('topic','')}|{meta.get('title','')}|{index}|{marker}"
+    raw = f"spiritual-character-v2|{meta.get('topic','')}|{meta.get('title','')}|{marker}"
     return _safe_seed(int(hashlib.sha256(raw.encode()).hexdigest()[:8], 16))
 
 
@@ -66,6 +67,7 @@ def generate_spiritual_hf_short(channel: dict, meta: dict, workdir: Path, final:
     meta["_precomputed_voice_path"] = str(voice_path)
     meta["_precomputed_tts_provider"] = voice_provider
     meta["voice_delivery"] = "single_continuous_narration_track"
+    meta["character_identity_seed"] = _seed(meta, 0)
 
     clips: list[Path] = []
     prompts: list[str] = []
@@ -77,12 +79,13 @@ def generate_spiritual_hf_short(channel: dict, meta: dict, workdir: Path, final:
         raw = workdir / f"spiritual_hf_raw_{index + 1}.mp4"
         clip = workdir / f"spiritual_hf_scene_{index + 1}.mp4"
         space_error = None
+        visual_seed = _seed(meta, index)
         try:
-            provider_label = _space_video(prompt, raw, scene_duration, _seed(meta, index))
+            provider_label = _space_video(prompt, raw, scene_duration, visual_seed)
         except Exception as exc:
             space_error = exc
             try:
-                provider_label = _provider_video(prompt, raw, _seed(meta, index))
+                provider_label = _provider_video(prompt, raw, visual_seed)
             except Exception as provider_exc:
                 raise RuntimeError(
                     f"No hubo text-to-video de Hugging Face disponible. LTX ZeroGPU: {space_error}; provider: {provider_exc}"
