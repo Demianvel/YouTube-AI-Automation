@@ -44,7 +44,7 @@ permissions:
   issues: write
 
 concurrency:
-  group: youtube-ai-publisher-${{ github.event_name == 'workflow_dispatch' && inputs.channel || github.event_name == 'push' && 'dioshablahoyia' || github.event.schedule || 'unknown' }}
+  group: youtube-ai-publisher-${{ github.event_name == 'push' && github.run_id || github.event_name == 'workflow_dispatch' && inputs.channel || github.event.schedule || 'unknown' }}
   cancel-in-progress: false
 
 jobs:
@@ -130,12 +130,18 @@ jobs:
             echo "KOKORO_VOICE=em_alex" >> "$GITHUB_ENV"
             echo "KOKORO_SPEED=1.00" >> "$GITHUB_ENV"
           elif [ "$CHANNEL" = "dioshablahoyia" ]; then
-            echo "TTS_PROVIDER=chatterbox_latam" >> "$GITHUB_ENV"
             echo "KOKORO_VOICE=em_alex" >> "$GITHUB_ENV"
             echo "KOKORO_SPEED=0.91" >> "$GITHUB_ENV"
-            echo "CHATTERBOX_EXAGGERATION=0.46" >> "$GITHUB_ENV"
-            echo "CHATTERBOX_CFG_WEIGHT=0.42" >> "$GITHUB_ENV"
-            echo "CHATTERBOX_TEMPERATURE=0.72" >> "$GITHUB_ENV"
+            if [ "${{ github.event_name }}" = "push" ]; then
+              echo "TTS_PROVIDER=kokoro" >> "$GITHUB_ENV"
+              echo "HF_VIDEO_ENABLED=false" >> "$GITHUB_ENV"
+              echo "DIOS_FAST_UPLOAD_SMOKE=true" >> "$GITHUB_ENV"
+            else
+              echo "TTS_PROVIDER=chatterbox_latam" >> "$GITHUB_ENV"
+              echo "CHATTERBOX_EXAGGERATION=0.46" >> "$GITHUB_ENV"
+              echo "CHATTERBOX_CFG_WEIGHT=0.42" >> "$GITHUB_ENV"
+              echo "CHATTERBOX_TEMPERATURE=0.72" >> "$GITHUB_ENV"
+            fi
           fi
           echo "Seleccionado: $CHANNEL / $CONTENT_MODE"
 
@@ -193,7 +199,7 @@ jobs:
           pip install -r requirements.txt
 
       - name: Install Chatterbox V3 family
-        if: steps.readiness.outputs.ready == 'true' && env.CONTENT_MODE == 'voice'
+        if: steps.readiness.outputs.ready == 'true' && env.CONTENT_MODE == 'voice' && github.event_name != 'push'
         run: |
           pip install torch==2.6.0 torchaudio==2.6.0 --index-url https://download.pytorch.org/whl/cpu
           pip install -r requirements-chatterbox.txt
