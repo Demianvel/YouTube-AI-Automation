@@ -37,7 +37,8 @@ jobs:
           import json
           from pathlib import Path
           data = json.loads(Path('config/channels.json').read_text(encoding='utf-8'))
-          assert set(data) == {'brotavida', 'dineroclaro', 'envikids', 'demianvelo'}
+          required = {'brotavida', 'dineroclaro', 'envikids', 'demianvelo', 'dioshablahoyia'}
+          assert required.issubset(data), f"Faltan canales requeridos: {sorted(required - set(data))}"
           assert data['brotavida']['audio_mode'] == 'voice_music'
           assert data['brotavida']['require_real_video'] is True
           assert data['dineroclaro']['audio_mode'] == 'voice_music'
@@ -50,9 +51,22 @@ jobs:
           assert data['demianvelo']['handle'].lower() == '@demianvelo'
           assert data['demianvelo']['category_id'] == '10'
           assert data['demianvelo']['require_real_video'] is False
+          spiritual = data['dioshablahoyia']
+          assert spiritual['handle'].lower() == '@dioshablahoyia'
+          assert spiritual['token_env'] == 'YOUTUBE_TOKEN_DIOSHABLAHOYIA'
+          assert spiritual['audio_mode'] == 'voice_music'
+          assert spiritual['visual_mode'] == 'generated_jesus_spiritual'
+          assert spiritual['made_for_kids'] is False
+          assert spiritual['contains_synthetic_media'] is True
+          assert spiritual['require_real_video'] is False
+          assert int(spiritual['scenes_per_short']) >= 3
+          assert int(spiritual['scene_seconds']) >= 6
+          prompt = spiritual['master_prompt'].lower()
+          for keyword in ('biblia', 'jesus', 'oracion', 'profecias', 'sin logos'):
+              assert keyword in prompt, f"Falta regla espiritual en master_prompt: {keyword}"
           for cfg in data.values():
               assert cfg['token_env'].startswith('YOUTUBE_TOKEN_')
-          print('four-channel configuration OK')
+          print('required channel configuration OK:', ', '.join(sorted(required)))
           PY
       - name: Install media and base Python dependencies
         run: |
