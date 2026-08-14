@@ -25,6 +25,8 @@ def _channel_slug(channel: dict) -> str:
         return "dineroclaro"
     if "envikids" in text:
         return "envikids"
+    if "dioshablahoyia" in text or "dios habla hoy" in text:
+        return "dioshablahoyia"
     raise ValueError("Canal no reconocido para rotacion tematica")
 
 
@@ -81,6 +83,7 @@ def _prompt(channel: dict, previous: list[dict], attempt: int, family: str) -> s
     visual_mode = channel.get("visual_mode", "")
     botanical = "botanical" in visual_mode
     kids_3d = "kids" in visual_mode
+    spiritual = "jesus_spiritual" in visual_mode or "spiritual" in visual_mode
     analytics_summary = channel.get("_analytics_digest") or "No hay Analytics detallado disponible en esta ejecucion."
 
     if audio_mode == "music_only":
@@ -98,6 +101,12 @@ def _prompt(channel: dict, previous: list[dict], attempt: int, family: str) -> s
         audio_rule = (
             "REGLA DE AUDIO INFANTIL/JUVENIL: narracion muy breve en castellano claro, alegre y natural. "
             "Voz amable y expresiva, sin voz de bebe exagerada ni imitacion de voces conocidas."
+        )
+    elif spiritual:
+        audio_rule = (
+            "REGLA DE AUDIO ESPIRITUAL: narracion en español clara, calida, profunda, serena y humana. "
+            "Debe sentirse como una reflexion cristiana respetuosa: ritmo pausado pero con continuidad, buena diccion, esperanza y cercania. "
+            "No imites la voz de un actor, predicador, creador o personaje real. La musica sera instrumental original y muy baja."
         )
     elif botanical:
         audio_rule = (
@@ -123,6 +132,15 @@ def _prompt(channel: dict, previous: list[dict], attempt: int, family: str) -> s
             "VISUAL 3D ORIGINAL: escena infantil/familiar vertical 9:16 con personajes ficticios originales, colores vivos y luz cinematografica suave. "
             "No copiar franquicias, personas reales, logos, texto ni marcas."
         )
+    elif spiritual:
+        visual_rule = (
+            "VISUAL ESPIRITUAL TEXTO-A-VIDEO: escena vertical 9:16 cinematografica con una representacion artistica original y reverente de Jesus como personaje recurrente. "
+            "Mantener un diseño consistente: hombre adulto sereno, cabello largo castaño oscuro ondulado, barba completa cuidada, ojos calidos, tunica de lino clara o beige, "
+            "manto crema o rojo apagado cuando corresponda, expresion compasiva, luz dorada suave, paisajes naturales, montañas, rios, lagos, valles, caminos de piedra, arboles y cielos luminosos. "
+            "Debe haber movimiento real de video: caminar, extender una mano, mirar al cielo, avanzar por un sendero, viento suave en la ropa, nubes desplazandose, agua en movimiento o rayos de sol cambiando. "
+            "No basar el rostro en un actor real especifico. No texto legible, no subtitulos, no logos, no marcas de agua, no iconografia sensacionalista ni horror. "
+            "stock_query debe ser una breve ayuda en ingles para el concepto visual aunque la fuente principal sea IA."
+        )
     else:
         visual_rule = (
             "DINERO CLARO PUEDE SER REAL O ANIMADO: elige el tratamiento que mejor cuente esta idea. "
@@ -134,8 +152,18 @@ def _prompt(channel: dict, previous: list[dict], attempt: int, family: str) -> s
     channel_value = (
         "transformacion botanica visual clara y verificable" if botanical else
         "mini historia infantil segura y visualmente distinta" if kids_3d else
+        "mensaje cristiano esperanzador con contexto biblico claro" if spiritual else
         "entretenimiento financiero con un aprendizaje concreto"
     )
+
+    biblical_rule = ""
+    if spiritual:
+        biblical_rule = (
+            "REGLA BIBLICA: si mencionas un pasaje, indica libro y referencia cuando sea posible y resume o parafrasea su idea. "
+            "No inventes versiculos ni presentes una parafrasis como cita textual. Si usas una cita literal, debe ser breve. "
+            "En profecias biblicas explica el contexto y evita fijar fechas, identificar acontecimientos actuales como cumplimiento seguro o usar miedo para generar clics. "
+            "Cuando existan interpretaciones cristianas diferentes, formula el mensaje con prudencia y no presentes una lectura debatida como hecho indiscutible."
+        )
 
     return f"""
 Eres estratega senior de YouTube Shorts, retencion y variedad editorial.
@@ -151,6 +179,7 @@ PROMPT MAESTRO DEL CANAL:
 
 {audio_rule}
 {visual_rule}
+{biblical_rule}
 
 Genera UN concepto nuevo para un Short de {channel['scenes_per_short'] * channel['scene_seconds']} segundos.
 Debe ser claramente diferente del historial reciente y aportar: {channel_value}.
