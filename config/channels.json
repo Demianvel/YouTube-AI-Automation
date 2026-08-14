@@ -47,6 +47,7 @@
     "contains_synthetic_media": true,
     "audio_mode": "voice_music",
     "visual_mode": "generated_3d_kids",
+    "require_real_video": false,
     "master_prompt": "Genera contenido infantil y familiar original, alegre, seguro, divertido y facil de seguir con personajes ficticios 3D tiernos y expresivos. Estetica de pelicula familiar 3D premium: formas redondeadas, materiales limpios, expresiones claras, iluminacion cinematografica suave, colores vivos y composicion profesional, SIN copiar personajes, vestuario, escenarios, voces ni diseños de ninguna pelicula, franquicia o canal existente. Temas a rotar: cocina segura, musica instrumental original, escuela, arte, ciencias, biblioteca, recreo seguro, plastilina/modelado ASMR, selva amazonica fantastica y educativa, dinosaurios simpaticos, animales de granja y selva, patitos, gatos, perros, vacas, ositos, conejos, peces, tortugas, robots amistosos, oceano, espacio, baile, amistad, numeros, colores, naturaleza, pequeñas aventuras y juegos de imaginacion. Voz y dialogos: castellano natural, agradable y calido para niños y adolescentes, con energia de un gran canal de animacion pero identidad totalmente original. Narracion fluida y continua entre escenas, sin silencios largos ni reinicios roboticos. Se permiten dialogos breves con voces sinteticas originales y distintas, NUNCA imitar voces reconocibles, actores, personajes protegidos o creadores reales. Musica original generada por el sistema. Cada historia debe tener inicio, desarrollo y final claros, objetivo comprensible, acciones coherentes y valor creativo, educativo o emocional positivo. Variar escenario, personajes, colores, conflicto leve, resolucion, tema y estructura para evitar contenido masivo casi identico."
   },
   "demianvelo": {
@@ -63,5 +64,22 @@
     "visual_mode": "wan22_cinematic_music_video",
     "require_real_video": false,
     "master_prompt": "Crea piezas audiovisuales originales para DemianVelo, proyecto de musica electronica con posibilidad de temas cristianos y de fe. La musica debe ser original y creada para cada video: EDM, electro house, progressive house, future bass, techno melodico, ambient electronico, RKT, trap melodico, pop electronico o fusiones de adoracion electronica sin copiar melodias, letras, arreglos ni voces de artistas reales. Para piezas cristianas, usa temas originales de esperanza, fe, Dios, Jesucristo, luz, paz, gratitud y superacion sin atribuir citas biblicas inexistentes. Visuales cinematograficos sinteticos originales con Wan2.2 cuando este disponible: representaciones respetuosas de Jesus como figura ficticia no basada en actor real, luz celestial, montanas, cielos, mar, cruces, arquitectura espiritual, carreteras y escenarios de performance; sin logos, marcas ni semejanza con celebridades. Cada video debe tener identidad visual propia, progresion, cambios de ritmo y edicion sincronizada con la musica. Shorts: gancho visual/musical inmediato. Videos largos: estructura musical completa con introduccion, desarrollo, build, drop/climax, respiro y cierre."
+  },
+  "dioshablahoyia": {
+    "display_name": "Dios Habla Hoy IA",
+    "handle": "@dioshablahoyia",
+    "youtube_url": "https://www.youtube.com/@dioshablahoyia",
+    "token_env": "YOUTUBE_TOKEN_DIOSHABLAHOYIA",
+    "category_id": "22",
+    "language": "es-419",
+    "scenes_per_short": 3,
+    "scene_seconds": 8,
+    "privacy_status": "public",
+    "made_for_kids": false,
+    "contains_synthetic_media": true,
+    "audio_mode": "voice_music",
+    "visual_mode": "generated_jesus_spiritual",
+    "require_real_video": false,
+    "master_prompt": "Crea contenido cristiano audiovisual original para Dios Habla Hoy IA sobre Biblia, fe, esperanza, oracion, profecias biblicas, promesas de Dios y enseñanzas de Jesus. Usa como personaje visual recurrente una representacion reverente y original de Jesus inspirada en las referencias del canal: hombre adulto sereno, cabello largo castaño oscuro y ondulado, barba cuidada, ojos calidos, tunica de lino clara o beige, ocasional manto rojo apagado o crema, expresion compasiva y sabia, luz dorada espiritual, paisajes naturales, montañas, lagos, rios, valles, caminos y cielos luminosos. Mantener el mismo diseño facial y vestuario base entre escenas, sin parecerse deliberadamente a un actor real. Los Shorts deben ser emotivos, claros y con voz masculina calida, profunda, serena y humana en español. Usar referencias biblicas claras y preferir parafrasis; las citas textuales deben ser breves. Para profecias, indicar pasaje y contexto, explicar cuando existan interpretaciones distintas y nunca fijar fechas ni presentar especulacion sobre noticias actuales como certeza biblica. Musica instrumental original suave, sin canciones de terceros. Tono esperanzador, amoroso, reverente y profundamente humano. Sin logos, marcas de agua ni texto incrustado en el video."
   }
 }
