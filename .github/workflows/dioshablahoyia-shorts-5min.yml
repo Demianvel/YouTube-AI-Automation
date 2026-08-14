@@ -1,8 +1,11 @@
-name: Dios Habla Hoy IA - Shorts cada 5 minutos
+name: Dios Habla Hoy IA - 10 Shorts diarios
 
 on:
   schedule:
-    - cron: "*/5 * * * *"
+    # Argentina UTC-3: 07:30, 09:00, 10:30, 12:00, 13:30,
+    # 15:00, 16:30, 18:00, 19:30 y 21:00.
+    - cron: "30 10,13,16,19,22 * * *"
+    - cron: "0 0,12,15,18,21 * * *"
   workflow_dispatch:
   push:
     paths:
@@ -13,7 +16,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: dioshablahoyia-shorts-5min-trigger
+  group: dioshablahoyia-shorts-daily-${{ github.run_id }}
   cancel-in-progress: false
 
 jobs:
@@ -21,7 +24,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - name: Lanzar generacion y publicacion de Short
+      - name: Lanzar Short fotorrealista biblico
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash
@@ -33,4 +36,4 @@ jobs:
             -f channel=dioshablahoyia \
             -f content_mode=voice \
             -f dry_run=false
-          echo "Workflow de generacion/publicacion solicitado correctamente."
+          echo "Generacion/publicacion solicitada correctamente."
