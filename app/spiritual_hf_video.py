@@ -5,13 +5,13 @@ import os
 import subprocess
 from pathlib import Path
 
-from .hf_video import _normalize, _provider_video, _space_video, available
+from .hf_video import _normalize, _provider_video, _safe_seed, _space_video, available
 
 
 def _seed(meta: dict, index: int) -> int:
     marker = os.getenv("GITHUB_RUN_ID", "") or os.getenv("GITHUB_RUN_NUMBER", "")
     raw = f"spiritual|{meta.get('topic','')}|{meta.get('title','')}|{index}|{marker}"
-    return int(hashlib.sha256(raw.encode()).hexdigest()[:8], 16)
+    return _safe_seed(int(hashlib.sha256(raw.encode()).hexdigest()[:8], 16))
 
 
 def _character_style() -> str:
