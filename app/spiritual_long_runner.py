@@ -6,11 +6,12 @@ import json
 import os
 import random
 from datetime import datetime, timezone
-from pathlib import Path
 
 from . import spiritual_long_pipeline as base
 from .config import ROOT
+from .hf_video import _safe_seed
 from .history import similarity
+from .spiritual_local_art import make_spiritual_art
 
 HISTORY_FILE = ROOT / "state" / "dioshablahoyia_long_history.jsonl"
 
@@ -62,7 +63,8 @@ def _append_history(item: dict) -> None:
 
 def _run_seed(minutes: int) -> int:
     marker = os.getenv("GITHUB_RUN_ID", "") or os.getenv("GITHUB_RUN_NUMBER", "") or datetime.now(timezone.utc).isoformat()
-    return int(hashlib.sha256(f"spiritual-long-v2|{minutes}|{marker}".encode()).hexdigest()[:8], 16)
+    value = int(hashlib.sha256(f"spiritual-long-v2|{minutes}|{marker}".encode()).hexdigest()[:8], 16)
+    return _safe_seed(value)
 
 
 def _reference_picker(previous: list[dict]):
@@ -167,9 +169,26 @@ def run(minutes: int, publish: bool = False) -> dict:
     previous = _read_history()
     original_picker = base._pick_reference_seed
     original_generate = base._generate_metadata
+    original_seed = base._seed
+    original_download = base._download_image
     captured: dict = {}
 
     base._pick_reference_seed = _reference_picker(previous)
+
+    def safe_base_seed(meta: dict, index: int) -> int:
+        return _safe_seed(original_seed(meta, index))
+
+    def resilient_download(prompt: str, out, seed: int) -> None:
+        key = os.getenv("POLLINATIONS_API_KEY", "").strip()
+        if key:
+            try:
+                original_download(prompt, out, _safe_seed(seed))
+                return
+            except Exception as exc:
+                print(f"Imagen IA externa no disponible ({exc}); usando arte espiritual local original.")
+        else:
+            print("POLLINATIONS_API_KEY ausente; usando arte espiritual local original sin depender de una API externa.")
+        make_spiritual_art(out, base.W, base.H, _safe_seed(seed), index=_safe_seed(seed) % 9, mouth_open=0)
 
     def generate(channel: dict, requested_minutes: int) -> dict:
         meta = original_generate(channel, requested_minutes)
@@ -177,12 +196,16 @@ def run(minutes: int, publish: bool = False) -> dict:
         captured["meta"] = meta
         return meta
 
+    base._seed = safe_base_seed
+    base._download_image = resilient_download
     base._generate_metadata = generate
     try:
         result = base.run(minutes, publish=publish)
     finally:
         base._pick_reference_seed = original_picker
         base._generate_metadata = original_generate
+        base._seed = original_seed
+        base._download_image = original_download
 
     meta = captured.get("meta") or {}
     record = {
