@@ -1,5 +1,5 @@
 name: Dios Actua - Norway 4K official release
-# Operational release trigger for the verified DemianVelo master.
+# Premium DemianVelo render. Push trigger generates a QA master without publishing.
 
 on:
   workflow_dispatch:
@@ -7,12 +7,12 @@ on:
       publish:
         description: Publicar en @DemianVelo si el master pasa QA
         required: true
-        default: true
+        default: false
         type: boolean
   push:
     branches: [main]
     paths:
-      - .github/workflows/dios-actua-noruega-release.yml
+      - triggers/dios-actua-premium-test.txt
   schedule:
     - cron: '15 12 14 8 *'
 
@@ -26,7 +26,6 @@ concurrency:
 
 jobs:
   release:
-    if: github.event_name != 'push'
     runs-on: ubuntu-latest
     timeout-minutes: 360
     env:
@@ -34,18 +33,30 @@ jobs:
       HF_TOKEN: ${{ secrets.HF_TOKEN }}
       PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
       YOUTUBE_TOKEN_DEMIANVELO: ${{ secrets.YOUTUBE_TOKEN_DEMIANVELO }}
+      ACESTEP_HF_SPACE: ACE-Step/Ace-Step-v1.5
+      ACESTEP_HF_MODEL: acestep-v15-xl-turbo
     steps:
       - uses: actions/checkout@v4
 
-      - name: Habilitar únicamente el reintento programado de 2026
+      - name: Resolver modo de ejecución
         id: release_gate
         shell: bash
         run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ] || [ "$(date -u +%F)" = "2026-08-14" ]; then
-            echo "run_release=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "run_release=false" >> "$GITHUB_OUTPUT"
+          RUN_RELEASE=false
+          WANT_PUBLISH=false
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            RUN_RELEASE=true
+            WANT_PUBLISH="${{ inputs.publish }}"
+          elif [ "${{ github.event_name }}" = "push" ]; then
+            RUN_RELEASE=true
+            WANT_PUBLISH=false
+          elif [ "$(date -u +%F)" = "2026-08-14" ]; then
+            RUN_RELEASE=true
+            WANT_PUBLISH=true
           fi
+          echo "run_release=$RUN_RELEASE" >> "$GITHUB_OUTPUT"
+          echo "publish=$WANT_PUBLISH" >> "$GITHUB_OUTPUT"
+          echo "Render habilitado=$RUN_RELEASE / publicar=$WANT_PUBLISH"
 
       - name: Recuperar la referencia vocal Aleluya de DemianVelo
         if: steps.release_gate.outputs.run_release == 'true'
@@ -63,50 +74,73 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Instalar motor musical, editor 4K y publicación
+      - name: Instalar motor musical y editor 4K
         if: steps.release_gate.outputs.run_release == 'true'
         run: |
           sudo apt-get update
           sudo apt-get install -y ffmpeg fonts-dejavu-core fonts-liberation2
           python -m pip install --upgrade pip
-          pip install -U requests gradio_client google-api-python-client google-auth pillow
+          pip install -U requests gradio_client huggingface_hub google-api-python-client google-auth pillow
 
-      - name: Validar credenciales antes del render
+      - name: Configurar ACE-Step 1.5 XL Turbo y voz DemianVelo
         if: steps.release_gate.outputs.run_release == 'true'
         shell: bash
         run: |
-          test -n "$YOUTUBE_TOKEN_DEMIANVELO" || { echo "Falta YOUTUBE_TOKEN_DEMIANVELO" >&2; exit 1; }
-          test -s assets/dios-actua/thumbnail-b-emocion-noruega.jpg
-          test -s assets/dios-actua/letra-original.txt
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('scripts/render_dios_actua_noruega.py')
+          text = p.read_text(encoding='utf-8')
+          text = text.replace('acestep-v15-turbo', 'acestep-v15-xl-turbo')
+          p.write_text(text, encoding='utf-8')
+          assert 'acestep-v15-xl-turbo' in text
+          print('ACE-Step XL Turbo activado para Dios Actua.')
+          PY
           if find reference_aleluya -type f \( -iname '*.wav' -o -iname '*.mp3' -o -iname '*.flac' -o -iname '*.m4a' \) -print -quit 2>/dev/null | grep -q .; then
             echo "VOCAL_REFERENCE_READY=true"
+            echo "Referencia vocal DemianVelo disponible."
           else
-            echo "VOCAL_REFERENCE_READY=false; se mantendrá la identidad mediante dirección vocal"
+            echo "VOCAL_REFERENCE_READY=false"
+            echo "No hay archivo de referencia; se usará dirección vocal original sin imitar terceros."
           fi
 
-      - name: Crear canción original, videoclip cinematográfico 4K y publicar
+      - name: Validar recursos antes del render
+        if: steps.release_gate.outputs.run_release == 'true'
+        shell: bash
+        run: |
+          test -s assets/dios-actua/thumbnail-b-emocion-noruega.jpg
+          test -s assets/dios-actua/letra-original.txt
+          if [ "${{ steps.release_gate.outputs.publish }}" = "true" ]; then
+            test -n "$YOUTUBE_TOKEN_DEMIANVELO" || { echo "Falta YOUTUBE_TOKEN_DEMIANVELO" >&2; exit 1; }
+          fi
+          if [ -z "$HF_TOKEN" ]; then
+            echo "AVISO: HF_TOKEN no está disponible; ACE-Step/LTX usarán sólo cuota pública si el Space lo permite."
+          else
+            echo "HF_TOKEN disponible para Spaces/Inference."
+          fi
+
+      - name: Crear canción original y videoclip cinematográfico 4K
         if: steps.release_gate.outputs.run_release == 'true'
         shell: bash
         run: |
           ARGS=()
-          if [ "${{ github.event_name }}" = "schedule" ] || [ "${{ inputs.publish }}" = "true" ]; then
+          if [ "${{ steps.release_gate.outputs.publish }}" = "true" ]; then
             ARGS+=(--publish)
           fi
           python scripts/render_dios_actua_noruega.py "${ARGS[@]}"
 
-      - name: Verificar publicación y master 4K
+      - name: Verificar master 4K y resultado
         if: always() && steps.release_gate.outputs.run_release == 'true'
         shell: bash
         run: |
           if [ -f output/dios_actua_demianvelo/final/result.json ]; then
             cat output/dios_actua_demianvelo/final/result.json
           fi
-          if [ -f output/dios_actua_demianvelo/final/Dios_Actua_DemianVelo_4K.mp4 ]; then
-            ffprobe -v error -show_entries stream=width,height,codec_name:format=duration,size -of json \
-              output/dios_actua_demianvelo/final/Dios_Actua_DemianVelo_4K.mp4
+          MASTER=output/dios_actua_demianvelo/final/Dios_Actua_DemianVelo_4K.mp4
+          if [ -f "$MASTER" ]; then
+            ffprobe -v error -show_entries stream=width,height,codec_name:format=duration,size -of json "$MASTER"
           fi
 
-      - name: Guardar master y variantes A/B
+      - name: Guardar master 4K y variantes A/B
         if: always() && steps.release_gate.outputs.run_release == 'true'
         uses: actions/upload-artifact@v4
         with:
