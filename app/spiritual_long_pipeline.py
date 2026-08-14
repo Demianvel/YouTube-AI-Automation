@@ -14,9 +14,10 @@ import requests
 from google import genai
 from google.genai import types
 
-from .audio import make_natural_spanish_voice, make_pleasant_original_music
+from .audio import fit_voice_to_duration, make_natural_spanish_voice, make_pleasant_original_music
 from .config import OUTPUT_DIR, ROOT, load_channel
-from .hf_video import _provider_video, _space_video
+from .hf_video import _provider_video, _safe_seed, _space_video
+from .spiritual_lipsync import apply_musetalk_lipsync, available as lipsync_available
 from .youtube import upload_long_video
 
 W, H, FPS = 1920, 1080, 30
@@ -37,7 +38,7 @@ def _probe_duration(path: Path) -> float:
 def _seed(meta: dict, index: int) -> int:
     marker = os.getenv("GITHUB_RUN_ID", "") or os.getenv("GITHUB_RUN_NUMBER", "")
     raw = f"dioshablahoyia-long|{meta.get('topic','')}|{meta.get('title','')}|{index}|{marker}"
-    return int(hashlib.sha256(raw.encode()).hexdigest()[:8], 16)
+    return _safe_seed(int(hashlib.sha256(raw.encode()).hexdigest()[:8], 16))
 
 
 def _references() -> list[dict]:
@@ -57,15 +58,23 @@ def _pick_reference_seed(minutes: int) -> list[dict]:
 
 def _metadata_prompt(channel: dict, minutes: int, sections: int, references: list[dict]) -> str:
     refs = "\n".join(f"- {item['reference']}: {item['theme']}" for item in references)
-    target_words = 210 if minutes <= 20 else 190
+    # Each section occupies roughly two minutes. This word target keeps the
+    # narration dense enough to flow almost continuously without padding gaps.
+    target_words = max(245, min(270, round((minutes * 128) / max(1, sections))))
     return f"""
 Eres guionista senior de documentales y reflexiones cristianas para YouTube.
 Canal: {channel['display_name']} ({channel['handle']}).
 Duracion objetivo exacta del montaje: {minutes} minutos.
 Cantidad de secciones: {sections}.
 
-IDENTIDAD VISUAL:
-Representacion artistica reverente y original de Jesus como personaje recurrente: hombre adulto sereno, cabello largo castaño oscuro ondulado, barba completa cuidada, ojos calidos, tunica de lino clara o beige, manto crema o rojo apagado ocasional, sin parecerse deliberadamente a ningun actor real. Paisajes cinematograficos de montañas, valles, rios, lagos, caminos de piedra, arboles, cielos, amaneceres y atardeceres dorados. Mantener el mismo diseño facial y vestuario base durante todo el video.
+IDENTIDAD VISUAL OBLIGATORIA:
+Representacion humana digital fotorrealista y reverente de Jesus, completamente sintetica por IA pero visualmente equivalente a una filmacion live-action premium: hombre adulto de aspecto mediterraneo/oriental medio, cabello castaño oscuro ondulado hasta los hombros, barba completa cuidada, ojos avellana, piel humana con poros y detalle natural, tunica de lino marfil o crema y manto beige. Mantener exactamente la misma identidad facial y corporal durante todo el video. No copiar a ningun actor, celebridad ni persona identificable.
+
+ESTETICA:
+Solo fotorrealismo cinematografico. Prohibido dibujo, ilustracion, pintura, anime, cartoon, personaje de videojuego, 3D estilizado, piel plastica CGI o aspecto de muñeco. Fondos de apariencia real: naturaleza, valles, rios, montañas, bosque, lago, costa, nieve, aurora boreal, desierto y caminos de piedra. Luz fisicamente plausible, profundidad fotografica real y movimiento de camara cinematografico.
+
+ACTUACION DEL PERSONAJE:
+Cuando aparezca hablando, debe hacerlo como un actor humano real: movimiento continuo de labios y mandibula, mejillas, respiracion, parpadeo, cabeza y mirada; manos con cinco dedos, brazos, hombros, torso, cadera, piernas y pasos naturales cuando se vea el cuerpo entero. Gestos suaves y coherentes, ropa reaccionando al cuerpo y al viento. Evitar poses congeladas.
 
 TEMAS PERMITIDOS:
 Biblia, Dios, Jesucristo, fe, esperanza, oracion, consuelo, perdon, amor al projimo, perseverancia, promesas biblicas y profecias biblicas explicadas con contexto.
@@ -77,16 +86,15 @@ REGLAS BIBLICAS:
 - Cuando uses un pasaje, identifica la referencia.
 - Prefiere resumir o parafrasear la idea; no inventes versiculos.
 - Una cita literal, si aparece, debe ser breve.
-- No uses Bible Gateway ni otra traduccion como texto para copiar en bloques largos.
-- Si el tema es profecia, explica contexto y evita fijar fechas o presentar especulacion sobre noticias actuales como certeza.
+- Si el tema es profecia, explica contexto y evita fijar fechas o presentar especulacion como certeza.
 - Cuando existan interpretaciones cristianas diferentes, dilo con prudencia.
 - No usar miedo, amenazas ni sensacionalismo.
 
-NARRACION:
-Voz masculina calida, serena, profunda y humana. Cada seccion debe sentirse conectada con la siguiente, como un solo video. Cada narration debe tener aproximadamente {target_words} a {target_words + 35} palabras. Alterna reflexion, explicacion biblica, aplicacion practica y momentos breves de oracion. No empieces cada seccion con un saludo nuevo.
+NARRACION CONTINUA:
+Voz masculina calida, serena, profunda, neutra en español y humana. El texto de cada seccion debe enlazar directamente con la siguiente como un unico discurso. Aproximadamente {target_words} a {target_words + 20} palabras por seccion. Evita silencios dramaticos, puntos suspensivos, frases sueltas de una sola linea y nuevos saludos. Usa oraciones fluidas conectadas por transiciones naturales. La voz debe poder reproducirse como una unica pista continua sin cortes entre escenas.
 
 VISUALES:
-Cada visual_prompt debe describir una escena cinematografica horizontal 16:9 con movimiento visible: Jesus caminando, extendiendo una mano, contemplando un lago, cruzando un sendero, viento suave moviendo la ropa, agua y nubes en movimiento, rayos de luz cambiando. No texto, no logos, no marcas de agua, no actor real.
+Cada visual_prompt debe describir una escena horizontal 16:9 live-action fotorrealista con movimiento humano visible y fondo realista. Alterna primeros planos hablando, planos medios con manos, planos de cuerpo entero caminando y planos ambientales. No texto, no logos, no marcas de agua.
 
 Devuelve SOLO JSON valido:
 {{
@@ -100,7 +108,7 @@ Devuelve SOLO JSON valido:
       "heading": "titulo breve de seccion",
       "bible_reference": "referencia biblica o cadena vacia",
       "visual_prompt": "prompt cinematografico horizontal 16:9",
-      "narration": "narracion conectada"
+      "narration": "narracion continua y conectada"
     }}
   ]
 }}
@@ -131,7 +139,7 @@ def _generate_metadata(channel: dict, minutes: int) -> dict:
     for index, row in enumerate(rows, start=1):
         row["heading"] = " ".join(str(row.get("heading") or f"Seccion {index}").split())[:100]
         row["bible_reference"] = " ".join(str(row.get("bible_reference") or "").split())[:80]
-        row["visual_prompt"] = " ".join(str(row.get("visual_prompt") or "").split())[:1400]
+        row["visual_prompt"] = " ".join(str(row.get("visual_prompt") or "").split())[:1700]
         row["narration"] = " ".join(str(row.get("narration") or "").split())
         if not row["visual_prompt"] or not row["narration"]:
             raise RuntimeError(f"Seccion {index} incompleta.")
@@ -142,17 +150,24 @@ def _generate_metadata(channel: dict, minutes: int) -> dict:
     data["duration_seconds"] = minutes * 60
     data["target_minutes"] = minutes
     data["contains_synthetic_media"] = True
-    data["character_reference_profile"] = "dioshablahoyia_recurring_jesus_v1"
+    data["character_reference_profile"] = "dioshablahoyia_photoreal_human_v2"
     data["reference_seed"] = refs
+    data["photoreal_human_required"] = True
+    data["no_cartoon_no_3d_animation"] = True
+    data["continuous_speech_requested"] = True
+    data["lip_sync_requested"] = True
+    data["full_body_motion_requested"] = True
     return data
 
 
 def _character_style() -> str:
     return (
-        "Same recurring original reverent Jesus character throughout the entire film: serene adult man, long wavy dark-brown hair, full neat brown beard, "
-        "warm hazel-brown eyes, compassionate face, cream or ivory linen robe, beige mantle or occasional muted deep-red mantle, no resemblance to a specific actor or celebrity. "
-        "Premium photoreal cinematic spiritual drama, realistic skin and fabric, warm golden sunrise or sunset, mountains valleys rivers lakes olive trees and stone paths, "
-        "natural movement, peaceful hopeful atmosphere, horizontal 16:9, no text, no subtitles, no logo, no watermark, no horror."
+        "Same recurring fully synthetic photoreal human representation of Jesus throughout the film, visually indistinguishable from premium live-action cinema: "
+        "adult Middle Eastern/Mediterranean-looking man, shoulder-length wavy dark-brown hair with natural strands, full groomed brown beard, hazel-brown eyes, natural skin pores and fine facial detail, "
+        "ivory or cream woven linen robe and beige mantle, no resemblance to any identifiable real person. Natural continuous speaking performance with realistic lips, jaw, cheeks, blinking, breathing, head turns, "
+        "five-finger hand gestures, shoulders, elbows, torso, hips, knees and believable walking balance. Real-looking valleys rivers alpine mountains forests lakes coastlines desert dunes snow and aurora borealis as appropriate. "
+        "Photographic optics, physically plausible light, cinematic depth of field, natural fabric and environmental motion. Absolutely no cartoon, illustration, painting, anime, stylized 3D, videogame look, plastic CGI skin or doll face. "
+        "Horizontal 16:9, no text, no subtitles, no logo, no watermark."
     )
 
 
@@ -163,7 +178,7 @@ def _download_image(prompt: str, out: Path, seed: int) -> None:
         "model": os.getenv("POLLINATIONS_IMAGE_MODEL", "flux"),
         "width": W,
         "height": H,
-        "seed": seed,
+        "seed": _safe_seed(seed),
         "nologo": "true",
         "enhance": "true",
     }
@@ -173,7 +188,7 @@ def _download_image(prompt: str, out: Path, seed: int) -> None:
     response = requests.get(url, params=params, headers=headers, timeout=(20, 180))
     response.raise_for_status()
     if len(response.content) < 20_000:
-        raise RuntimeError("No se genero una imagen espiritual valida.")
+        raise RuntimeError("No se genero una imagen espiritual fotorrealista valida.")
     out.write_bytes(response.content)
 
 
@@ -215,10 +230,10 @@ def _image_motion(source: Path, out: Path, duration: int, index: int) -> None:
 def _try_text_to_video(prompt: str, out: Path, seed: int) -> str:
     raw = out.with_name(out.stem + "_raw.mp4")
     try:
-        provider = _space_video(f"{prompt}. {_character_style()}", raw, 8, seed)
+        provider = _space_video(f"{prompt}. {_character_style()}", raw, 8, _safe_seed(seed))
     except Exception as first:
         try:
-            provider = _provider_video(f"{prompt}. {_character_style()}", raw, seed)
+            provider = _provider_video(f"{prompt}. {_character_style()}", raw, _safe_seed(seed))
         except Exception as second:
             raise RuntimeError(f"LTX ZeroGPU: {first}; Inference Provider: {second}") from second
     _landscape_loop_video(raw, out, 8, 0)
@@ -227,6 +242,9 @@ def _try_text_to_video(prompt: str, out: Path, seed: int) -> str:
 
 def _visual_for_section(meta: dict, section: dict, index: int, workdir: Path, ai_slots: int, duration: int) -> tuple[Path, str]:
     prompt = section["visual_prompt"]
+    require_live = os.getenv("SPIRITUAL_REQUIRE_LIVE_ACTION", "true").lower().strip() == "true"
+    allow_still = os.getenv("SPIRITUAL_ALLOW_STILL_FALLBACK", "false").lower().strip() == "true"
+
     if index < ai_slots:
         ai_clip = workdir / f"spiritual_ai_key_{index + 1}.mp4"
         try:
@@ -235,22 +253,47 @@ def _visual_for_section(meta: dict, section: dict, index: int, workdir: Path, ai
             _landscape_loop_video(ai_clip, extended, duration, index)
             return extended, provider
         except Exception as exc:
-            print(f"Text-to-video no disponible para seccion {index + 1}: {exc}; usando imagen IA cinematografica.")
+            if require_live and not allow_still:
+                raise RuntimeError(
+                    f"Text-to-video live-action no disponible para seccion {index + 1}; se bloquea el fallback fijo para mantener calidad fotorrealista: {exc}"
+                ) from exc
+            print(f"Text-to-video no disponible para seccion {index + 1}: {exc}; usando imagen fotorrealista solo porque el fallback fue habilitado.")
+    elif require_live and not allow_still:
+        raise RuntimeError(
+            f"La seccion {index + 1} quedo fuera de SPIRITUAL_LONG_AI_CLIPS y el canal exige live-action. Aumenta SPIRITUAL_LONG_AI_CLIPS."
+        )
 
     image = workdir / f"spiritual_image_{index + 1}.jpg"
     visual = workdir / f"spiritual_visual_{index + 1}.mp4"
     _download_image(prompt, image, _seed(meta, index))
     _image_motion(image, visual, duration, index)
-    return visual, "Pollinations image + cinematic motion fallback"
+    return visual, "Pollinations photoreal image + cinematic motion fallback"
 
 
-def _chapter_segment(visual: Path, voice: Path, out: Path, duration: int) -> None:
+def _visual_segment(visual: Path, out: Path, duration: int) -> None:
     subprocess.run([
-        "ffmpeg", "-y", "-loglevel", "error", "-i", str(visual), "-i", str(voice),
-        "-filter_complex", f"[1:a]highpass=f=65,lowpass=f=11000,loudnorm=I=-16:TP=-1.5:LRA=7,apad=pad_dur={duration}[a]",
-        "-map", "0:v:0", "-map", "[a]", "-t", str(duration),
-        "-c:v", "copy", "-c:a", "aac", "-b:a", "192k", "-movflags", "+faststart", str(out),
+        "ffmpeg", "-y", "-loglevel", "error", "-i", str(visual),
+        "-t", str(duration), "-an", "-c:v", "copy", "-movflags", "+faststart", str(out),
     ], check=True)
+
+
+def _concat_voice_chunks(chunks: list[Path], out: Path) -> None:
+    if not chunks:
+        raise RuntimeError("No hay fragmentos de voz para unir.")
+    cmd = ["ffmpeg", "-y", "-loglevel", "error"]
+    for chunk in chunks:
+        cmd.extend(["-i", str(chunk)])
+    filters: list[str] = []
+    labels: list[str] = []
+    for index in range(len(chunks)):
+        label = f"v{index}"
+        filters.append(f"[{index}:a]aresample=48000,aformat=sample_fmts=fltp:channel_layouts=mono[{label}]")
+        labels.append(f"[{label}]")
+    filters.append("".join(labels) + f"concat=n={len(chunks)}:v=0:a=1[voice]")
+    cmd.extend([
+        "-filter_complex", ";".join(filters), "-map", "[voice]", "-c:a", "pcm_s16le", str(out),
+    ])
+    subprocess.run(cmd, check=True)
 
 
 def _assemble(meta: dict, channel: dict, workdir: Path, minutes: int) -> Path:
@@ -258,45 +301,77 @@ def _assemble(meta: dict, channel: dict, workdir: Path, minutes: int) -> Path:
     total_seconds = minutes * 60
     section_duration = total_seconds // len(sections)
     extra = total_seconds - section_duration * len(sections)
-    ai_slots = max(0, min(int(os.getenv("SPIRITUAL_LONG_AI_CLIPS", "4")), len(sections)))
-    segments: list[Path] = []
+    require_live = os.getenv("SPIRITUAL_REQUIRE_LIVE_ACTION", "true").lower().strip() == "true"
+    default_ai_slots = len(sections) if require_live else min(4, len(sections))
+    ai_slots = max(0, min(int(os.getenv("SPIRITUAL_LONG_AI_CLIPS", str(default_ai_slots))), len(sections)))
+    visuals: list[Path] = []
+    voice_chunks: list[Path] = []
     providers: list[str] = []
     tts_used: list[str] = []
 
+    # Build narration separately from visuals. Voice never restarts at visual cuts.
     for index, section in enumerate(sections):
-        duration = section_duration + (1 if index < extra else 0)
         voice = workdir / f"spiritual_voice_{index + 1}.wav"
         tts_used.append(make_natural_spanish_voice(voice, section["narration"]))
+        voice_chunks.append(voice)
+
+    continuous_voice = workdir / "spiritual_continuous_voice.wav"
+    _concat_voice_chunks(voice_chunks, continuous_voice)
+    fit_voice_to_duration(continuous_voice, total_seconds)
+
+    for index, section in enumerate(sections):
+        duration = section_duration + (1 if index < extra else 0)
         visual, provider = _visual_for_section(meta, section, index, workdir, ai_slots, duration)
         providers.append(provider)
-        segment = workdir / f"spiritual_segment_{index + 1}.mp4"
-        _chapter_segment(visual, voice, segment, duration)
-        segments.append(segment)
+        segment = workdir / f"spiritual_visual_segment_{index + 1}.mp4"
+        _visual_segment(visual, segment, duration)
+        visuals.append(segment)
 
-    manifest = workdir / "spiritual_long_concat.txt"
-    manifest.write_text("\n".join(f"file '{p.resolve()}'" for p in segments), encoding="utf-8")
-    voice_video = workdir / "spiritual_voice_video.mp4"
+    manifest = workdir / "spiritual_long_visual_concat.txt"
+    manifest.write_text("\n".join(f"file '{p.resolve()}'" for p in visuals), encoding="utf-8")
+    visual_video = workdir / "spiritual_visual_video.mp4"
     subprocess.run([
         "ffmpeg", "-y", "-loglevel", "error", "-f", "concat", "-safe", "0", "-i", str(manifest),
-        "-c", "copy", "-movflags", "+faststart", str(voice_video),
+        "-an", "-c:v", "copy", "-movflags", "+faststart", str(visual_video),
     ], check=True)
+
+    lip_visual = visual_video
+    meta["lip_sync_requested"] = True
+    if os.getenv("SPIRITUAL_LONG_LIPSYNC_ENABLED", "true").lower().strip() == "true" and lipsync_available():
+        synced = workdir / "spiritual_visual_video_lipsynced.mp4"
+        try:
+            meta["lip_sync_provider"] = apply_musetalk_lipsync(visual_video, continuous_voice, synced)
+            meta["lip_sync_mode"] = "audio_driven_exact_mouth_sync"
+            lip_visual = synced
+        except Exception as exc:
+            meta["lip_sync_failed"] = str(exc)
+            meta["lip_sync_mode"] = "prompted_natural_speech_motion_fallback"
+            print(f"Lip-sync exacto no disponible en video largo ({exc}); se conserva movimiento facial generado por el motor de video.")
+    else:
+        meta["lip_sync_mode"] = "prompted_natural_speech_motion_no_gpu"
 
     music_seed = _seed(meta, 999)
     music = workdir / "spiritual_original_music_60s.wav"
     make_pleasant_original_music(music, 60, music_seed)
     final = workdir / f"dioshablahoyia_{minutes}min.mp4"
     subprocess.run([
-        "ffmpeg", "-y", "-loglevel", "error", "-i", str(voice_video), "-stream_loop", "-1", "-i", str(music),
-        "-filter_complex", "[0:a]volume=1.0[v];[1:a]volume=0.035,lowpass=f=7600[m];[v][m]amix=inputs=2:duration=first:dropout_transition=2[a]",
+        "ffmpeg", "-y", "-loglevel", "error", "-i", str(lip_visual), "-i", str(continuous_voice), "-stream_loop", "-1", "-i", str(music),
+        "-filter_complex",
+        f"[1:a]highpass=f=65,lowpass=f=11000,acompressor=threshold=-18dB:ratio=1.7:attack=10:release=130,loudnorm=I=-16:TP=-1.5:LRA=7,apad=pad_dur={total_seconds}[v];"
+        "[2:a]volume=0.026,lowpass=f=7600[m];[v][m]amix=inputs=2:duration=first:dropout_transition=0.25[a]",
         "-map", "0:v:0", "-map", "[a]", "-t", str(total_seconds),
         "-c:v", "copy", "-c:a", "aac", "-b:a", "192k", "-movflags", "+faststart", str(final),
     ], check=True)
 
     meta["visual_providers"] = providers
     meta["tts_providers"] = sorted(set(tts_used))
+    meta["voice_delivery"] = "single_continuous_track_across_all_scene_cuts"
     meta["text_to_video_key_scenes_requested"] = ai_slots
-    meta["render_quality"] = "1920x1080_30fps_spiritual_long"
+    meta["render_quality"] = "1920x1080_30fps_spiritual_live_action_long"
     meta["music_source"] = "original_instrumental_generated_locally"
+    meta["spiritual_quality_profile"] = "premium_long_live_action_photoreal_v4"
+    meta["photoreal_human_required"] = True
+    meta["no_cartoon_no_3d_animation"] = True
     return final
 
 
@@ -337,6 +412,8 @@ def run(minutes: int, publish: bool = False) -> dict:
         "status": status,
         "path": str(video),
         "thumbnail": str(thumbnail),
+        "voice_delivery": meta.get("voice_delivery"),
+        "lip_sync_mode": meta.get("lip_sync_mode"),
         "text_to_video_key_scenes_requested": meta.get("text_to_video_key_scenes_requested"),
         "visual_providers": meta.get("visual_providers"),
     }
