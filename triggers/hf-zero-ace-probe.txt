@@ -1,1 +1,1 @@
-probe 2026-08-14 authenticated hf token
+probe 2026-08-14 export current ACE-Step API schema
