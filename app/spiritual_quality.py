@@ -22,9 +22,20 @@ _REFERENCE_PATTERNS = (
     (r"mateo\s*24", "Mateo 24"),
     (r"juan\s*3", "Juan 3:16-17"),
     (r"juan\s*14", "Juan 14"),
-    (r"romanos\s*8", "Romanos 8:28"),
+    (r"romanos\s*8\s*[:.,-]?\s*26", "Romanos 8:26-27"),
+    (r"romanos\s*8\s*[:.,-]?\s*28", "Romanos 8:28"),
     (r"filipenses\s*4", "Filipenses 4:6-7"),
     (r"apocalipsis\s*21", "Apocalipsis 21:1-5"),
+)
+
+_TOPIC_REFERENCE_PATTERNS = (
+    (
+        r"(orar cuando no (sabes|sab[eé]s) qu[eé] decir|sin palabras|silencio en la oraci[oó]n|coraz[oó]n abrumado|gemidos|intercede por nosotros)",
+        "Romanos 8:26-27",
+    ),
+    (r"(ansiedad|preocupaci[oó]n|orar en vez de preocuparse|paz frente a la ansiedad)", "Filipenses 4:6-7"),
+    (r"(cansad[oa]s? y cargad[oa]s?|descanso para el alma|venir a jes[uú]s con las cargas)", "Mateo 11:28-30"),
+    (r"(no temer|miedo|dios fortalece|dios acompa[nñ]a)", "Isaías 41:10"),
 )
 
 _VISUAL_BEATS = (
@@ -65,15 +76,25 @@ def _clean(value: str) -> str:
 
 
 def _reference(metadata: dict) -> str:
-    haystack = " ".join(
+    topic_haystack = " ".join(
         [
             _clean(metadata.get("topic", "")),
             _clean(metadata.get("content_family", "")),
+        ]
+    ).lower()
+    for pattern, reference in _TOPIC_REFERENCE_PATTERNS:
+        if re.search(pattern, topic_haystack, flags=re.IGNORECASE):
+            return reference
+
+    full_haystack = " ".join(
+        [
+            topic_haystack,
             _clean(metadata.get("description", "")),
+            " ".join(_clean(scene.get("narration", "")) for scene in (metadata.get("scenes") or [])),
         ]
     ).lower()
     for pattern, reference in _REFERENCE_PATTERNS:
-        if re.search(pattern, haystack, flags=re.IGNORECASE):
+        if re.search(pattern, full_haystack, flags=re.IGNORECASE):
             return reference
     return ""
 
@@ -114,11 +135,7 @@ def _description(metadata: dict, reference: str) -> str:
 
 
 def enforce_spiritual_metadata(metadata: dict, previous: list[dict] | None = None) -> dict:
-    """Apply channel-specific quality, truthfulness and visual-variety rules.
-
-    This is deliberately deterministic per workflow run so a retry remains coherent,
-    while different runs rotate camera language and title framing.
-    """
+    """Apply channel-specific quality, truthfulness and visual-variety rules."""
     previous = previous or []
     seed = _marker(metadata)
     reference = _reference(metadata)
@@ -128,7 +145,7 @@ def enforce_spiritual_metadata(metadata: dict, previous: list[dict] | None = Non
     metadata["description"] = _description(metadata, reference)
     metadata["synthetic_character_disclosure"] = True
     metadata["character_is_fictional_artistic_representation"] = True
-    metadata["spiritual_quality_profile"] = "premium_varied_truthful_v2"
+    metadata["spiritual_quality_profile"] = "premium_varied_truthful_v3"
 
     hashtags = [str(x).strip() for x in (metadata.get("hashtags") or []) if str(x).strip()]
     for tag in ("#Dios", "#Jesus", "#Biblia", "#Fe", "#Shorts"):
@@ -146,7 +163,6 @@ def enforce_spiritual_metadata(metadata: dict, previous: list[dict] | None = Non
             "Premium photoreal cinematic lighting, natural facial micro-expressions, no exaggerated lip motion, no text, no subtitles, no logo, no watermark, no celebrity likeness."
         )[:1500]
         narration = _clean(scene.get("narration", ""))
-        # Avoid presenting generated narration as a new literal revelation from God/Jesus.
         replacements = {
             "Jesús te dice:": "El mensaje de Jesús en la Biblia nos recuerda:",
             "Jesus te dice:": "El mensaje de Jesús en la Biblia nos recuerda:",
@@ -159,8 +175,6 @@ def enforce_spiritual_metadata(metadata: dict, previous: list[dict] | None = Non
         scene["narration"] = narration
 
     metadata["scenes"] = scenes
-
-    # Store a compact recent-title digest for auditing variety without leaking analytics.
     recent_titles = [_clean(x.get("title", "")) for x in previous[-12:] if _clean(x.get("title", ""))]
     metadata["recent_titles_avoided"] = recent_titles[-6:]
     return metadata
