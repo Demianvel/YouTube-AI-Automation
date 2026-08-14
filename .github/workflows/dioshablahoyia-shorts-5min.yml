@@ -1,0 +1,33 @@
+name: Dios Habla Hoy IA - Shorts cada 5 minutos
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+
+permissions:
+  actions: write
+  contents: read
+
+concurrency:
+  group: dioshablahoyia-shorts-5min-trigger
+  cancel-in-progress: true
+
+jobs:
+  dispatch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Lanzar generacion y publicacion de Short
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          echo "Lanzando Short de @dioshablahoyia: $(date -u +%FT%TZ)"
+          gh workflow run shorts.yml \
+            -R "$GITHUB_REPOSITORY" \
+            --ref main \
+            -f channel=dioshablahoyia \
+            -f content_mode=voice \
+            -f dry_run=false
+          echo "Workflow de generacion/publicacion solicitado correctamente."
