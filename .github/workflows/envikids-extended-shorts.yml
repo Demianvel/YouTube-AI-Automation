@@ -17,9 +17,6 @@ on:
         required: true
         default: false
         type: boolean
-  schedule:
-    # Argentina UTC-3: 16:30 todos los dias. Rota 1, 2 y 3 minutos.
-    - cron: "30 19 * * *"
 
 permissions:
   contents: read
@@ -48,40 +45,22 @@ jobs:
         id: select
         shell: bash
         run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            MINUTES="${{ inputs.minutes }}"
-            WANT_PUBLISH="${{ inputs.publish }}"
-          else
-            DAY="$(date -u +%j)"
-            SLOT=$((10#$DAY % 3))
-            if [ "$SLOT" -eq 0 ]; then MINUTES="1";
-            elif [ "$SLOT" -eq 1 ]; then MINUTES="2";
-            else MINUTES="3"; fi
-            WANT_PUBLISH="true"
-          fi
-
-          SHOULD_RUN=true
+          MINUTES="${{ inputs.minutes }}"
+          WANT_PUBLISH="${{ inputs.publish }}"
           PUBLISH=false
-          if [ "${{ github.event_name }}" = "schedule" ] && [ -z "$YOUTUBE_TOKEN_ENVIKIDS" ]; then
-            SHOULD_RUN=false
-            echo "OAuth EnViKids ausente: ejecucion programada omitida para no gastar generacion."
-          elif [ "$WANT_PUBLISH" = "true" ] && [ -n "$YOUTUBE_TOKEN_ENVIKIDS" ]; then
+          if [ "$WANT_PUBLISH" = "true" ] && [ -n "$YOUTUBE_TOKEN_ENVIKIDS" ]; then
             PUBLISH=true
           fi
-
           echo "minutes=$MINUTES" >> "$GITHUB_OUTPUT"
           echo "publish=$PUBLISH" >> "$GITHUB_OUTPUT"
-          echo "should_run=$SHOULD_RUN" >> "$GITHUB_OUTPUT"
-          echo "EnViKids Short ${MINUTES}min / run=${SHOULD_RUN} / publish=${PUBLISH}"
+          echo "EnViKids manual ${MINUTES}min / publish=${PUBLISH}"
 
       - uses: actions/setup-python@v5
-        if: steps.select.outputs.should_run == 'true'
         with:
           python-version: "3.11"
           cache: pip
 
       - name: Install generation dependencies
-        if: steps.select.outputs.should_run == 'true'
         run: |
           sudo apt-get update
           sudo apt-get install -y ffmpeg espeak-ng libsndfile1 fonts-dejavu-core
@@ -89,7 +68,6 @@ jobs:
           pip install -r requirements.txt
 
       - name: Generate EnViKids extended Short
-        if: steps.select.outputs.should_run == 'true'
         shell: bash
         run: |
           EXTRA=""
@@ -97,7 +75,7 @@ jobs:
           python -m app.kids_extended_pipeline --minutes "${{ steps.select.outputs.minutes }}" $EXTRA
 
       - name: Upload compact artifact
-        if: steps.select.outputs.should_run == 'true' && always()
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: envikids-short-${{ steps.select.outputs.minutes }}min-${{ github.run_id }}
