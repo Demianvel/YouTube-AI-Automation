@@ -80,11 +80,7 @@ def _botanical_query(family: str) -> str:
 
 
 def _local_metadata(channel: dict, previous: list[dict]) -> dict:
-    """Create safe, deterministic metadata when every text API is unavailable.
-
-    This is deliberately simple: it preserves topic-family rotation and scene counts so
-    the visual pipeline (HF/stock/procedural) can keep running without inventing current facts.
-    """
+    """Create safe, deterministic metadata when every text API is unavailable."""
     slug = base._channel_slug(channel)
     family = base._choose_family(channel, previous, salt=f"local-{_marker()}")
     count = int(channel.get("scenes_per_short", 1))
@@ -139,6 +135,34 @@ def _local_metadata(channel: dict, previous: list[dict]) -> dict:
         hashtags = ["#EnViKids", "#Animacion3D", "#Kids", "#Shorts"]
         tags = ["envikids", "animacion 3d", "niños", "aventura", "familia", "educativo", "divertido", family]
         cta = "¿Qué aventura hacemos después?"
+
+    elif slug == "dioshablahoyia":
+        topic = family
+        hook = "Si hoy necesitás una palabra de esperanza, escuchá esto"
+        title = f"Un mensaje de fe para hoy: {family[:52]}"
+        scene_prompts = [
+            "Jesus walking slowly along a mountain path at golden sunrise, cream linen robe, serene compassionate expression, cinematic clouds and soft wind",
+            "Jesus beside a calm lake extending one hand toward the viewer, warm golden light, moving water, mountains in the distance, peaceful cinematic atmosphere",
+            "Jesus standing on a grassy valley at sunset looking toward the sky, soft rays through clouds, beige robe and muted red mantle, reverent hopeful mood",
+        ]
+        narrations = [
+            "Tal vez hoy estés atravesando algo que te pesa. La fe no niega la dificultad, pero te recuerda que no caminás solo.",
+            "La Biblia vuelve una y otra vez a esta idea: buscar a Dios, confiar, orar y seguir dando un paso a la vez.",
+            "Que esta palabra te dé paz para hoy. Si querés, hacé una oración breve y escribí Amén como señal de esperanza.",
+        ]
+        scenes = []
+        for i in range(count):
+            scenes.append(
+                {
+                    "visual_prompt": scene_prompts[i % len(scene_prompts)],
+                    "stock_query": "cinematic Jesus hope golden light mountain lake",
+                    "narration": narrations[i % len(narrations)],
+                }
+            )
+        description = "Una reflexión cristiana breve sobre fe, esperanza y confianza en Dios.\nContenido audiovisual con representación artística generada por IA."
+        hashtags = ["#Dios", "#Jesus", "#Fe", "#Oracion", "#Shorts"]
+        tags = ["dios", "jesus", "cristo", "biblia", "fe", "esperanza", "oracion", "paz", "dios habla hoy", family]
+        cta = "Si esta palabra habló a tu corazón, podés escribir Amén."
 
     else:
         topic = family
