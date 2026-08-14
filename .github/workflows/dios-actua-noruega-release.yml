@@ -34,7 +34,7 @@ jobs:
       PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
       YOUTUBE_TOKEN_DEMIANVELO: ${{ secrets.YOUTUBE_TOKEN_DEMIANVELO }}
       ACESTEP_HF_SPACE: ACE-Step/Ace-Step-v1.5
-      ACESTEP_HF_MODEL: acestep-v15-xl-turbo
+      ACESTEP_HF_MODEL: acestep-v15-turbo
     steps:
       - uses: actions/checkout@v4
 
@@ -82,7 +82,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install -U requests gradio_client huggingface_hub google-api-python-client google-auth pillow
 
-      - name: Configurar ACE-Step 1.5 XL Turbo y voz DemianVelo
+      - name: Configurar ACE-Step 1.5 Turbo y rutas estables
         if: steps.release_gate.outputs.run_release == 'true'
         shell: bash
         run: |
@@ -90,10 +90,25 @@ jobs:
           from pathlib import Path
           p = Path('scripts/render_dios_actua_noruega.py')
           text = p.read_text(encoding='utf-8')
-          text = text.replace('acestep-v15-turbo', 'acestep-v15-xl-turbo')
+
+          # El Space público oficial expone actualmente los modelos turbo/shift3.
+          # No sustituirlos por el identificador XL dentro del cliente Gradio.
+          text = text.replace('acestep-v15-xl-turbo', 'acestep-v15-turbo')
+
+          # Priorizar el Space oficial también cuando no hay referencia vocal.
+          old = '''    spaces = [\n        "techfreakworm/ACE-Music-Studio",'''
+          new = '''    spaces = [\n        os.getenv("ACESTEP_HF_SPACE", "ACE-Step/Ace-Step-v1.5"),\n        "techfreakworm/ACE-Music-Studio",'''
+          if old in text:
+              text = text.replace(old, new, 1)
+
+          # Mirror eliminado/no disponible: evita un 404 inútil en cada release.
+          text = text.replace('        "R-Kentaren/ace-step-jam",\n', '')
+
           p.write_text(text, encoding='utf-8')
-          assert 'acestep-v15-xl-turbo' in text
-          print('ACE-Step XL Turbo activado para Dios Actua.')
+          assert 'acestep-v15-turbo' in text
+          assert 'R-Kentaren/ace-step-jam' not in text
+          assert 'os.getenv("ACESTEP_HF_SPACE", "ACE-Step/Ace-Step-v1.5")' in text
+          print('ACE-Step oficial priorizado; modelo turbo compatible; mirror 404 eliminado.')
           PY
           if find reference_aleluya -type f \( -iname '*.wav' -o -iname '*.mp3' -o -iname '*.flac' -o -iname '*.m4a' \) -print -quit 2>/dev/null | grep -q .; then
             echo "VOCAL_REFERENCE_READY=true"
