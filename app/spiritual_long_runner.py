@@ -226,7 +226,7 @@ def run(minutes: int, publish: bool = False) -> dict:
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--minutes", required=True, type=int, choices=[10, 20, 30, 40])
+    parser.add_argument("--minutes", required=True, type=int, choices=[5, 10, 15, 20, 30, 40])
     parser.add_argument("--publish", action="store_true")
     args = parser.parse_args()
     result = run(args.minutes, publish=args.publish)
