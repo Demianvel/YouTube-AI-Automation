@@ -8,6 +8,7 @@ from zoneinfo import ZoneInfo
 from app.workers.divine_publisher_4x10 import (
     DAILY_LONG_TARGET,
     DAILY_SHORT_TARGET,
+    LONG_VIDEO_MINUTES,
     LONG_VIDEO_TIMES,
     SHORT_TIMES,
     WORKER,
@@ -69,6 +70,13 @@ def main() -> None:
         and _local_day(str(row.get("created_at") or row.get("published_at") or "")) == today
     )
 
+    short_missing = max(0, short_expected - short_actual)
+    long_missing = max(0, long_expected - long_actual)
+    recovery_minutes = None
+    if long_missing:
+        slot_index = min(max(long_actual, 0), long_expected - 1, len(LONG_VIDEO_MINUTES) - 1)
+        recovery_minutes = LONG_VIDEO_MINUTES[slot_index]
+
     result = {
         "worker": WORKER["name"],
         "local_time": now.isoformat(),
@@ -76,10 +84,11 @@ def main() -> None:
         "daily_long_target": DAILY_LONG_TARGET,
         "short_expected": short_expected,
         "short_actual": short_actual,
-        "short_missing": max(0, short_expected - short_actual),
+        "short_missing": short_missing,
         "long_expected": long_expected,
         "long_actual": long_actual,
-        "long_missing": max(0, long_expected - long_actual),
+        "long_missing": long_missing,
+        "long_recovery_minutes": recovery_minutes,
     }
     print(json.dumps(result, ensure_ascii=False))
 
