@@ -22,7 +22,12 @@ if channel not in channels:
     print(f"ready=false: canal invalido {channel}")
     sys.exit(2)
 
-required = ["GEMINI_API_KEY"]
+required: list[str] = []
+# Dios Habla Hoy has a local Bible-based script fallback and persistent
+# photoreal reference assets, so text generation can proceed without Gemini.
+if channel != "dioshablahoyia":
+    required.append("GEMINI_API_KEY")
+
 if not args.generation_only:
     required.append(channels[channel]["token_env"])
 
