@@ -1,3 +1,2 @@
-Stability publish test 2026-08-15T01:24:00-03:00
-Purpose: verify full 180s narration after chunk-safe Kokoro fix + anti-spam uniqueness gate + real YouTube upload.
-Expected route: unique metadata -> full chunked voice -> continuity guard -> local/HF visual fallback -> CTA -> upload.
+Final stability publish test 2026-08-15T01:38:00-03:00
+Purpose: verify full 180s chunk-safe narration, zero-silence guard fix, anti-repeat gate, mixed licensed visual fallback, CTA/comment and real YouTube upload.
