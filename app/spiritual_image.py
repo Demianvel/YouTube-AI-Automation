@@ -11,7 +11,6 @@ from huggingface_hub import InferenceClient
 from PIL import Image, ImageEnhance, ImageOps
 
 from .hf_video import _safe_seed
-from .spiritual_commons import make_spiritual_commons_clip
 
 BASE = "https://gen.pollinations.ai/image/"
 ROOT = Path(__file__).resolve().parents[1]
@@ -26,11 +25,11 @@ def _seed(meta: dict, index: int) -> int:
 
 def _style() -> str:
     return (
-        "premium live-action photoreal cinematic spiritual scene, fully synthetic human representation of Jesus that looks like a real filmed adult man, "
+        "premium live-action photoreal cinematic spiritual scene centered on an original fully synthetic representation of Jesus and a biblical message about God, "
         "shoulder-length wavy dark-brown hair with individual strands, full groomed beard, hazel-brown eyes, natural skin pores and fine facial detail, "
-        "cream or ivory woven linen robe, beige mantle, realistic anatomy and hands, physically plausible golden sunlight, real-looking mountains valleys rivers lakes forests desert or aurora landscape, "
-        "cinematic depth of field and photographic optics, peaceful hopeful atmosphere, vertical 9:16 portrait composition, no resemblance to a specific actor or celebrity, "
-        "ABSOLUTELY NO cartoon, no illustration, no painting, no anime, no stylized 3D, no videogame look, no plastic CGI, no doll face, no text, no subtitles, no logo, no watermark"
+        "cream or ivory woven linen robe, beige mantle, realistic anatomy and hands, physically plausible golden sunlight, peaceful mountains valleys rivers lakes forests desert or aurora landscape only as a supporting setting, "
+        "cinematic depth of field and photographic optics, peaceful hopeful loving atmosphere, vertical 9:16 portrait composition, no resemblance to a specific actor or celebrity, "
+        "NO unrelated people, politics, sports, news, products, social networks, Wikipedia, Wikimedia, reused stock media, cartoon, illustration, painting, anime, stylized 3D, videogame look, plastic CGI, doll face, text, subtitles, logo or watermark"
     )
 
 
@@ -47,7 +46,7 @@ def _download_hf(full_prompt: str, out: Path, seed: int) -> str:
     image.convert("RGB").save(out, format="JPEG", quality=95, optimize=True)
     if not out.exists() or out.stat().st_size < 20_000:
         raise RuntimeError("Hugging Face text-to-image devolvio una imagen invalida.")
-    return f"Hugging Face Inference Providers / {model}"
+    return f"Hugging Face generated image / {model}"
 
 
 def _download_pollinations(full_prompt: str, out: Path, seed: int) -> str:
@@ -72,7 +71,7 @@ def _download_pollinations(full_prompt: str, out: Path, seed: int) -> str:
     if len(response.content) < 20_000:
         raise RuntimeError("Pollinations no devolvio una imagen espiritual fotorrealista valida.")
     out.write_bytes(response.content)
-    return "Pollinations authenticated image API"
+    return "Pollinations generated original image"
 
 
 def _local_reference(out: Path, seed: int) -> str:
@@ -93,7 +92,7 @@ def _local_reference(out: Path, seed: int) -> str:
         image.save(out, format="JPEG", quality=95, optimize=True)
     if not out.exists() or out.stat().st_size < 20_000:
         raise RuntimeError("La referencia fotorrealista local no pudo prepararse.")
-    return f"local_proven_photoreal_reference/{chosen.name}"
+    return f"local_project_jesus_reference/{chosen.name}"
 
 
 def _download(prompt: str, out: Path, seed: int) -> str:
@@ -104,7 +103,7 @@ def _download(prompt: str, out: Path, seed: int) -> str:
         return _download_hf(full_prompt, out, seed)
     except Exception as exc:
         errors.append(f"HF image: {exc}")
-        print(f"Hugging Face text-to-image no disponible ({exc}); intentando respaldos.")
+        print(f"Hugging Face text-to-image no disponible ({exc}); intentando generador original de respaldo.")
 
     if os.getenv("POLLINATIONS_API_KEY", "").strip():
         try:
@@ -116,12 +115,12 @@ def _download(prompt: str, out: Path, seed: int) -> str:
 
     try:
         provider = _local_reference(out, seed)
-        print("Usando referencia fotorrealista local de emergencia; no consume creditos de imagen.")
+        print("Usando referencia local del proyecto como emergencia; no se descarga multimedia externa.")
         return provider
     except Exception as exc:
         errors.append(f"local reference: {exc}")
 
-    raise RuntimeError("No hubo generador de imagen fotorrealista disponible. " + "; ".join(errors))
+    raise RuntimeError("No hubo generador visual original disponible. " + "; ".join(errors))
 
 
 def _animate(source: Path, out: Path, duration: int, index: int) -> None:
@@ -159,39 +158,19 @@ def generate_spiritual_short(channel: dict, meta: dict, workdir: Path, final: Pa
     clips: list[Path] = []
     prompts: list[str] = []
     provider_labels: list[str] = []
-    credits: list[dict[str, str]] = list(meta.get("source_credits") or [])
-    used_commons_urls: set[str] = set()
 
     for index, scene in enumerate(meta.get("scenes") or []):
-        prompt = str(scene.get("visual_prompt") or scene.get("stock_query") or "photoreal synthetic Jesus walking through a real peaceful valley at golden sunrise")
+        prompt = str(scene.get("visual_prompt") or "original synthetic Jesus walking through a peaceful biblical landscape at golden sunrise")
         prompts.append(prompt)
         image = workdir / f"spiritual_generated_{index + 1}.jpg"
         clip = workdir / f"spiritual_scene_{index + 1}.mp4"
         image_provider = _download(prompt, image, _seed(meta, index))
-
-        # When paid/free AI image capacity is exhausted, do not mass-produce a
-        # whole Short from the same three emergency portraits. Keep roughly one
-        # Jesus anchor shot out of three and use fresh licensed nature/animal
-        # B-roll for the other scenes. If Commons cannot provide enough variety,
-        # the central visual-diversity upload gate will reject the final video.
-        if image_provider.startswith("local_proven_photoreal_reference/") and index % 3 != 0:
-            try:
-                commons_clip, commons_provider, credit = make_spiritual_commons_clip(
-                    meta, workdir, index, scene_duration, used_commons_urls
-                )
-                clips.append(commons_clip)
-                provider_labels.append(commons_provider)
-                credits.append(credit)
-                continue
-            except Exception as exc:
-                print(f"Commons espiritual no disponible en escena {index + 1} ({exc}); conservando referencia local para que el gate final decida.")
-
         _animate(image, clip, scene_duration, index)
-        provider_labels.append(f"{image_provider} + cinematic camera motion")
+        provider_labels.append(f"{image_provider} + original cinematic camera motion")
         clips.append(clip)
 
     if not clips:
-        raise RuntimeError("No se generaron escenas espirituales fotorrealistas de respaldo.")
+        raise RuntimeError("No se generaron escenas espirituales originales de respaldo.")
 
     manifest = workdir / "spiritual_concat.txt"
     manifest.write_text("\n".join(f"file '{p.resolve()}'" for p in clips), encoding="utf-8")
@@ -205,10 +184,12 @@ def generate_spiritual_short(channel: dict, meta: dict, workdir: Path, final: Pa
     total_duration = int(channel["scenes_per_short"]) * scene_duration
     meta["generated_visual_provider"] = provider_labels
     meta["generated_video_prompts"] = prompts
-    meta["source_credits"] = credits
+    meta["source_credits"] = []
     meta["synthetic_visual"] = True
+    meta["external_media_allowed"] = False
+    meta["original_generated_media_only"] = True
     meta["character_reference_profile"] = "dioshablahoyia_photoreal_human_v2"
-    meta["render_quality"] = "1080x1920_30fps_photoreal_mixed_fallback"
+    meta["render_quality"] = "1080x1920_30fps_photoreal_original_fallback"
     meta["still_fallback_explicitly_enabled"] = True
-    meta["mixed_licensed_nature_fallback"] = True
+    meta["mixed_licensed_nature_fallback"] = False
     apply_audio_fn(visual, final, channel, meta, total_duration, _seed(meta, 999))
