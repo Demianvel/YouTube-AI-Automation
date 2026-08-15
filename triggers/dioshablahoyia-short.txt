@@ -1,3 +1,3 @@
-Smoke publish test requested 2026-08-14T20:33:00-03:00
-Purpose: verify real @dioshablahoyia Short upload after HF authenticated image fallback fix.
-Expected route: push -> Kokoro voice -> HF text-to-image fallback -> cinematic render -> YouTube upload.
+Stability publish test 2026-08-15T01:24:00-03:00
+Purpose: verify full 180s narration after chunk-safe Kokoro fix + anti-spam uniqueness gate + real YouTube upload.
+Expected route: unique metadata -> full chunked voice -> continuity guard -> local/HF visual fallback -> CTA -> upload.
