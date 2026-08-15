@@ -12,6 +12,7 @@ from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 from googleapiclient.http import MediaFileUpload
 
+from .spiritual_content_guard import validate_spiritual_upload_guard
 from .spiritual_visual_uniqueness import validate_spiritual_visual_diversity
 
 YOUTUBE_SCOPES = [
@@ -145,10 +146,6 @@ def _enforce_spiritual_voice_guard(channel: dict, metadata: dict, video_path: Pa
     if not _is_spiritual_channel(channel):
         return
 
-    # Gemini Omni generates the spoken performance inside the same audiovisual
-    # clip. The legacy coverage/silence fields belong to the external TTS mixer
-    # and therefore do not exist for this native path. We still require a real
-    # audio stream before upload instead of blindly bypassing validation.
     if _is_native_gemini_clip(metadata):
         if not _has_audio_stream(video_path):
             raise RuntimeError("BLOQUEADO ANTES DE YOUTUBE: Gemini devolvio un video sin stream de audio.")
@@ -171,10 +168,6 @@ def _enforce_spiritual_visual_guard(channel: dict, metadata: dict) -> None:
     if not _is_spiritual_channel(channel):
         return
 
-    # The legacy diversity guard detects repeated still/reference frames across
-    # stitched multi-scene videos. A single natively generated moving clip is a
-    # different format, so requiring several source labels would falsely block
-    # it. Keep a strict provenance/profile check instead.
     if _is_native_gemini_clip(metadata):
         refs = metadata.get("character_reference_images") or []
         if not refs:
@@ -186,6 +179,12 @@ def _enforce_spiritual_visual_guard(channel: dict, metadata: dict) -> None:
     labels = metadata.get("generated_visual_provider") or metadata.get("visual_providers") or []
     stats = validate_spiritual_visual_diversity(list(labels) if isinstance(labels, (list, tuple)) else [str(labels)])
     metadata.update(stats)
+
+
+def _enforce_spiritual_editorial_guard(channel: dict, metadata: dict) -> None:
+    if not _is_spiritual_channel(channel):
+        return
+    validate_spiritual_upload_guard(metadata)
 
 
 def _description(metadata: dict) -> str:
@@ -299,6 +298,7 @@ def set_custom_thumbnail(channel: dict, video_id: str, thumbnail_path: Path) -> 
 
 def upload_video(channel: dict, metadata: dict, video_path: Path) -> str:
     _enforce_short_only(video_path)
+    _enforce_spiritual_editorial_guard(channel, metadata)
     _enforce_spiritual_voice_guard(channel, metadata, video_path)
     _enforce_spiritual_visual_guard(channel, metadata)
     video_id = _upload(channel, metadata, video_path)
@@ -308,6 +308,7 @@ def upload_video(channel: dict, metadata: dict, video_path: Path) -> str:
 
 def upload_long_video(channel: dict, metadata: dict, video_path: Path, thumbnail_path: Path | None = None, expected_minutes: int = 10) -> str:
     _enforce_long(video_path, expected_minutes=expected_minutes)
+    _enforce_spiritual_editorial_guard(channel, metadata)
     _enforce_spiritual_voice_guard(channel, metadata, video_path)
     _enforce_spiritual_visual_guard(channel, metadata)
     video_id = _upload(channel, metadata, video_path)
