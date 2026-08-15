@@ -7,10 +7,11 @@ from pathlib import Path
 from huggingface_hub import InferenceClient
 
 from .hf_video import _safe_seed
+from .spiritual_image import _local_reference
 
 
 def download_landscape_image(prompt: str, out: Path, seed: int, style: str) -> str:
-    """Prefer HF photoreal image generation; use Pollinations only when authenticated."""
+    """Prefer new HF imagery, then authenticated Pollinations, then proven local references."""
     full_prompt = f"{prompt}, {style}"
     errors: list[str] = []
     token = os.getenv("HF_TOKEN", "").strip()
@@ -59,6 +60,13 @@ def download_landscape_image(prompt: str, out: Path, seed: int, style: str) -> s
     else:
         errors.append("Pollinations: falta POLLINATIONS_API_KEY")
 
+    try:
+        provider = _local_reference(out, seed)
+        print("Usando referencia fotorrealista local para mantener el video largo sin creditos externos.")
+        return provider
+    except Exception as exc:
+        errors.append(f"local reference: {exc}")
+
     raise RuntimeError("No hubo generador fotorrealista disponible. " + "; ".join(errors))
 
 
@@ -68,7 +76,6 @@ def create_thumbnail_candidates(video: Path, workdir: Path) -> tuple[Path, list[
     outputs: list[Path] = []
     for pct, label in probes:
         out = workdir / f"thumbnail_{label}.jpg"
-        # Use percentage seeking through ffprobe duration for deterministic frames.
         duration = subprocess.run(
             ["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "default=nw=1:nk=1", str(video)],
             capture_output=True,
