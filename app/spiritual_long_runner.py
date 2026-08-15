@@ -11,6 +11,8 @@ from . import spiritual_long_pipeline as base
 from .config import ROOT
 from .hf_video import _safe_seed
 from .history import similarity
+from .spiritual_continuity import ensure_spoken_text, fit_and_validate_spiritual_voice
+from .spiritual_engagement import engagement_comment
 from .spiritual_long_resilience import apply_long_cta_overlay, create_thumbnail_candidates, download_landscape_image
 from .spiritual_voice import polish_voice
 
@@ -82,7 +84,7 @@ def _append_history(item: dict) -> None:
 
 def _run_seed(minutes: int) -> int:
     marker = os.getenv("GITHUB_RUN_ID", "") or os.getenv("GITHUB_RUN_NUMBER", "") or datetime.now(timezone.utc).isoformat()
-    value = int(hashlib.sha256(f"spiritual-long-v5|{minutes}|{marker}".encode()).hexdigest()[:8], 16)
+    value = int(hashlib.sha256(f"spiritual-long-v6|{minutes}|{marker}".encode()).hexdigest()[:8], 16)
     return _safe_seed(value)
 
 
@@ -151,12 +153,14 @@ def _enhance_metadata(meta: dict, previous: list[dict], minutes: int) -> dict:
     title, variants = _safe_title(meta, previous, minutes)
     meta["title"] = title
     meta["title_variants"] = variants
-    meta["spiritual_quality_profile"] = "premium_long_live_action_photoreal_v5_growth"
+    meta["spiritual_quality_profile"] = "premium_long_live_action_photoreal_v6_continuous_voice"
     meta["synthetic_character_disclosure"] = True
     meta["character_is_fictional_artistic_representation"] = True
     meta["photoreal_human_required"] = True
     meta["no_cartoon_no_3d_animation"] = True
     meta["continuous_speech_requested"] = True
+    meta["voice_continuity_required"] = True
+    meta["minimum_voice_coverage_ratio"] = 0.96
     meta["lip_sync_requested"] = True
     meta["full_body_motion_requested"] = True
     meta["growth_strategy"] = "hook_progression_biblical_value_payoff_packaging_variants_without_false_clickbait"
@@ -166,10 +170,8 @@ def _enhance_metadata(meta: dict, previous: list[dict], minutes: int) -> dict:
         "payoff": "prayer plus practical act of faith or compassion",
         "ending": "gentle subscribe/comment/share CTA linked to doing good",
     }
-    meta["pinned_comment_candidate"] = (
-        "🙏 Si este mensaje te ayudó, podés escribir Amén o dejar tu intención de oración. "
-        "Compartilo con alguien que hoy necesite fe y esperanza y suscribite para seguir recibiendo nuevas reflexiones. "
-        "Que esta comunidad también se reconozca por ayudar y hacer el bien."
+    meta["pinned_comment_candidate"] = engagement_comment(
+        f"long|{minutes}|{meta.get('topic','')}|{meta.get('title','')}|{_run_seed(minutes)}"
     )
 
     refs = []
@@ -190,7 +192,20 @@ def _enhance_metadata(meta: dict, previous: list[dict], minutes: int) -> dict:
 
     seed = _run_seed(minutes)
     sections = list(meta.get("sections") or [])
+    per_section_seconds = (minutes * 60.0) / max(1, len(sections))
+    voice_plans: list[dict] = []
     for index, section in enumerate(sections):
+        narration = " ".join(str(section.get("narration") or "").split())
+        narration, stats = ensure_spoken_text(
+            narration,
+            per_section_seconds,
+            seed=seed + index * 17,
+            words_per_minute=126,
+        )
+        section["narration"] = narration
+        stats["section"] = index + 1
+        voice_plans.append(stats)
+
         motif = _VISUAL_MOTIFS[(seed + index * 3) % len(_VISUAL_MOTIFS)]
         environment = _REAL_ENVIRONMENTS[((seed // 5) + index * 2) % len(_REAL_ENVIRONMENTS)]
         original = " ".join(str(section.get("visual_prompt") or "").split())
@@ -204,6 +219,7 @@ def _enhance_metadata(meta: dict, previous: list[dict], minutes: int) -> dict:
         if "suscrib" not in final_narration.lower():
             sections[-1]["narration"] = f"{final_narration} {_LONG_CTA}".strip()
     meta["sections"] = sections
+    meta["section_voice_plans"] = voice_plans
     meta["cta_spoken"] = _LONG_CTA
     return meta
 
@@ -215,6 +231,7 @@ def run(minutes: int, publish: bool = False) -> dict:
     original_seed = base._seed
     original_visual = base._visual_for_section
     original_voice = base.make_natural_spanish_voice
+    original_fit = base.fit_voice_to_duration
     original_thumbnail = base._thumbnail
     original_assemble = base._assemble
     captured: dict = {}
@@ -234,6 +251,12 @@ def run(minutes: int, publish: bool = False) -> dict:
         used = original_voice(path, text)
         profile = polish_voice(path)
         return used if profile == "unprocessed" else f"{used}+{profile}"
+
+    def strict_fit(path, target_seconds: float) -> None:
+        stats = fit_and_validate_spiritual_voice(path, target_seconds)
+        meta = captured.get("meta") or {}
+        meta.update(stats)
+        meta["voice_delivery"] = "single_continuous_full_duration_validated_track"
 
     def resilient_visual(meta: dict, section: dict, index: int, workdir, ai_slots: int, duration: int):
         prompt = section["visual_prompt"]
@@ -277,6 +300,7 @@ def run(minutes: int, publish: bool = False) -> dict:
     base._generate_metadata = generate
     base._visual_for_section = resilient_visual
     base.make_natural_spanish_voice = luminous_voice
+    base.fit_voice_to_duration = strict_fit
     base._thumbnail = thumbnail_variants
     base._assemble = assemble_with_cta
     try:
@@ -287,6 +311,7 @@ def run(minutes: int, publish: bool = False) -> dict:
         base._seed = original_seed
         base._visual_for_section = original_visual
         base.make_natural_spanish_voice = original_voice
+        base.fit_voice_to_duration = original_fit
         base._thumbnail = original_thumbnail
         base._assemble = original_assemble
 
@@ -307,6 +332,9 @@ def run(minutes: int, publish: bool = False) -> dict:
     result["title_variants"] = meta.get("title_variants") or []
     result["thumbnail_variants"] = meta.get("thumbnail_variants") or []
     result["pinned_comment_candidate"] = meta.get("pinned_comment_candidate")
+    result["voice_continuity_passed"] = meta.get("voice_continuity_passed")
+    result["voice_coverage_ratio"] = meta.get("voice_coverage_ratio")
+    result["longest_voice_silence_seconds"] = meta.get("longest_voice_silence_seconds")
     return result
 
 
