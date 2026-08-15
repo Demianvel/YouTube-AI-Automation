@@ -1,2 +1,2 @@
-Final stability publish test 2026-08-15T01:38:00-03:00
-Purpose: verify full 180s chunk-safe narration, zero-silence guard fix, anti-repeat gate, mixed licensed visual fallback, CTA/comment and real YouTube upload.
+Gemini Omni live publish test 2026-08-15T08:54:00-03:00
+Purpose: verify recurring photoreal spiritual character, native cinematic speech, natural face/body motion, lip-sync request, resilient fallback and real YouTube upload.
