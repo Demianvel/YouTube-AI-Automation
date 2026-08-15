@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 
 from . import spiritual_long_pipeline as base
 from .spiritual_long_local_metadata import generate_local_long_metadata
@@ -19,6 +20,9 @@ def run(minutes: int, publish: bool = False) -> dict:
     original = base._generate_metadata
 
     def resilient(channel: dict, requested_minutes: int) -> dict:
+        if not os.getenv("GEMINI_API_KEY", "").strip():
+            print("GEMINI_API_KEY no disponible; usando guionista biblico local resiliente.")
+            return generate_local_long_metadata(channel, requested_minutes)
         try:
             return original(channel, requested_minutes)
         except Exception as exc:
