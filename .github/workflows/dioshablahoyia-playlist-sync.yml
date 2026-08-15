@@ -1,0 +1,51 @@
+name: Dios Habla Hoy IA - Playlist automática
+
+on:
+  schedule:
+    # Revisa cada 2 horas para incorporar cualquier video o Short futuro.
+    - cron: "43 */2 * * *"
+  workflow_dispatch:
+    inputs:
+      max_adds:
+        description: Máximo de videos a incorporar en esta ejecución
+        required: false
+        default: "120"
+  push:
+    paths:
+      - "app/spiritual_playlist.py"
+      - "scripts/dioshablahoyia_playlist_sync.py"
+      - ".github/workflows/dioshablahoyia-playlist-sync.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dioshablahoyia-playlist-sync
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      PYTHONPATH: .
+      YOUTUBE_TOKEN_DIOSHABLAHOYIA: ${{ secrets.YOUTUBE_TOKEN_DIOSHABLAHOYIA }}
+      PLAYLIST_SYNC_MAX_ADDS: ${{ github.event_name == 'workflow_dispatch' && inputs.max_adds || '120' }}
+      DIOS_PLAYLIST_TITLE: "Dios Habla Hoy | Jesús, Fe, Esperanza y Biblia"
+      DIOS_PLAYLIST_DESCRIPTION: "Videos y Shorts cristianos de Dios Habla Hoy IA sobre Jesús, Dios, Biblia, oración, fe, esperanza, paz y amor. Reflexiones y mensajes inspirados en pasajes bíblicos para acompañar cada día con serenidad, esperanza y confianza en Dios."
+      DIOS_PLAYLIST_PRIVACY: "public"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install YouTube API dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install google-api-python-client google-auth
+
+      - name: Create playlist and sync current/future uploads
+        run: python scripts/dioshablahoyia_playlist_sync.py
