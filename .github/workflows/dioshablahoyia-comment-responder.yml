@@ -1,0 +1,43 @@
+name: Dios Habla Hoy IA - Responder comentarios
+
+on:
+  schedule:
+    # Cada 2 horas. Se limita la cantidad de respuestas por ejecucion para evitar spam.
+    - cron: "17 */2 * * *"
+  workflow_dispatch:
+    inputs:
+      max_replies:
+        description: Maximo de respuestas en esta ejecucion
+        required: false
+        default: "6"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dioshablahoyia-comment-responder
+  cancel-in-progress: false
+
+jobs:
+  reply:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      YOUTUBE_TOKEN_DIOSHABLAHOYIA: ${{ secrets.YOUTUBE_TOKEN_DIOSHABLAHOYIA }}
+      COMMENT_REPLY_MAX: ${{ github.event_name == 'workflow_dispatch' && inputs.max_replies || '6' }}
+      COMMENT_THREAD_SCAN_MAX: "50"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install YouTube API dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install google-api-python-client google-auth
+
+      - name: Reply to recent suitable comments
+        run: python scripts/dioshablahoyia_comment_responder.py
