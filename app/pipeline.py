@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import json
 import math
+import os
 from collections import defaultdict
 from datetime import datetime, timezone
 
@@ -85,8 +86,23 @@ def _apply_content_mode(channel_slug: str, channel: dict, requested: str, previo
     raise ValueError(f"content_mode no soportado para BrotaVida: {requested}")
 
 
+def _configure_spiritual_short(channel_slug: str, channel: dict) -> None:
+    if channel_slug != "dioshablahoyia":
+        return
+    target_seconds = max(60, min(180, int(os.getenv("SPIRITUAL_SHORT_SECONDS", "180"))))
+    scene_seconds = max(8, min(30, int(os.getenv("SPIRITUAL_SHORT_SCENE_SECONDS", "15"))))
+    scenes = max(4, math.ceil(target_seconds / scene_seconds))
+    # Keep the final render at or below YouTube's 3-minute Short ceiling.
+    while scenes * scene_seconds > 180:
+        scenes -= 1
+    channel["scene_seconds"] = scene_seconds
+    channel["scenes_per_short"] = scenes
+    channel["spiritual_short_target_seconds"] = scenes * scene_seconds
+
+
 def run(channel_slug: str, dry_run: bool = False, content_mode: str = "auto") -> dict:
     channel = load_channel(channel_slug)
+    _configure_spiritual_short(channel_slug, channel)
     previous = read_history(HISTORY_FILE, channel=channel_slug, limit=100)
 
     video_module.apply_audio = premium_apply_audio
@@ -127,6 +143,8 @@ def run(channel_slug: str, dry_run: bool = False, content_mode: str = "auto") ->
     metadata = generate_metadata(channel, previous)
     if channel_slug == "dioshablahoyia":
         metadata = enforce_spiritual_metadata(metadata, previous)
+        metadata["target_short_seconds"] = int(channel["scenes_per_short"]) * int(channel["scene_seconds"])
+        metadata["short_format"] = "vertical_up_to_3_minutes"
     metadata["content_mode"] = resolved_mode
     metadata["analytics_used"] = bool(channel.get("_analytics_digest"))
 
