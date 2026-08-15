@@ -100,7 +100,7 @@ def apply_long_cta_overlay(video: Path, duration_seconds: int) -> None:
     temp = video.with_name(video.stem + ".cta.mp4")
     font = os.getenv("SPIRITUAL_CTA_FONT", "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf")
     vf = (
-        f"drawbox=x=w*0.18:y=h*0.80:w=w*0.64:h=100:color=black@0.55:t=fill:enable='between(t,{start:.2f},{float(duration_seconds):.2f})',"
+        f"drawbox=x=iw*0.18:y=ih*0.80:w=iw*0.64:h=100:color=black@0.55:t=fill:enable='between(t,{start:.2f},{float(duration_seconds):.2f})',"
         f"drawtext=fontfile='{font}':text='SUSCRIBITE  |  COMPARTI  |  AMEN':fontcolor=white:fontsize=38:"
         f"x=(w-text_w)/2:y=h*0.825:enable='between(t,{start:.2f},{float(duration_seconds):.2f})'"
     )
