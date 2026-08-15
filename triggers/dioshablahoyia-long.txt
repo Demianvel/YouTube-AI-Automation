@@ -1,2 +1,2 @@
-Smoke publish retry requested 2026-08-14T10:54:00-03:00
-Purpose: verify real 10-minute upload to @dioshablahoyia after signed-seed and keyless-local-fallback fixes.
+Immediate 10-minute publish check - 2026-08-15T01:04-03:00
+Purpose: validate continuous narration + visual stack + real upload + CTA comment after OAuth refresh.
