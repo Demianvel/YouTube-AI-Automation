@@ -7,7 +7,6 @@ from pathlib import Path
 
 from .spiritual_tts import make_spiritual_spanish_voice
 from .hf_video import _normalize, _provider_video, _safe_seed, _space_video, available
-from .spiritual_commons import make_spiritual_commons_clip
 from .spiritual_continuity import ensure_spoken_text, fit_and_validate_spiritual_voice
 from .spiritual_image import _animate as _animate_spiritual_image
 from .spiritual_image import _download as _download_spiritual_image
@@ -16,7 +15,6 @@ from .spiritual_voice import polish_voice
 
 
 def _seed(meta: dict, index: int) -> int:
-    """Use one visual identity seed per video so scene changes do not reshuffle the face."""
     marker = os.getenv("GITHUB_RUN_ID", "") or os.getenv("GITHUB_RUN_NUMBER", "")
     raw = f"spiritual-character-v2|{meta.get('topic','')}|{meta.get('title','')}|{marker}"
     return _safe_seed(int(hashlib.sha256(raw.encode()).hexdigest()[:8], 16))
@@ -29,9 +27,9 @@ def _character_style() -> str:
         "ivory or cream woven linen robe, beige mantle or occasional muted deep-red mantle, historically inspired simple clothing, no resemblance to any actor, celebrity or identifiable real person. "
         "The synthetic character must perform like a real human actor: continuous speaking performance without frozen pauses, natural phoneme-like mouth and jaw motion, cheek motion, blinking, breathing, tiny eye refocusing, head turns and nods, "
         "realistic shoulder, elbow, wrist and finger articulation, five fingers on each hand, natural open-palm gestures, torso weight shifts, hip and knee motion, believable full-body walking when visible, robe folds reacting to legs and wind. "
-        "Real landscapes only in appearance: green valleys and rivers, alpine mountains, Nordic aurora borealis, desert dunes, rocky coastline, olive groves, snowy ridges, forests after rain, lakes and mountain paths. "
+        "The setting exists only to support the biblical message about Jesus and God: peaceful valleys, mountains, rivers, lakes, olive groves, desert paths, forests or starry skies. "
         "Physically plausible sunlight or moonlight, realistic atmospheric depth, natural water, cloud and vegetation motion, cinematic depth of field, slow dolly/orbit/tracking camera. "
-        "ABSOLUTELY NO cartoon, no illustration, no painting, no anime, no stylized 3D, no videogame look, no plastic CGI skin, no doll face, no frozen mannequin pose, no malformed hands, no extra fingers. "
+        "ABSOLUTELY NO unrelated people, celebrities, politics, sports, news, brands, social networks, screens, articles, Wikipedia, Wikimedia, stock footage, reused third-party media, cartoon, illustration, painting, anime, stylized 3D, videogame look, plastic CGI skin, doll face, frozen mannequin pose, malformed hands or extra fingers. "
         "No readable text, no subtitles, no logo, no watermark. This is synthetic AI imagery, not a recording of a real person or a claim of literal divine footage. Vertical 9:16 premium YouTube Short."
     )
 
@@ -68,38 +66,12 @@ def _continuous_voice(meta: dict, workdir: Path, duration: int) -> tuple[Path, s
     return voice, used
 
 
-def _image_scene(
-    prompt: str,
-    meta: dict,
-    workdir: Path,
-    index: int,
-    duration: int,
-    seed: int,
-    used_commons_urls: set[str],
-) -> tuple[Path, str, dict[str, str] | None]:
+def _image_scene(prompt: str, workdir: Path, index: int, duration: int, seed: int) -> tuple[Path, str]:
     image = workdir / f"spiritual_hf_image_{index + 1}.jpg"
     clip = workdir / f"spiritual_hf_image_scene_{index + 1}.mp4"
     provider = _download_spiritual_image(prompt, image, seed)
-
-    # If external AI image capacity is exhausted, the downloader may return one
-    # of the small local Jesus reference set. Keep roughly one anchor shot in
-    # every three scenes and replace the rest with fresh licensed nature/animal
-    # footage from Commons. This preserves the recurring character without mass
-    # publishing near-identical visual templates.
-    if provider.startswith("local_proven_photoreal_reference/") and index % 3 != 0:
-        try:
-            commons_clip, commons_provider, credit = make_spiritual_commons_clip(
-                meta, workdir, index, duration, used_commons_urls
-            )
-            return commons_clip, commons_provider, credit
-        except Exception as exc:
-            print(
-                f"Commons espiritual no disponible en escena {index + 1} ({exc}); "
-                "se conserva la referencia local y el gate final de diversidad decidira."
-            )
-
     _animate_spiritual_image(image, clip, duration, index)
-    return clip, f"{provider} + cinematic motion", None
+    return clip, f"{provider} + original cinematic motion"
 
 
 def generate_spiritual_hf_short(channel: dict, meta: dict, workdir: Path, final: Path, apply_audio_fn) -> None:
@@ -120,8 +92,6 @@ def generate_spiritual_hf_short(channel: dict, meta: dict, workdir: Path, final:
     clips: list[Path] = []
     prompts: list[str] = []
     providers: list[str] = []
-    credits: list[dict[str, str]] = list(meta.get("source_credits") or [])
-    used_commons_urls: set[str] = set()
 
     for index, scene in enumerate(scenes):
         prompt = _prompt(scene, index, len(scenes))
@@ -146,18 +116,14 @@ def generate_spiritual_hf_short(channel: dict, meta: dict, workdir: Path, final:
                 providers.append(provider_label)
                 continue
             except Exception as exc:
-                print(f"T2V espiritual no disponible en escena {index + 1} ({exc}); usando fallback visual diverso.")
+                print(f"T2V espiritual no disponible en escena {index + 1} ({exc}); usando imagen original generada/local del proyecto.")
 
-        clip, provider_label, credit = _image_scene(
-            prompt, meta, workdir, index, scene_duration, visual_seed, used_commons_urls
-        )
+        clip, provider_label = _image_scene(prompt, workdir, index, scene_duration, visual_seed)
         clips.append(clip)
         providers.append(provider_label)
-        if credit:
-            credits.append(credit)
 
     if not clips:
-        raise RuntimeError("No se generaron escenas espirituales de IA.")
+        raise RuntimeError("No se generaron escenas espirituales originales.")
 
     manifest = workdir / "spiritual_hf_concat.txt"
     manifest.write_text("\n".join(f"file '{p.resolve()}'" for p in clips), encoding="utf-8")
@@ -186,15 +152,17 @@ def generate_spiritual_hf_short(channel: dict, meta: dict, workdir: Path, final:
 
     meta["generated_visual_provider"] = providers
     meta["generated_video_prompts"] = prompts
-    meta["source_credits"] = credits
-    meta["mixed_licensed_nature_fallback"] = bool(credits)
+    meta["source_credits"] = []
+    meta["mixed_licensed_nature_fallback"] = False
+    meta["external_media_allowed"] = False
+    meta["original_generated_media_only"] = True
     meta["synthetic_visual"] = True
-    meta["text_to_video_engine"] = "huggingface_ltx23_then_wan22_plus_hf_image_and_commons_hybrid"
+    meta["text_to_video_engine"] = "huggingface_ltx23_then_wan22_plus_original_generated_image_fallback"
     meta["text_to_video_key_scenes_requested"] = ai_slots
     meta["character_reference_profile"] = "dioshablahoyia_photoreal_human_v2"
     meta["character_speaking_motion_requested"] = True
     meta["full_body_motion_requested"] = True
     meta["photoreal_human_required"] = True
     meta["no_cartoon_no_3d_animation"] = True
-    meta["render_quality"] = "1080x1920_30fps_hf_ai_hybrid_live_action"
+    meta["render_quality"] = "1080x1920_30fps_hf_ai_original_live_action"
     apply_audio_fn(audio_visual, final, channel, meta, total_duration, _seed(meta, 999))
