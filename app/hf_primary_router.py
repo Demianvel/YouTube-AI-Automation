@@ -7,6 +7,7 @@ from . import video as base_video
 from .hf_video import available as hf_video_available
 from .hf_video import generate_hf_short
 from .premium_audio import apply_audio as apply_premium_audio
+from .spiritual_audio import apply_spiritual_audio
 from .spiritual_hf_video import generate_spiritual_hf_short
 from .spiritual_image import generate_spiritual_short as generate_spiritual_image_short
 
@@ -39,7 +40,7 @@ def _restore(metadata: dict, originals: list[str]) -> None:
 def _spiritual_fallback(channel: dict, metadata: dict, workdir: Path) -> Path:
     final = workdir / "short.mp4"
     workdir.mkdir(parents=True, exist_ok=True)
-    generate_spiritual_image_short(channel, metadata, workdir, final, apply_premium_audio)
+    generate_spiritual_image_short(channel, metadata, workdir, final, apply_spiritual_audio)
     metadata["visual_source"] = "generated_spiritual_image_motion_fallback"
     metadata["hf_fallback_used"] = True
     return final
@@ -51,9 +52,6 @@ def generate_short(channel: dict, metadata: dict, workdir: Path) -> Path:
     spiritual = "jesus_spiritual" in visual_mode or "spiritual" in visual_mode
     eligible = botanical or "kids" in visual_mode or "mixed_finance" in visual_mode or spiritual
 
-    # HF remains the primary renderer, but free ZeroGPU quotas are finite.
-    # Defaulting to non-strict prevents a quota outage from killing publication.
-    # Set HF_VIDEO_STRICT=true explicitly when an operator wants HF-only behavior.
     strict = os.getenv("HF_VIDEO_STRICT", "false").lower().strip() == "true"
 
     if not eligible:
@@ -76,7 +74,7 @@ def generate_short(channel: dict, metadata: dict, workdir: Path) -> Path:
             originals = _brotavida_prompts(metadata)
 
         if spiritual:
-            generate_spiritual_hf_short(channel, metadata, workdir, final, apply_premium_audio)
+            generate_spiritual_hf_short(channel, metadata, workdir, final, apply_spiritual_audio)
         else:
             generate_hf_short(channel, metadata, workdir, final, apply_premium_audio)
 
