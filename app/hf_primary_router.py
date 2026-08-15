@@ -4,6 +4,8 @@ import os
 from pathlib import Path
 
 from . import video as base_video
+from .gemini_spiritual_video import available as gemini_video_available
+from .gemini_spiritual_video import generate_gemini_spiritual_short
 from .hf_video import available as hf_video_available
 from .hf_video import generate_hf_short
 from .premium_audio import apply_audio as apply_premium_audio
@@ -56,6 +58,22 @@ def generate_short(channel: dict, metadata: dict, workdir: Path) -> Path:
 
     if not eligible:
         return base_video.generate_short(channel, metadata, workdir)
+
+    # Dios Habla Hoy: Gemini Omni Flash es el motor principal porque puede usar
+    # las referencias del personaje y generar imagen, movimiento, voz y ambiente
+    # dentro de un mismo clip. Si la cuenta no tiene acceso/cuota, el pipeline
+    # conserva automaticamente el stack HF + audio + lip-sync como respaldo.
+    if spiritual and gemini_video_available():
+        final = workdir / "short.mp4"
+        workdir.mkdir(parents=True, exist_ok=True)
+        try:
+            generate_gemini_spiritual_short(channel, metadata, workdir, final)
+            metadata["hf_fallback_used"] = False
+            return final
+        except Exception as exc:
+            metadata["gemini_omni_failed"] = str(exc)
+            metadata["gemini_omni_primary"] = False
+            print(f"Gemini Omni no pudo completar el Short ({exc}); usando stack espiritual de respaldo.")
 
     if not hf_video_available():
         if strict:
