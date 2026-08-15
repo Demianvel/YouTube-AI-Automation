@@ -125,6 +125,9 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y ffmpeg libsndfile1
           python -m pip install --upgrade pip
+          # Hosted GitHub runners for this workflow do not use CUDA locally.
+          # Install the CPU wheel first so kokoro does not pull several GB of NVIDIA packages.
+          pip install torch==2.6.0 --index-url https://download.pytorch.org/whl/cpu
           pip install -r requirements.txt
 
       - name: Show AI stack readiness
