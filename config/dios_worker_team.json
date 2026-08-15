@@ -1,0 +1,46 @@
+{
+  "team": "Dios Habla Hoy Studio",
+  "channel": "dioshablahoyia",
+  "timezone": "America/Argentina/Buenos_Aires",
+  "daily_targets": {
+    "long_videos": 4,
+    "shorts": 10
+  },
+  "handoff_order": [
+    "celestial_cinema_engine",
+    "peace_motion_director",
+    "divine_publisher_4x10"
+  ],
+  "workers": {
+    "celestial_cinema_engine": {
+      "name": "Motor Celestial Cinema",
+      "can_generate_video": true,
+      "can_edit_performance": false,
+      "can_publish": false,
+      "preferred_model": "gemini-omni-flash-preview"
+    },
+    "peace_motion_director": {
+      "name": "Director Paz Viva",
+      "can_generate_video": false,
+      "can_edit_performance": true,
+      "can_publish": false,
+      "requirements": [
+        "natural_lip_sync",
+        "natural_face_motion",
+        "natural_body_motion",
+        "stable_character_identity",
+        "human_warm_cinematic_voice",
+        "peace_love_hope_emotion"
+      ]
+    },
+    "divine_publisher_4x10": {
+      "name": "Publicador Reino 4x10",
+      "can_generate_video": false,
+      "can_edit_performance": false,
+      "can_publish": true,
+      "channel_lock": "dioshablahoyia",
+      "shorts_per_day": 10,
+      "long_videos_per_day": 4
+    }
+  }
+}
