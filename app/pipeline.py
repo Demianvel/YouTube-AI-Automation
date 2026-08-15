@@ -34,7 +34,6 @@ def _apply_content_mode(channel_slug: str, channel: dict, requested: str, previo
     if channel_slug in DISABLED_CHANNELS:
         raise RuntimeError(f"Canal desactivado por configuracion: {channel_slug}")
     if channel_slug == "brotavida":
-        # BrotaVida queda exclusivamente como time-lapse botanico ASMR.
         channel["audio_mode"] = "asmr"
         channel["visual_mode"] = "real_botanical_timelapse"
         channel["require_real_video"] = True
@@ -146,6 +145,9 @@ def run(channel_slug: str, dry_run: bool = False, content_mode: str = "auto") ->
         "uniqueness_gate_passed": metadata.get("uniqueness_gate_passed"),
         "video_id": video_id,
         "status": status,
+        "comment_publish_status": metadata.get("comment_publish_status"),
+        "comment_thread_id": metadata.get("comment_thread_id"),
+        "comment_pin_status": metadata.get("comment_pin_status"),
     }
     append_history(HISTORY_FILE, record)
     print(json.dumps(record, ensure_ascii=False))
