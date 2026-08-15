@@ -14,7 +14,7 @@ SHORT_TIMES = [
     time(7, 30), time(9, 0), time(10, 30), time(12, 0), time(13, 30),
     time(15, 0), time(16, 30), time(18, 0), time(19, 30), time(21, 0),
 ]
-LONG_SLOTS = [(time(8, 0), 5), (time(12, 0), 10), (time(16, 0), 20), (time(20, 0), 30)]
+LONG_SLOTS = [(time(8, 0), 10), (time(12, 0), 15), (time(16, 0), 20), (time(20, 0), 30)]
 
 
 def _rows(path: Path) -> list[dict]:
