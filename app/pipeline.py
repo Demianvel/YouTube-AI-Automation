@@ -44,10 +44,13 @@ def _apply_content_mode(channel_slug: str, channel: dict, requested: str, previo
 def _configure_spiritual_short(channel_slug: str, channel: dict) -> None:
     if channel_slug != "dioshablahoyia":
         return
-    target_seconds = max(60, min(180, int(os.getenv("SPIRITUAL_SHORT_SECONDS", "180"))))
-    scene_seconds = max(8, min(30, int(os.getenv("SPIRITUAL_SHORT_SCENE_SECONDS", "15"))))
-    scenes = max(4, math.ceil(target_seconds / scene_seconds))
-    while scenes * scene_seconds > 180:
+
+    # El motor audiovisual nativo funciona mejor con un solo clip corto continuo:
+    # preserva cara, cuerpo, voz y sincronizacion sin uniones entre escenas.
+    target_seconds = max(8, min(60, int(os.getenv("SPIRITUAL_SHORT_SECONDS", "8"))))
+    scene_seconds = max(8, min(30, int(os.getenv("SPIRITUAL_SHORT_SCENE_SECONDS", "8"))))
+    scenes = max(1, math.ceil(target_seconds / scene_seconds))
+    while scenes * scene_seconds > 60 and scenes > 1:
         scenes -= 1
     channel["scene_seconds"] = scene_seconds
     channel["scenes_per_short"] = scenes
@@ -110,7 +113,7 @@ def run(channel_slug: str, dry_run: bool = False, content_mode: str = "auto") ->
     if channel_slug == "dioshablahoyia":
         metadata = enforce_spiritual_metadata(metadata, previous)
         metadata["target_short_seconds"] = int(channel["scenes_per_short"]) * int(channel["scene_seconds"])
-        metadata["short_format"] = "vertical_up_to_3_minutes"
+        metadata["short_format"] = "vertical_native_cinematic_short"
         metadata = enrich_short_growth(metadata, previous)
         metadata = validate_spiritual_uniqueness(metadata, previous)
 
