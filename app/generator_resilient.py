@@ -24,6 +24,8 @@ def _service_error(exc: Exception) -> bool:
             "NO LONGER AVAILABLE",
             "QUOTA",
             "RATE LIMIT",
+            "API KEY",
+            "GEMINI_API_KEY",
         )
     )
 
@@ -205,6 +207,11 @@ def _local_metadata(channel: dict, previous: list[dict]) -> dict:
 
 
 def generate_metadata(channel: dict, previous: list[dict], retries: int = 5):
+    if not os.getenv("GEMINI_API_KEY", "").strip():
+        metadata = _local_metadata(channel, previous)
+        print("GEMINI_API_KEY ausente: usando metadata local resiliente.")
+        return metadata
+
     try:
         return base.generate_metadata(channel, previous, retries=retries)
     except Exception as primary_exc:
