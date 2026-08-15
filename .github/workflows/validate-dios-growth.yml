@@ -8,6 +8,7 @@ on:
       - "app/spiritual_*.py"
       - "scripts/dioshablahoyia_watchdog.py"
       - "config/dioshablahoyia_bible_references.json"
+      - "assets/dioshablahoyia/reference/*.jpg"
       - ".github/workflows/dioshablahoyia-*.yml"
       - ".github/workflows/shorts.yml"
       - ".github/workflows/analytics-monitor.yml"
@@ -27,9 +28,26 @@ jobs:
         with:
           python-version: "3.11"
 
+      - name: Install lightweight validation dependencies
+        run: pip install -q pillow requests huggingface_hub
+
       - name: Compile spiritual Python modules
         run: |
           python -m compileall -q app scripts/dioshablahoyia_watchdog.py
+
+      - name: Validate zero-credit photoreal references
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          from app.spiritual_image import _local_reference
+          refs = sorted(Path('assets/dioshablahoyia/reference').glob('jesus_reference_*.jpg'))
+          assert len(refs) >= 3, len(refs)
+          out = Path('/tmp/dios-local-fallback.jpg')
+          provider = _local_reference(out, 20260815)
+          assert out.exists() and out.stat().st_size > 20_000
+          assert provider.startswith('local_proven_photoreal_reference/')
+          print('Zero-credit photoreal fallback OK:', provider, out.stat().st_size)
+          PY
 
       - name: Validate resilient long-script targets
         run: |
