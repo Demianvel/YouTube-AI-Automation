@@ -2,9 +2,11 @@ from __future__ import annotations
 
 import json
 import os
+import time
 
 from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
+from googleapiclient.errors import HttpError
 
 from app.spiritual_playlist import (
     PLAYLIST_DESCRIPTION,
@@ -51,15 +53,31 @@ def _channel_uploads_playlist(youtube) -> tuple[str, str]:
     return channel_id, uploads
 
 
+def _playlist_page(youtube, playlist_id: str, page_token: str | None):
+    last_error: Exception | None = None
+    for attempt in range(1, 7):
+        try:
+            return youtube.playlistItems().list(
+                part="contentDetails",
+                playlistId=playlist_id,
+                maxResults=50,
+                pageToken=page_token,
+            ).execute()
+        except HttpError as exc:
+            last_error = exc
+            status = int(getattr(exc.resp, "status", 0) or 0)
+            body = str(exc)
+            if status == 404 and "playlistNotFound" in body and attempt < 6:
+                time.sleep(attempt * 2)
+                continue
+            raise
+    raise RuntimeError(f"La playlist no quedó disponible después de varios reintentos: {last_error}")
+
+
 def _video_ids_from_playlist(youtube, playlist_id: str):
     page_token = None
     while True:
-        response = youtube.playlistItems().list(
-            part="contentDetails",
-            playlistId=playlist_id,
-            maxResults=50,
-            pageToken=page_token,
-        ).execute()
+        response = _playlist_page(youtube, playlist_id, page_token)
         for item in response.get("items") or []:
             video_id = str((item.get("contentDetails") or {}).get("videoId") or "")
             if video_id:
