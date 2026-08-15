@@ -7,6 +7,7 @@ from pathlib import Path
 
 from .spiritual_tts import make_spiritual_spanish_voice
 from .hf_video import _normalize, _provider_video, _safe_seed, _space_video, available
+from .spiritual_commons import make_spiritual_commons_clip
 from .spiritual_continuity import ensure_spoken_text, fit_and_validate_spiritual_voice
 from .spiritual_image import _animate as _animate_spiritual_image
 from .spiritual_image import _download as _download_spiritual_image
@@ -67,12 +68,38 @@ def _continuous_voice(meta: dict, workdir: Path, duration: int) -> tuple[Path, s
     return voice, used
 
 
-def _image_scene(prompt: str, workdir: Path, index: int, duration: int, seed: int) -> tuple[Path, str]:
+def _image_scene(
+    prompt: str,
+    meta: dict,
+    workdir: Path,
+    index: int,
+    duration: int,
+    seed: int,
+    used_commons_urls: set[str],
+) -> tuple[Path, str, dict[str, str] | None]:
     image = workdir / f"spiritual_hf_image_{index + 1}.jpg"
     clip = workdir / f"spiritual_hf_image_scene_{index + 1}.mp4"
     provider = _download_spiritual_image(prompt, image, seed)
+
+    # If external AI image capacity is exhausted, the downloader may return one
+    # of the small local Jesus reference set. Keep roughly one anchor shot in
+    # every three scenes and replace the rest with fresh licensed nature/animal
+    # footage from Commons. This preserves the recurring character without mass
+    # publishing near-identical visual templates.
+    if provider.startswith("local_proven_photoreal_reference/") and index % 3 != 0:
+        try:
+            commons_clip, commons_provider, credit = make_spiritual_commons_clip(
+                meta, workdir, index, duration, used_commons_urls
+            )
+            return commons_clip, commons_provider, credit
+        except Exception as exc:
+            print(
+                f"Commons espiritual no disponible en escena {index + 1} ({exc}); "
+                "se conserva la referencia local y el gate final de diversidad decidira."
+            )
+
     _animate_spiritual_image(image, clip, duration, index)
-    return clip, f"{provider} + cinematic motion"
+    return clip, f"{provider} + cinematic motion", None
 
 
 def generate_spiritual_hf_short(channel: dict, meta: dict, workdir: Path, final: Path, apply_audio_fn) -> None:
@@ -93,6 +120,8 @@ def generate_spiritual_hf_short(channel: dict, meta: dict, workdir: Path, final:
     clips: list[Path] = []
     prompts: list[str] = []
     providers: list[str] = []
+    credits: list[dict[str, str]] = list(meta.get("source_credits") or [])
+    used_commons_urls: set[str] = set()
 
     for index, scene in enumerate(scenes):
         prompt = _prompt(scene, index, len(scenes))
@@ -117,11 +146,15 @@ def generate_spiritual_hf_short(channel: dict, meta: dict, workdir: Path, final:
                 providers.append(provider_label)
                 continue
             except Exception as exc:
-                print(f"T2V espiritual no disponible en escena {index + 1} ({exc}); usando imagen HF fotorrealista animada.")
+                print(f"T2V espiritual no disponible en escena {index + 1} ({exc}); usando fallback visual diverso.")
 
-        clip, provider_label = _image_scene(prompt, workdir, index, scene_duration, visual_seed)
+        clip, provider_label, credit = _image_scene(
+            prompt, meta, workdir, index, scene_duration, visual_seed, used_commons_urls
+        )
         clips.append(clip)
         providers.append(provider_label)
+        if credit:
+            credits.append(credit)
 
     if not clips:
         raise RuntimeError("No se generaron escenas espirituales de IA.")
@@ -153,8 +186,10 @@ def generate_spiritual_hf_short(channel: dict, meta: dict, workdir: Path, final:
 
     meta["generated_visual_provider"] = providers
     meta["generated_video_prompts"] = prompts
+    meta["source_credits"] = credits
+    meta["mixed_licensed_nature_fallback"] = bool(credits)
     meta["synthetic_visual"] = True
-    meta["text_to_video_engine"] = "huggingface_ltx23_then_wan22_plus_hf_image_hybrid"
+    meta["text_to_video_engine"] = "huggingface_ltx23_then_wan22_plus_hf_image_and_commons_hybrid"
     meta["text_to_video_key_scenes_requested"] = ai_slots
     meta["character_reference_profile"] = "dioshablahoyia_photoreal_human_v2"
     meta["character_speaking_motion_requested"] = True
