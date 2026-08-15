@@ -1,0 +1,60 @@
+name: Validate Dios Habla Hoy automation
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "app/spiritual_*.py"
+      - "scripts/dioshablahoyia_watchdog.py"
+      - "config/dioshablahoyia_bible_references.json"
+      - ".github/workflows/dioshablahoyia-*.yml"
+      - ".github/workflows/shorts.yml"
+      - ".github/workflows/analytics-monitor.yml"
+      - ".github/workflows/validate-dios-growth.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Compile spiritual Python modules
+        run: |
+          python -m compileall -q app scripts/dioshablahoyia_watchdog.py
+
+      - name: Validate resilient long-script targets
+        run: |
+          python - <<'PY'
+          from app.spiritual_long_local_metadata import generate_local_long_metadata
+          for minutes in (5, 10, 20, 30):
+              data = generate_local_long_metadata({"display_name":"Dios Habla Hoy IA"}, minutes)
+              sections = data.get("sections") or []
+              assert len(sections) == max(5, minutes // 2), (minutes, len(sections))
+              words = sum(len(str(x.get("narration") or "").split()) for x in sections)
+              assert words >= minutes * 105, (minutes, words)
+              assert all(x.get("bible_reference") for x in sections)
+              print(f"{minutes} min OK: sections={len(sections)}, words={words}")
+          PY
+
+      - name: Validate watchdog plan
+        run: |
+          python scripts/dioshablahoyia_watchdog.py
+
+      - name: Validate expected daily schedules
+        shell: bash
+        run: |
+          grep -q 'MINUTES="5"' .github/workflows/dioshablahoyia-long.yml
+          grep -q 'MINUTES="10"' .github/workflows/dioshablahoyia-long.yml
+          grep -q 'MINUTES="20"' .github/workflows/dioshablahoyia-long.yml
+          grep -q 'MINUTES="30"' .github/workflows/dioshablahoyia-long.yml
+          grep -q '10 Shorts diarios' .github/workflows/dioshablahoyia-shorts-5min.yml
+          echo "Daily schedule validation OK"
