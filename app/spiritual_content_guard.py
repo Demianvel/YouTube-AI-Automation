@@ -40,10 +40,29 @@ _DECEPTIVE_TERMS = (
     "dios me reveló", "si ignoras esto", "si ignorás esto",
 )
 
-_ALLOWED_TAGS = (
-    "dios", "jesus", "jesucristo", "cristo", "biblia", "fe", "oracion",
-    "esperanza", "paz", "amor", "evangelio", "salmos", "reflexion cristiana",
-    "dios habla hoy", "shorts",
+# YouTube counts commas and also treats tags containing spaces as quoted for the
+# 500-character snippet.tags limit. This curated 18-tag pack costs 499 chars by
+# that API counting rule, so it stays inside the official maximum while keeping
+# every keyword tightly related to Dios, Jesus, Biblia, fe, esperanza and amor.
+_YOUTUBE_TAGS_500 = (
+    "Dios",
+    "Jesús",
+    "Jesucristo",
+    "Biblia",
+    "Fe en Dios y Jesucristo",
+    "Esperanza y confianza en Dios",
+    "Amor de Dios cada día",
+    "Oración cristiana para el alma",
+    "Paz de Dios en la dificultad",
+    "Palabra de Dios y reflexión bíblica",
+    "Reflexión cristiana diaria",
+    "Mensajes cristianos de esperanza y amor",
+    "Enseñanzas de Jesús para la vida",
+    "Versículos bíblicos de fe y esperanza",
+    "Oración para encontrar paz y consuelo",
+    "Fe esperanza amor y confianza en Dios",
+    "Videos cristianos sobre Jesús y la Biblia",
+    "Dios Habla Hoy",
 )
 
 
@@ -60,6 +79,13 @@ def _contains_any(text: str, terms: tuple[str, ...]) -> list[str]:
         if _normalize(term) in normalized:
             hits.append(term)
     return hits
+
+
+def _youtube_tag_cost(tags: tuple[str, ...] | list[str]) -> int:
+    if not tags:
+        return 0
+    content = sum(len(tag) + (2 if " " in tag else 0) for tag in tags)
+    return content + len(tags) - 1
 
 
 def _editorial_text(metadata: dict) -> str:
@@ -150,16 +176,9 @@ def enforce_spiritual_topic_guard(metadata: dict) -> dict:
         description = (description + "\n\n" + disclosure).strip()
     metadata["description"] = description[:4600]
 
-    tags: list[str] = []
-    for tag in metadata.get("tags") or []:
-        clean = " ".join(str(tag).split()).strip()
-        normalized = _normalize(clean)
-        if clean and any(_normalize(allowed) in normalized for allowed in _ALLOWED_TAGS):
-            tags.append(clean)
-    for required in ("Dios", "Jesus", "Biblia", "Fe", "Oracion", "Dios Habla Hoy"):
-        if _normalize(required) not in {_normalize(x) for x in tags}:
-            tags.append(required)
-    metadata["tags"] = tags[:15]
+    metadata["tags"] = list(_YOUTUBE_TAGS_500)
+    metadata["youtube_tag_character_cost"] = _youtube_tag_cost(_YOUTUBE_TAGS_500)
+    metadata["youtube_tag_limit"] = 500
     metadata["hashtags"] = ["#Dios", "#Jesus", "#Biblia", "#Fe", "#Shorts"]
 
     _assert_spiritual_scope(metadata)
@@ -170,6 +189,14 @@ def enforce_spiritual_topic_guard(metadata: dict) -> dict:
 def validate_spiritual_upload_guard(metadata: dict) -> dict:
     """Final fail-closed check immediately before a spiritual upload."""
     _assert_spiritual_scope(metadata)
+
+    tags = tuple(str(x) for x in (metadata.get("tags") or []))
+    tag_cost = _youtube_tag_cost(tags)
+    if tag_cost > 500:
+        raise RuntimeError(
+            f"BLOQUEADO ANTES DE YOUTUBE: las etiquetas exceden 500 caracteres API ({tag_cost})."
+        )
+    metadata["youtube_tag_character_cost"] = tag_cost
 
     credits = metadata.get("source_credits") or []
     if credits:
