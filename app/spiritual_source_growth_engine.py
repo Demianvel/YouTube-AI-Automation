@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import hashlib
+import json
 import re
+from pathlib import Path
 from urllib.parse import quote_plus
 
 
@@ -18,6 +20,8 @@ KEYWORD_OPPORTUNITIES = (
     {"keyword": "oración poderosa", "volume": 72.51, "competition": 58.5, "score": 60.11, "ar_volume": 3003},
     {"keyword": "oración de la noche", "volume": 80.52, "competition": 74.0, "score": 58.71, "ar_volume": 2554},
 )
+
+MARKET_SIGNAL_PATH = Path("state/dioshablahoyia_market_signals.json")
 
 REFERENCE_POOL = (
     "Salmo 23",
@@ -79,6 +83,18 @@ def _seed(metadata: dict) -> int:
     return int(hashlib.sha256(raw.encode("utf-8")).hexdigest()[:8], 16)
 
 
+def _market_signals() -> dict:
+    if not MARKET_SIGNAL_PATH.exists():
+        return {}
+    try:
+        data = json.loads(MARKET_SIGNAL_PATH.read_text(encoding="utf-8"))
+    except Exception:
+        return {}
+    if not isinstance(data, dict):
+        return {}
+    return data
+
+
 def _reference(metadata: dict) -> str:
     current = _clean(metadata.get("bible_reference"))
     if current:
@@ -102,7 +118,32 @@ def _biblegateway_url(reference: str) -> str:
     return f"https://www.biblegateway.com/passage/?search={quote_plus(reference)}&version=RVR1960"
 
 
-def _select_keyword(metadata: dict) -> dict:
+def _market_keyword_preferences(signals: dict, haystack: str) -> list[str]:
+    mapping = {
+        "dios": "Dios",
+        "biblia": "Biblia",
+        "jesús": "Jesucristo",
+        "jesucristo": "Jesucristo",
+        "salmo 91": "Salmo 91",
+        "oración": "oración poderosa",
+        "noche": "oración de la noche",
+        "dormir": "oración para dormir",
+        "salmos": "salmos para dormir",
+    }
+    out: list[str] = []
+    for row in signals.get("top_terms") or []:
+        term = _clean((row or {}).get("term")).lower()
+        candidate = mapping.get(term)
+        if not candidate:
+            continue
+        if term in ("noche", "dormir", "salmos", "salmo 91") and not any(x in haystack for x in ("noche", "dorm", "salmo", "91", "refugio", "protecci")):
+            continue
+        if candidate not in out:
+            out.append(candidate)
+    return out
+
+
+def _select_keyword(metadata: dict, signals: dict) -> dict:
     haystack = " ".join(
         (
             _clean(metadata.get("topic")),
@@ -110,7 +151,7 @@ def _select_keyword(metadata: dict) -> dict:
             _clean(metadata.get("bible_reference")),
         )
     ).lower()
-    preferences: list[str] = []
+    preferences: list[str] = _market_keyword_preferences(signals, haystack)
     if "91" in haystack or "refugio" in haystack or "protecci" in haystack:
         preferences += ["Salmo 91", "Dios", "Biblia"]
     if "dorm" in haystack or "noche" in haystack:
@@ -123,12 +164,13 @@ def _select_keyword(metadata: dict) -> dict:
     by_name = {row["keyword"]: row for row in KEYWORD_OPPORTUNITIES}
     for name in preferences:
         if name in by_name:
-            return dict(by_name[name])
+            result = dict(by_name[name])
+            result["market_boosted"] = name in _market_keyword_preferences(signals, haystack)
+            return result
     return dict(KEYWORD_OPPORTUNITIES[0])
 
 
 def _safe_title_variants(metadata: dict, keyword: str, reference: str, content_type: str) -> list[str]:
-    topic = _clean(metadata.get("topic")) or "fe y esperanza"
     base = _clean(metadata.get("title"))
     if content_type == "short":
         candidates = [
@@ -210,10 +252,18 @@ def ground_and_optimize_spiritual_metadata(
         "inventadas a Dios o a Jesús y no copiar automáticamente traducciones protegidas."
     )
 
-    keyword = _select_keyword(metadata)
+    signals = _market_signals()
+    keyword = _select_keyword(metadata, signals)
     metadata["seo_primary_keyword"] = keyword["keyword"]
     metadata["seo_keyword_signal"] = keyword
     metadata["seo_research_snapshot"] = "vidIQ Spanish/Argentina keyword research 2026-08-15"
+    metadata["market_signal_snapshot"] = {
+        "generated_at": signals.get("generated_at"),
+        "window_hours": signals.get("window_hours"),
+        "videos_analyzed": signals.get("videos_analyzed"),
+        "top_terms": (signals.get("top_terms") or [])[:6],
+        "method": signals.get("method"),
+    }
 
     titles = _safe_title_variants(metadata, keyword["keyword"], reference, content_type)
     if titles:
