@@ -7,6 +7,7 @@ import os
 from . import spiritual_long_pipeline as base
 from .spiritual_long_local_metadata import generate_local_long_metadata
 from .spiritual_long_runner import run as enhanced_run
+from .spiritual_tts import make_spiritual_spanish_voice
 
 
 def _service_error(exc: Exception) -> bool:
@@ -17,14 +18,15 @@ def _service_error(exc: Exception) -> bool:
 
 
 def run(minutes: int, publish: bool = False) -> dict:
-    original = base._generate_metadata
+    original_metadata = base._generate_metadata
+    original_voice = base.make_natural_spanish_voice
 
     def resilient(channel: dict, requested_minutes: int) -> dict:
         if not os.getenv("GEMINI_API_KEY", "").strip():
             print("GEMINI_API_KEY no disponible; usando guionista biblico local resiliente.")
             return generate_local_long_metadata(channel, requested_minutes)
         try:
-            return original(channel, requested_minutes)
+            return original_metadata(channel, requested_minutes)
         except Exception as exc:
             if not _service_error(exc):
                 raise
@@ -32,10 +34,15 @@ def run(minutes: int, publish: bool = False) -> dict:
             return generate_local_long_metadata(channel, requested_minutes)
 
     base._generate_metadata = resilient
+    # The enhanced runner captures base.make_natural_spanish_voice at runtime,
+    # so install the chunk-safe spiritual TTS before entering it. This prevents
+    # Kokoro from truncating a multi-minute section to its first ~20 seconds.
+    base.make_natural_spanish_voice = make_spiritual_spanish_voice
     try:
         return enhanced_run(minutes, publish=publish)
     finally:
-        base._generate_metadata = original
+        base._generate_metadata = original_metadata
+        base.make_natural_spanish_voice = original_voice
 
 
 def main() -> None:
