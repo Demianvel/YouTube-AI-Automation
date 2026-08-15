@@ -1,0 +1,46 @@
+from __future__ import annotations
+
+import argparse
+import json
+
+from . import spiritual_long_pipeline as base
+from .spiritual_long_local_metadata import generate_local_long_metadata
+from .spiritual_long_runner import run as enhanced_run
+
+
+def _service_error(exc: Exception) -> bool:
+    text = str(exc).upper()
+    return any(token in text for token in (
+        "429", "RESOURCE_EXHAUSTED", "QUOTA", "RATE LIMIT", "503", "UNAVAILABLE", "HIGH DEMAND", "404 NOT_FOUND",
+    ))
+
+
+def run(minutes: int, publish: bool = False) -> dict:
+    original = base._generate_metadata
+
+    def resilient(channel: dict, requested_minutes: int) -> dict:
+        try:
+            return original(channel, requested_minutes)
+        except Exception as exc:
+            if not _service_error(exc):
+                raise
+            print(f"Gemini long-form no disponible ({exc}); usando guionista biblico local resiliente.")
+            return generate_local_long_metadata(channel, requested_minutes)
+
+    base._generate_metadata = resilient
+    try:
+        return enhanced_run(minutes, publish=publish)
+    finally:
+        base._generate_metadata = original
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--minutes", required=True, type=int, choices=[5, 10, 15, 20, 30, 40])
+    parser.add_argument("--publish", action="store_true")
+    args = parser.parse_args()
+    print(json.dumps(run(args.minutes, publish=args.publish), ensure_ascii=False))
+
+
+if __name__ == "__main__":
+    main()
