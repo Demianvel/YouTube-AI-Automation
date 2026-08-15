@@ -16,7 +16,7 @@ def _cta_overlay(path: Path, duration: int) -> None:
     temp = path.with_name(path.stem + ".cta.mp4")
     font = os.getenv("SPIRITUAL_CTA_FONT", "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf")
     vf = (
-        f"drawbox=x=w*0.11:y=h*0.79:w=w*0.78:h=150:color=black@0.62:t=fill:enable='between(t,{start:.2f},{float(duration):.2f})',"
+        f"drawbox=x=iw*0.11:y=ih*0.79:w=iw*0.78:h=150:color=black@0.62:t=fill:enable='between(t,{start:.2f},{float(duration):.2f})',"
         f"drawtext=fontfile='{font}':text='SUSCRIBITE  |  COMPARTI  |  AMEN':fontcolor=white:fontsize=48:"
         f"x=(w-text_w)/2:y=h*0.82:enable='between(t,{start:.2f},{float(duration):.2f})'"
     )
