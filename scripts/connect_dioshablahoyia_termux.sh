@@ -9,6 +9,7 @@ EXPECTED_HANDLE="@dioshablahoyia"
 SECRET_NAME="YOUTUBE_TOKEN_DIOSHABLAHOYIA"
 TOKEN_FILE="${TMPDIR:-$HOME}/yt-dioshablahoyia-token.json"
 DOWNLOAD_DIR="/storage/emulated/0/Download"
+REQUIRED_COMMENT_SCOPE="https://www.googleapis.com/auth/youtube.force-ssl"
 
 cleanup() {
   rm -f "$TOKEN_FILE"
@@ -102,6 +103,25 @@ if [ ! -s "$TOKEN_FILE" ]; then
   exit 1
 fi
 
+python - "$TOKEN_FILE" "$REQUIRED_COMMENT_SCOPE" <<'PY'
+import json
+import sys
+
+path, required = sys.argv[1], sys.argv[2]
+with open(path, encoding="utf-8") as fh:
+    data = json.load(fh)
+scopes = set(data.get("scopes") or [])
+print("\nScopes OAuth que se guardaran en GitHub:")
+for scope in sorted(scopes):
+    print(" -", scope)
+if required not in scopes:
+    raise SystemExit(
+        "ERROR: falta youtube.force-ssl. NO se actualizo el secret. "
+        "Repite la autorizacion aceptando todos los permisos de YouTube."
+    )
+print("OK: youtube.force-ssl verificado. Los comentarios superiores pueden publicarse por API.")
+PY
+
 chmod 600 "$TOKEN_FILE"
 gh secret set "$SECRET_NAME" --repo "$REPO" < "$TOKEN_FILE"
 rm -f "$TOKEN_FILE"
@@ -109,7 +129,8 @@ rm -f "$TOKEN_FILE"
 echo ""
 echo "Conexion completada."
 echo "Canal verificado: $EXPECTED_HANDLE"
-echo "Secret GitHub: $SECRET_NAME"
+echo "Secret GitHub actualizado: $SECRET_NAME"
+echo "Scope de comentarios verificado: youtube.force-ssl"
 echo "El token OAuth fue guardado cifrado en GitHub Actions y el archivo temporal fue eliminado."
 echo ""
 echo "Verificacion de presencia del secret:"
