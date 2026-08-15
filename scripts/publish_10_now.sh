@@ -1,44 +1,48 @@
 #!/data/data/com.termux/files/usr/bin/bash
 set -euo pipefail
 
-REPO="Demianvel/YouTube-AI-Automation"
+ROOT="${HOME}/YouTube-AI-Automation"
+COUNT="${1:-10}"
 
-command -v gh >/dev/null 2>&1 || { echo "Falta GitHub CLI (gh). Instala con: pkg install gh"; exit 1; }
-gh auth status >/dev/null 2>&1 || { echo "GitHub CLI no esta autenticado. Ejecuta: gh auth login"; exit 1; }
+cd "$ROOT" || {
+  echo "ERROR: no existe $ROOT"
+  exit 1
+}
 
-echo "Lanzando 5 rondas. Cada ronda publica 1 Short + 1 video largo por canal."
-echo "Total objetivo: 10 publicaciones por canal (5 Shorts + 5 largos)."
+if ! [[ "$COUNT" =~ ^[0-9]+$ ]] || [ "$COUNT" -lt 1 ] || [ "$COUNT" -gt 10 ]; then
+  echo "Uso: bash ./scripts/publish_10_now.sh [1-10]"
+  exit 1
+fi
 
-for i in 1 2 3 4 5; do
+echo "Publicador por lotes: SOLO Dios Habla Hoy."
+echo "Objetivo de esta ejecucion: $COUNT Short(s)."
+echo "EnViKids y DineroClaro no se ejecutan. BrotaVida mantiene su automatizacion separada."
+
+for i in $(seq 1 "$COUNT"); do
   echo ""
-  echo "===== RONDA $i/5 ====="
+  echo "========== DIOS SHORT $i/$COUNT =========="
 
-  gh workflow run shorts.yml -R "$REPO" --ref main \
-    -f channel=brotavida -f content_mode=asmr -f dry_run=false
+  while true; do
+    set +e
+    bash ./scripts/publish_dios_short_termux.sh
+    CODE=$?
+    set -e
 
-  gh workflow run shorts.yml -R "$REPO" --ref main \
-    -f channel=dineroclaro -f content_mode=voice -f dry_run=false
+    if [ "$CODE" -eq 0 ]; then
+      break
+    fi
 
-  gh workflow run shorts.yml -R "$REPO" --ref main \
-    -f channel=envikids -f content_mode=voice -f dry_run=false
+    if [ "$CODE" -eq 2 ]; then
+      echo "Hay otro Short procesandose. Reintentando en 90 segundos..."
+      sleep 90
+      continue
+    fi
 
-  gh workflow run long-5min.yml -R "$REPO" --ref main \
-    -f channel=both -f publish=true
+    echo "La publicacion $i fallo con codigo $CODE. Se detiene el lote para evitar publicaciones defectuosas."
+    exit "$CODE"
+  done
 
-  if [ $((i % 2)) -eq 0 ]; then
-    MINUTES=10
-  else
-    MINUTES=5
-  fi
-
-  gh workflow run envikids-long.yml -R "$REPO" --ref main \
-    -f minutes="$MINUTES" -f publish=true
-
-  echo "Ronda $i enviada a GitHub Actions."
-  sleep 5
 done
 
 echo ""
-echo "Todas las rondas fueron enviadas. Los jobs se ejecutan/encolan en GitHub Actions."
-echo ""
-gh run list -R "$REPO" --limit 40
+echo "OK: se completaron $COUNT Short(s) de Dios Habla Hoy."
