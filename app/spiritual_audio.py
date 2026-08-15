@@ -4,8 +4,9 @@ import os
 import subprocess
 from pathlib import Path
 
-from .audio import fit_voice_to_duration, make_natural_spanish_voice
+from .audio import make_natural_spanish_voice
 from .premium_audio import make_premium_original_music
+from .spiritual_continuity import ensure_spoken_text, fit_and_validate_spiritual_voice
 from .spiritual_voice import polish_voice
 
 
@@ -38,6 +39,10 @@ def apply_spiritual_audio(video: Path, out: Path, channel: dict, meta: dict, dur
     if not text:
         raise RuntimeError("El Short espiritual requiere narracion continua.")
 
+    text, text_stats = ensure_spoken_text(text, duration, seed=seed)
+    meta["spoken_text_continuity"] = text_stats
+    meta["spoken_text_final_words"] = text_stats["final_words"]
+
     precomputed = str(meta.get("_precomputed_voice_path") or "").strip()
     precomputed_provider = str(meta.get("_precomputed_tts_provider") or "").strip()
     voice_path = Path(precomputed) if precomputed else out.with_name("spiritual_voice_master.wav")
@@ -49,7 +54,9 @@ def apply_spiritual_audio(video: Path, out: Path, channel: dict, meta: dict, dur
         master = polish_voice(voice_path)
         if master != "unprocessed":
             used = f"{used}+{master}"
-        fit_voice_to_duration(voice_path, duration)
+
+    continuity = fit_and_validate_spiritual_voice(voice_path, duration)
+    meta.update(continuity)
 
     music = out.with_name("spiritual_original_background.wav")
     music_variant = make_premium_original_music(music, duration, seed ^ 0xD105, mood="calm")
@@ -66,7 +73,7 @@ def apply_spiritual_audio(video: Path, out: Path, channel: dict, meta: dict, dur
     _cta_overlay(out, duration)
     meta["tts_provider_used"] = used
     meta["voice_profile"] = os.getenv("SPIRITUAL_VOICE_PROFILE", "default")
-    meta["voice_delivery"] = "continuous_tight_no_long_pauses_same_track_used_for_lipsync"
+    meta["voice_delivery"] = "continuous_full_duration_validated_same_track_used_for_lipsync"
     meta["music_variant"] = music_variant
     meta["audio_source"] = "unique_spiritual_voice_plus_low_original_music"
     meta["cta_overlay"] = "SUSCRIBITE | COMPARTI | AMEN"
