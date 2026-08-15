@@ -8,10 +8,13 @@ from urllib.parse import quote
 
 import requests
 from huggingface_hub import InferenceClient
+from PIL import Image, ImageEnhance, ImageOps
 
 from .hf_video import _safe_seed
 
 BASE = "https://gen.pollinations.ai/image/"
+ROOT = Path(__file__).resolve().parents[1]
+REFERENCE_DIR = ROOT / "assets" / "dioshablahoyia" / "reference"
 W, H = 1080, 1920
 
 
@@ -71,6 +74,29 @@ def _download_pollinations(full_prompt: str, out: Path, seed: int) -> str:
     return "Pollinations authenticated image API"
 
 
+def _local_reference(out: Path, seed: int) -> str:
+    refs = sorted(REFERENCE_DIR.glob("jesus_reference_*.jpg"))
+    if not refs:
+        raise RuntimeError("No hay referencias fotorrealistas locales de emergencia.")
+    chosen = refs[_safe_seed(seed) % len(refs)]
+    with Image.open(chosen) as original:
+        image = original.convert("RGB")
+        # Deterministic non-destructive variation so emergency scenes are not
+        # byte-identical while preserving the same recurring visual identity.
+        if (_safe_seed(seed) // 7) % 2:
+            image = ImageOps.mirror(image)
+        brightness = 0.97 + ((_safe_seed(seed) % 9) / 100.0)
+        contrast = 0.98 + (((_safe_seed(seed) // 11) % 8) / 100.0)
+        color = 0.98 + (((_safe_seed(seed) // 17) % 9) / 100.0)
+        image = ImageEnhance.Brightness(image).enhance(brightness)
+        image = ImageEnhance.Contrast(image).enhance(contrast)
+        image = ImageEnhance.Color(image).enhance(color)
+        image.save(out, format="JPEG", quality=95, optimize=True)
+    if not out.exists() or out.stat().st_size < 20_000:
+        raise RuntimeError("La referencia fotorrealista local no pudo prepararse.")
+    return f"local_proven_photoreal_reference/{chosen.name}"
+
+
 def _download(prompt: str, out: Path, seed: int) -> str:
     full_prompt = f"{prompt}, {_style()}"
     errors: list[str] = []
@@ -79,7 +105,7 @@ def _download(prompt: str, out: Path, seed: int) -> str:
         return _download_hf(full_prompt, out, seed)
     except Exception as exc:
         errors.append(f"HF image: {exc}")
-        print(f"Hugging Face text-to-image no disponible ({exc}); intentando Pollinations autenticado.")
+        print(f"Hugging Face text-to-image no disponible ({exc}); intentando respaldos.")
 
     if os.getenv("POLLINATIONS_API_KEY", "").strip():
         try:
@@ -88,6 +114,13 @@ def _download(prompt: str, out: Path, seed: int) -> str:
             errors.append(f"Pollinations: {exc}")
     else:
         errors.append("Pollinations: falta POLLINATIONS_API_KEY")
+
+    try:
+        provider = _local_reference(out, seed)
+        print("Usando referencia fotorrealista local de emergencia; no consume creditos de imagen.")
+        return provider
+    except Exception as exc:
+        errors.append(f"local reference: {exc}")
 
     raise RuntimeError("No hubo generador de imagen fotorrealista disponible. " + "; ".join(errors))
 
