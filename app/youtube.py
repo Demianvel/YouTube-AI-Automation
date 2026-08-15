@@ -12,6 +12,8 @@ from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 from googleapiclient.http import MediaFileUpload
 
+from .spiritual_visual_uniqueness import validate_spiritual_visual_diversity
+
 YOUTUBE_SCOPES = [
     "https://www.googleapis.com/auth/youtube.upload",
     "https://www.googleapis.com/auth/youtube.readonly",
@@ -115,8 +117,12 @@ def _enforce_long(video_path: Path, expected_minutes: int) -> None:
     print(f"Long-form validation OK: {duration:.2f}s, {width}x{height}, target={expected_minutes}min")
 
 
+def _is_spiritual_channel(channel: dict) -> bool:
+    return str(channel.get("handle") or "").lower().lstrip("/") == "@dioshablahoyia"
+
+
 def _enforce_spiritual_voice_guard(channel: dict, metadata: dict) -> None:
-    if str(channel.get("handle") or "").lower().lstrip("/") != "@dioshablahoyia":
+    if not _is_spiritual_channel(channel):
         return
     passed = metadata.get("voice_continuity_passed")
     coverage = float(metadata.get("voice_coverage_ratio") or 0.0)
@@ -126,6 +132,14 @@ def _enforce_spiritual_voice_guard(channel: dict, metadata: dict) -> None:
             "BLOQUEADO ANTES DE YOUTUBE: la narracion espiritual no supero el control de continuidad "
             f"(passed={passed}, coverage={coverage:.1%}, longest_silence={longest:.2f}s)."
         )
+
+
+def _enforce_spiritual_visual_guard(channel: dict, metadata: dict) -> None:
+    if not _is_spiritual_channel(channel):
+        return
+    labels = metadata.get("generated_visual_provider") or metadata.get("visual_providers") or []
+    stats = validate_spiritual_visual_diversity(list(labels) if isinstance(labels, (list, tuple)) else [str(labels)])
+    metadata.update(stats)
 
 
 def _description(metadata: dict) -> str:
@@ -240,6 +254,7 @@ def set_custom_thumbnail(channel: dict, video_id: str, thumbnail_path: Path) -> 
 def upload_video(channel: dict, metadata: dict, video_path: Path) -> str:
     _enforce_short_only(video_path)
     _enforce_spiritual_voice_guard(channel, metadata)
+    _enforce_spiritual_visual_guard(channel, metadata)
     video_id = _upload(channel, metadata, video_path)
     _post_engagement_comment(channel, metadata, video_id)
     return video_id
@@ -248,6 +263,7 @@ def upload_video(channel: dict, metadata: dict, video_path: Path) -> str:
 def upload_long_video(channel: dict, metadata: dict, video_path: Path, thumbnail_path: Path | None = None, expected_minutes: int = 10) -> str:
     _enforce_long(video_path, expected_minutes=expected_minutes)
     _enforce_spiritual_voice_guard(channel, metadata)
+    _enforce_spiritual_visual_guard(channel, metadata)
     video_id = _upload(channel, metadata, video_path)
     metadata["thumbnail_upload_status"] = "not_requested"
     if thumbnail_path is not None:
