@@ -5,8 +5,9 @@ import os
 import subprocess
 from pathlib import Path
 
-from .audio import fit_voice_to_duration, make_natural_spanish_voice
+from .audio import make_natural_spanish_voice
 from .hf_video import _normalize, _provider_video, _safe_seed, _space_video, available
+from .spiritual_continuity import ensure_spoken_text, fit_and_validate_spiritual_voice
 from .spiritual_image import _animate as _animate_spiritual_image
 from .spiritual_image import _download as _download_spiritual_image
 from .spiritual_lipsync import apply_musetalk_lipsync, available as lipsync_available
@@ -53,10 +54,14 @@ def _continuous_voice(meta: dict, workdir: Path, duration: int) -> tuple[Path, s
     )
     if not text:
         raise RuntimeError("No hay narracion para generar la voz continua del Short espiritual.")
+    text, text_stats = ensure_spoken_text(text, duration, seed=_seed(meta, 700))
+    meta["spoken_text_continuity"] = text_stats
+    meta["spoken_text_final_words"] = text_stats["final_words"]
     voice = workdir / "spiritual_continuous_voice.wav"
     used = make_natural_spanish_voice(voice, text)
     voice_master = polish_voice(voice)
-    fit_voice_to_duration(voice, duration)
+    continuity = fit_and_validate_spiritual_voice(voice, duration)
+    meta.update(continuity)
     if voice_master != "unprocessed":
         used = f"{used}+{voice_master}"
     return voice, used
@@ -80,7 +85,7 @@ def generate_spiritual_hf_short(channel: dict, meta: dict, workdir: Path, final:
     voice_path, voice_provider = _continuous_voice(meta, workdir, total_duration)
     meta["_precomputed_voice_path"] = str(voice_path)
     meta["_precomputed_tts_provider"] = voice_provider
-    meta["voice_delivery"] = "single_continuous_narration_track"
+    meta["voice_delivery"] = "single_continuous_full_duration_validated_narration_track"
     meta["voice_profile"] = os.getenv("SPIRITUAL_VOICE_PROFILE", "default")
     meta["character_identity_seed"] = _seed(meta, 0)
 
