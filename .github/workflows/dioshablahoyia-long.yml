@@ -58,8 +58,6 @@ jobs:
       HF_IMAGE_MODEL: black-forest-labs/FLUX.1-schnell
       SPIRITUAL_REQUIRE_LIVE_ACTION: "true"
       SPIRITUAL_ALLOW_STILL_FALLBACK: "true"
-      # Only a few expensive T2V key scenes per long video. Remaining scenes
-      # are HF photoreal images animated cinematically, avoiding ZeroGPU exhaustion.
       SPIRITUAL_LONG_AI_CLIPS: "3"
       SPIRITUAL_LONG_LIPSYNC_ENABLED: "true"
       SPIRITUAL_LIPSYNC_ENABLED: "true"
@@ -114,7 +112,9 @@ jobs:
       - name: Verify required configuration
         shell: bash
         run: |
-          test -n "$GEMINI_API_KEY" || { echo "Falta GEMINI_API_KEY"; exit 1; }
+          if [ -z "$GEMINI_API_KEY" ]; then
+            echo "GEMINI_API_KEY ausente: se usara el guionista biblico local resiliente."
+          fi
           test -n "$HF_TOKEN" || { echo "Falta HF_TOKEN para fallback fotorrealista de Hugging Face"; exit 1; }
           if [ "$PUBLISH" = "true" ]; then
             test -n "$YOUTUBE_TOKEN_DIOSHABLAHOYIA" || { echo "Falta YOUTUBE_TOKEN_DIOSHABLAHOYIA"; exit 1; }
@@ -127,7 +127,7 @@ jobs:
           if [ "$PUBLISH" = "true" ]; then
             EXTRA="--publish"
           fi
-          python -m app.spiritual_long_runner --minutes "$MINUTES" $EXTRA
+          python -m app.spiritual_long_resilient_runner --minutes "$MINUTES" $EXTRA
 
       - name: Persist spiritual anti-repeat history
         if: success()
