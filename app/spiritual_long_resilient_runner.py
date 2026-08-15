@@ -7,6 +7,7 @@ import os
 from . import spiritual_long_pipeline as base
 from . import spiritual_long_runner as enhanced
 from .spiritual_long_local_metadata import generate_local_long_metadata
+from .spiritual_source_growth_engine import ground_and_optimize_spiritual_metadata
 from .spiritual_tts import make_spiritual_spanish_voice
 from .workers.celestial_cinema_engine import mark_render_metadata, render_directive
 from .workers.divine_publisher_4x10 import mark_publish_metadata
@@ -65,6 +66,11 @@ def run(minutes: int, publish: bool = False) -> dict:
 
     def directed_enhance(meta: dict, previous: list[dict], requested_minutes: int) -> dict:
         enhanced_meta = original_enhance(meta, previous, requested_minutes)
+        enhanced_meta = ground_and_optimize_spiritual_metadata(
+            enhanced_meta,
+            previous,
+            content_type="long",
+        )
         return _direct_long_metadata(enhanced_meta, requested_minutes)
 
     base._generate_metadata = resilient
