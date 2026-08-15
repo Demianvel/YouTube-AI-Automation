@@ -1,0 +1,72 @@
+name: Validate spiritual publishing stability
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "app/spiritual_tts.py"
+      - "app/spiritual_uniqueness.py"
+      - "app/spiritual_hf_video.py"
+      - "app/spiritual_audio.py"
+      - "app/spiritual_long_resilient_runner.py"
+      - "app/pipeline.py"
+      - ".github/workflows/validate-spiritual-stability.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Compile spiritual stack
+        run: python -m compileall -q app
+
+      - name: Validate long TTS text is never truncated before synthesis
+        shell: bash
+        run: |
+          python - <<'PY'
+          from app.spiritual_tts import safe_tts_chunks
+          words = [f"palabra{i}" for i in range(420)]
+          original = " ".join(words)
+          chunks = safe_tts_chunks(original)
+          rebuilt = " ".join(chunks).split()
+          assert rebuilt == words, (len(rebuilt), len(words))
+          assert len(chunks) >= 10, len(chunks)
+          assert all(len(chunk.split()) <= 42 for chunk in chunks)
+          assert all(len(chunk) <= 300 for chunk in chunks)
+          print(f"TTS chunking OK: {len(words)} words -> {len(chunks)} safe chunks")
+          PY
+
+      - name: Validate anti-spam duplicate gate
+        shell: bash
+        run: |
+          python - <<'PY'
+          from app.spiritual_uniqueness import validate_spiritual_uniqueness
+
+          scenes = [{"narration": " ".join([f"reflexion{i}" for i in range(100)])}]
+          first = validate_spiritual_uniqueness({"title":"Esperanza en tiempos difíciles", "topic":"esperanza y paciencia", "scenes":scenes}, [])
+          assert first["uniqueness_gate_passed"] is True
+          previous = [{
+              "status":"uploaded",
+              "title": first["title"],
+              "topic": first["topic"],
+              "script_hash": first["script_hash"],
+              "narration_preview": first["narration_preview"],
+          }]
+          try:
+              validate_spiritual_uniqueness({"title":first["title"], "topic":first["topic"], "scenes":scenes}, previous)
+          except RuntimeError as exc:
+              assert "ANTI-SPAM" in str(exc)
+              print("Duplicate blocking OK:", exc)
+          else:
+              raise AssertionError("El gate anti-spam no bloqueo un guion identico")
+          PY
