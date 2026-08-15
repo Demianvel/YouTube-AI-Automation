@@ -3,7 +3,7 @@ name: Dios Habla Hoy IA watchdog
 on:
   workflow_dispatch:
   schedule:
-    # Monitor cada 15 minutos, evitando el minuto 0 de cada hora.
+    # Revisa el objetivo de 10 Shorts diarios cada 15 minutos.
     - cron: "7,22,37,52 * * * *"
   push:
     branches: [main]
@@ -33,54 +33,33 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Calculate today's publishing deficit
+      - name: Calculate today's Shorts deficit
         id: plan
         shell: bash
         run: |
           REPORT="$(python scripts/dioshablahoyia_watchdog.py)"
           echo "$REPORT"
           SHORT_MISSING="$(printf '%s' "$REPORT" | python -c 'import json,sys; print(json.load(sys.stdin)["short_missing"])')"
-          LONG_FIRST="$(printf '%s' "$REPORT" | python -c 'import json,sys; x=json.load(sys.stdin)["long_missing"]; print(x[0] if x else "")')"
           echo "short_missing=$SHORT_MISSING" >> "$GITHUB_OUTPUT"
-          echo "long_first=$LONG_FIRST" >> "$GITHUB_OUTPUT"
 
-      - name: Catch up one missing Short
+      - name: Catch up one missing Dios Short
         if: steps.plan.outputs.short_missing != '0'
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
-          ACTIVE="$(gh run list -R "$GITHUB_REPOSITORY" --workflow shorts.yml --limit 30 --json status --jq '[.[] | select(.status == "queued" or .status == "in_progress")] | length')"
+          ACTIVE="$(gh run list -R "$GITHUB_REPOSITORY" --workflow shorts.yml --limit 30 --json status --jq '[.[] | select(.status == "queued" or .status == "in_progress" or .status == "waiting" or .status == "pending")] | length')"
           if [ "$ACTIVE" -gt 0 ]; then
             echo "Hay $ACTIVE Short(s) en cola/ejecucion; no duplicar."
             exit 0
           fi
-          echo "Faltan ${{ steps.plan.outputs.short_missing }} Short(s); recuperando uno."
+          echo "Faltan ${{ steps.plan.outputs.short_missing }} Short(s); recuperando uno ahora."
           gh workflow run shorts.yml \
             -R "$GITHUB_REPOSITORY" \
             --ref main \
             -f channel=dioshablahoyia \
             -f content_mode=voice \
             -f dry_run=false
-
-      - name: Catch up one missing long video
-        if: steps.plan.outputs.long_first != ''
-        env:
-          GH_TOKEN: ${{ github.token }}
-        shell: bash
-        run: |
-          ACTIVE="$(gh run list -R "$GITHUB_REPOSITORY" --workflow dioshablahoyia-long.yml --limit 20 --json status --jq '[.[] | select(.status == "queued" or .status == "in_progress")] | length')"
-          if [ "$ACTIVE" -gt 0 ]; then
-            echo "Hay $ACTIVE video(s) largo(s) en cola/ejecucion; no duplicar."
-            exit 0
-          fi
-          MINUTES="${{ steps.plan.outputs.long_first }}"
-          echo "Recuperando video largo faltante de ${MINUTES} minutos."
-          gh workflow run dioshablahoyia-long.yml \
-            -R "$GITHUB_REPOSITORY" \
-            --ref main \
-            -f minutes="$MINUTES" \
-            -f publish=true
 
       - name: Report serious daily deficit
         if: failure()
@@ -91,4 +70,4 @@ jobs:
           gh issue create \
             -R "$GITHUB_REPOSITORY" \
             --title "Dios Habla Hoy watchdog necesita atencion" \
-            --body "El watchdog no pudo recuperar una publicacion faltante. Revisar Actions run $GITHUB_RUN_ID."
+            --body "El watchdog no pudo recuperar un Short faltante. Revisar Actions run $GITHUB_RUN_ID."
