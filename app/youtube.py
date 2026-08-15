@@ -16,13 +16,30 @@ YOUTUBE_SCOPES = [
     "https://www.googleapis.com/auth/youtube.upload",
     "https://www.googleapis.com/auth/youtube.readonly",
 ]
+COMMENT_SCOPE = "https://www.googleapis.com/auth/youtube.force-ssl"
 RETRIABLE = {500, 502, 503, 504}
 MAX_SHORT_SECONDS = 180.0
 
 
+def _token_info(token_json: str) -> dict:
+    return json.loads(token_json)
+
+
 def _credentials(token_json: str) -> Credentials:
-    info = json.loads(token_json)
-    return Credentials.from_authorized_user_info(info, scopes=YOUTUBE_SCOPES)
+    info = _token_info(token_json)
+    scopes = info.get("scopes") or YOUTUBE_SCOPES
+    return Credentials.from_authorized_user_info(info, scopes=scopes)
+
+
+def _token_has_scope(channel: dict, scope: str) -> bool:
+    token_json = os.getenv(channel["token_env"], "")
+    if not token_json:
+        return False
+    try:
+        scopes = set(_token_info(token_json).get("scopes") or [])
+    except Exception:
+        return False
+    return scope in scopes
 
 
 def _youtube_for_channel(channel: dict):
@@ -98,6 +115,19 @@ def _enforce_long(video_path: Path, expected_minutes: int) -> None:
     print(f"Long-form validation OK: {duration:.2f}s, {width}x{height}, target={expected_minutes}min")
 
 
+def _enforce_spiritual_voice_guard(channel: dict, metadata: dict) -> None:
+    if str(channel.get("handle") or "").lower().lstrip("/") != "@dioshablahoyia":
+        return
+    passed = metadata.get("voice_continuity_passed")
+    coverage = float(metadata.get("voice_coverage_ratio") or 0.0)
+    longest = float(metadata.get("longest_voice_silence_seconds") or 999.0)
+    if passed is not True or coverage < 0.96 or longest > 2.2:
+        raise RuntimeError(
+            "BLOQUEADO ANTES DE YOUTUBE: la narracion espiritual no supero el control de continuidad "
+            f"(passed={passed}, coverage={coverage:.1%}, longest_silence={longest:.2f}s)."
+        )
+
+
 def _description(metadata: dict) -> str:
     parts: list[str] = []
     base = (metadata.get("description") or "").strip()
@@ -161,6 +191,42 @@ def _upload(channel: dict, metadata: dict, video_path: Path) -> str:
     return video_id
 
 
+def _post_engagement_comment(channel: dict, metadata: dict, video_id: str) -> None:
+    text = " ".join(str(metadata.get("pinned_comment_candidate") or "").split()).strip()
+    if not text:
+        metadata["comment_publish_status"] = "no_comment_candidate"
+        return
+    if not _token_has_scope(channel, COMMENT_SCOPE):
+        metadata["comment_publish_status"] = "oauth_refresh_required_for_youtube.force-ssl"
+        print("Comentario CTA preparado pero no publicado: el token OAuth actual no incluye youtube.force-ssl.")
+        return
+    try:
+        youtube = _youtube_for_channel(channel)
+        channel_response = youtube.channels().list(part="id", mine=True).execute()
+        items = channel_response.get("items") or []
+        if not items:
+            raise RuntimeError("No se pudo obtener channelId para publicar el comentario.")
+        channel_id = items[0]["id"]
+        response = youtube.commentThreads().insert(
+            part="snippet",
+            body={
+                "snippet": {
+                    "channelId": channel_id,
+                    "videoId": video_id,
+                    "topLevelComment": {
+                        "snippet": {"textOriginal": text[:9500]}
+                    },
+                }
+            },
+        ).execute()
+        metadata["comment_publish_status"] = "posted_top_level"
+        metadata["comment_thread_id"] = response.get("id")
+        metadata["comment_pin_status"] = "manual_only_api_has_no_pin_method"
+    except Exception as exc:
+        metadata["comment_publish_status"] = f"failed_nonfatal: {type(exc).__name__}"
+        print(f"El video {video_id} ya fue publicado; el comentario CTA fallo sin duplicar la subida: {exc}")
+
+
 def set_custom_thumbnail(channel: dict, video_id: str, thumbnail_path: Path) -> None:
     if not thumbnail_path.exists() or thumbnail_path.stat().st_size <= 0:
         raise RuntimeError("La miniatura personalizada no existe o esta vacia.")
@@ -173,11 +239,15 @@ def set_custom_thumbnail(channel: dict, video_id: str, thumbnail_path: Path) -> 
 
 def upload_video(channel: dict, metadata: dict, video_path: Path) -> str:
     _enforce_short_only(video_path)
-    return _upload(channel, metadata, video_path)
+    _enforce_spiritual_voice_guard(channel, metadata)
+    video_id = _upload(channel, metadata, video_path)
+    _post_engagement_comment(channel, metadata, video_id)
+    return video_id
 
 
-def upload_long_video(channel: dict, metadata: dict, video_path: Path, thumbnail_path: Path | None = None, expected_minutes: int = 5) -> str:
+def upload_long_video(channel: dict, metadata: dict, video_path: Path, thumbnail_path: Path | None = None, expected_minutes: int = 10) -> str:
     _enforce_long(video_path, expected_minutes=expected_minutes)
+    _enforce_spiritual_voice_guard(channel, metadata)
     video_id = _upload(channel, metadata, video_path)
     metadata["thumbnail_upload_status"] = "not_requested"
     if thumbnail_path is not None:
@@ -188,4 +258,5 @@ def upload_long_video(channel: dict, metadata: dict, video_path: Path, thumbnail
         except Exception as exc:
             metadata["thumbnail_upload_status"] = f"failed_nonfatal: {type(exc).__name__}"
             print(f"Video {video_id} ya fue subido. La miniatura personalizada fallo sin reintentar el video: {exc}")
+    _post_engagement_comment(channel, metadata, video_id)
     return video_id
