@@ -29,8 +29,8 @@ on:
     paths:
       - "triggers/dioshablahoyia-short.txt"
   schedule:
-    # BrotaVida: 4 Shorts diarios, Argentina UTC-3: 09:30, 13:30, 17:30 y 21:30.
-    # DineroClaro y EnViKids: DESACTIVADOS por completo.
+    # BrotaVida: 4 Shorts diarios. Dios Habla Hoy usa su watchdog de 10 Shorts/dia.
+    # DineroClaro y EnViKids: DESACTIVADOS por completo del pipeline de Shorts.
     - cron: "30 0,12,16,20 * * *"
 
 permissions:
@@ -49,6 +49,10 @@ jobs:
       PYTHONPATH: .
       GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
       GEMINI_TEXT_MODEL: gemini-3.6-flash
+      GEMINI_VIDEO_ENABLED: "true"
+      GEMINI_VIDEO_MODEL: gemini-omni-flash-preview
+      GEMINI_TTS_MODEL: gemini-3.1-flash-tts-preview
+      GEMINI_TTS_VOICE: Gacrux
       VIDEO_PROVIDER: real_stock
       PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
       POLLINATIONS_API_KEY: ${{ secrets.POLLINATIONS_API_KEY }}
@@ -99,7 +103,6 @@ jobs:
           if [ "$CHANNEL" = "dioshablahoyia" ]; then
             CONTENT_MODE="voice"
           elif [ "$CHANNEL" = "brotavida" ]; then
-            # BrotaVida queda exclusivamente como germinacion/crecimiento ASMR.
             CONTENT_MODE="asmr"
           fi
 
@@ -113,20 +116,23 @@ jobs:
             echo "BROTA_TIMELAPSE_ONLY=true" >> "$GITHUB_ENV"
             echo "BROTA_AUDIO_MODE=asmr" >> "$GITHUB_ENV"
           elif [ "$CHANNEL" = "dioshablahoyia" ]; then
-            echo "TTS_PROVIDER=kokoro" >> "$GITHUB_ENV"
+            echo "TTS_PROVIDER=gemini_tts" >> "$GITHUB_ENV"
+            echo "GEMINI_TTS_MODEL=gemini-3.1-flash-tts-preview" >> "$GITHUB_ENV"
+            echo "GEMINI_TTS_VOICE=Gacrux" >> "$GITHUB_ENV"
             echo "KOKORO_VOICE=em_alex" >> "$GITHUB_ENV"
             echo "KOKORO_SPEED=0.93" >> "$GITHUB_ENV"
-            echo "SPIRITUAL_VOICE_PROFILE=luminous_calm_v2" >> "$GITHUB_ENV"
-            echo "SPIRITUAL_SHORT_SECONDS=180" >> "$GITHUB_ENV"
-            echo "SPIRITUAL_SHORT_SCENE_SECONDS=15" >> "$GITHUB_ENV"
-            echo "SPIRITUAL_SHORT_AI_CLIPS=3" >> "$GITHUB_ENV"
-            echo "SPIRITUAL_CTA_OVERLAY=true" >> "$GITHUB_ENV"
+            echo "SPIRITUAL_VOICE_PROFILE=warm_male_cinematic_spiritual_latam" >> "$GITHUB_ENV"
+            echo "SPIRITUAL_SHORT_SECONDS=8" >> "$GITHUB_ENV"
+            echo "SPIRITUAL_SHORT_SCENE_SECONDS=8" >> "$GITHUB_ENV"
+            echo "SPIRITUAL_SHORT_AI_CLIPS=1" >> "$GITHUB_ENV"
+            echo "SPIRITUAL_CTA_OVERLAY=false" >> "$GITHUB_ENV"
             echo "SPIRITUAL_LIPSYNC_ENABLED=true" >> "$GITHUB_ENV"
             echo "SPIRITUAL_ALLOW_STILL_FALLBACK=true" >> "$GITHUB_ENV"
+            echo "GEMINI_VIDEO_ENABLED=true" >> "$GITHUB_ENV"
+            echo "GEMINI_VIDEO_MODEL=gemini-omni-flash-preview" >> "$GITHUB_ENV"
             echo "HF_VIDEO_STRICT=false" >> "$GITHUB_ENV"
             echo "HF_ZERO_RETRIES=1" >> "$GITHUB_ENV"
             if [ "${{ github.event_name }}" = "push" ]; then
-              echo "HF_VIDEO_ENABLED=false" >> "$GITHUB_ENV"
               echo "DIOS_FAST_UPLOAD_SMOKE=true" >> "$GITHUB_ENV"
             fi
           fi
