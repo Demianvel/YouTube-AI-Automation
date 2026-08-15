@@ -29,11 +29,29 @@ jobs:
           python-version: "3.11"
 
       - name: Install lightweight validation dependencies
-        run: pip install -q pillow requests huggingface_hub gradio_client
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg fonts-dejavu-core
+          pip install -q pillow requests huggingface_hub gradio_client
 
       - name: Compile spiritual Python modules
         run: |
           python -m compileall -q app scripts/dioshablahoyia_watchdog.py
+
+      - name: Validate CTA filters with real FFmpeg
+        shell: bash
+        run: |
+          set -euo pipefail
+          FONT=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf
+          ffmpeg -y -loglevel error -f lavfi -i color=c=black:s=1080x1920:r=30:d=2 \
+            -vf "drawbox=x=iw*0.11:y=ih*0.79:w=iw*0.78:h=150:color=black@0.62:t=fill,drawtext=fontfile='$FONT':text='SUSCRIBITE  |  COMPARTI  |  AMEN':fontcolor=white:fontsize=48:x=(w-text_w)/2:y=h*0.82" \
+            -t 2 -c:v libx264 -pix_fmt yuv420p /tmp/cta-short.mp4
+          ffmpeg -y -loglevel error -f lavfi -i color=c=black:s=1920x1080:r=30:d=2 \
+            -vf "drawbox=x=iw*0.18:y=ih*0.80:w=iw*0.64:h=100:color=black@0.55:t=fill,drawtext=fontfile='$FONT':text='SUSCRIBITE  |  COMPARTI  |  AMEN':fontcolor=white:fontsize=38:x=(w-text_w)/2:y=h*0.825" \
+            -t 2 -c:v libx264 -pix_fmt yuv420p /tmp/cta-long.mp4
+          test -s /tmp/cta-short.mp4
+          test -s /tmp/cta-long.mp4
+          echo "CTA FFmpeg filters OK"
 
       - name: Validate zero-credit photoreal references
         run: |
