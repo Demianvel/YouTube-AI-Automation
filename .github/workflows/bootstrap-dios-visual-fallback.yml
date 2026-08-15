@@ -1,0 +1,63 @@
+name: Bootstrap Dios photoreal fallback assets
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "triggers/bootstrap-dios-visual-fallback.txt"
+
+permissions:
+  actions: read
+  contents: write
+
+jobs:
+  bootstrap:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download previously successful photoreal spiritual artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          rm -rf /tmp/dios-reference
+          mkdir -p /tmp/dios-reference
+          gh run download 31850999413 \
+            -R "$GITHUB_REPOSITORY" \
+            -n short-dioshablahoyia-voice-31850999413 \
+            -D /tmp/dios-reference
+          find /tmp/dios-reference -type f -maxdepth 5 -print
+
+      - name: Persist only proven generated reference JPEGs
+        shell: bash
+        run: |
+          mkdir -p assets/dioshablahoyia/reference
+          mapfile -t IMAGES < <(find /tmp/dios-reference -type f -name 'spiritual_generated_*.jpg' | sort)
+          test "${#IMAGES[@]}" -ge 3 || { echo "No se encontraron las 3 referencias esperadas"; exit 1; }
+          cp "${IMAGES[0]}" assets/dioshablahoyia/reference/jesus_reference_a.jpg
+          cp "${IMAGES[1]}" assets/dioshablahoyia/reference/jesus_reference_b.jpg
+          cp "${IMAGES[2]}" assets/dioshablahoyia/reference/jesus_reference_c.jpg
+          python - <<'PY'
+          from pathlib import Path
+          for p in sorted(Path('assets/dioshablahoyia/reference').glob('*.jpg')):
+              assert p.stat().st_size > 100_000, (p, p.stat().st_size)
+              print(p, p.stat().st_size)
+          PY
+
+      - name: Commit fallback assets
+        shell: bash
+        run: |
+          git config user.name "youtube-ai-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add assets/dioshablahoyia/reference/*.jpg
+          if git diff --cached --quiet; then
+            echo "Reference assets already present."
+            exit 0
+          fi
+          git commit -m "assets: persist Dios Habla Hoy photoreal fallback references"
+          git push origin HEAD:main
