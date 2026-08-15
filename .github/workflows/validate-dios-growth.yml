@@ -38,6 +38,32 @@ jobs:
         run: |
           python -m compileall -q app scripts/dioshablahoyia_watchdog.py
 
+      - name: Validate continuous voice quality gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          ffmpeg -y -loglevel error -f lavfi -i "sine=frequency=180:sample_rate=48000:duration=9.90" -ac 1 /tmp/voice-ok.wav
+          python - <<'PY'
+          from pathlib import Path
+          from app.spiritual_continuity import fit_and_validate_spiritual_voice
+          stats = fit_and_validate_spiritual_voice(Path('/tmp/voice-ok.wav'), 10.0, max_silence_seconds=2.2)
+          assert stats['voice_continuity_passed'] is True
+          assert stats['voice_coverage_ratio'] >= 0.96
+          print('Continuity positive test OK:', stats)
+          PY
+          ffmpeg -y -loglevel error -f lavfi -i "sine=frequency=180:sample_rate=48000:duration=2" -ac 1 /tmp/voice-too-short.wav
+          python - <<'PY'
+          from pathlib import Path
+          from app.spiritual_continuity import fit_and_validate_spiritual_voice
+          try:
+              fit_and_validate_spiritual_voice(Path('/tmp/voice-too-short.wav'), 10.0)
+          except RuntimeError as exc:
+              assert 'BLOQUEADO' in str(exc)
+              print('Continuity negative test OK:', exc)
+          else:
+              raise AssertionError('Una voz demasiado corta no fue bloqueada')
+          PY
+
       - name: Validate CTA filters with real FFmpeg
         shell: bash
         run: |
@@ -71,7 +97,7 @@ jobs:
         run: |
           python - <<'PY'
           from app.spiritual_long_local_metadata import generate_local_long_metadata
-          for minutes in (5, 10, 20, 30):
+          for minutes in (10, 15, 20, 30):
               data = generate_local_long_metadata({"display_name":"Dios Habla Hoy IA"}, minutes)
               sections = data.get("sections") or []
               assert len(sections) == max(5, minutes // 2), (minutes, len(sections))
@@ -88,9 +114,10 @@ jobs:
       - name: Validate expected daily schedules
         shell: bash
         run: |
-          grep -q 'MINUTES="5"' .github/workflows/dioshablahoyia-long.yml
           grep -q 'MINUTES="10"' .github/workflows/dioshablahoyia-long.yml
+          grep -q 'MINUTES="15"' .github/workflows/dioshablahoyia-long.yml
           grep -q 'MINUTES="20"' .github/workflows/dioshablahoyia-long.yml
           grep -q 'MINUTES="30"' .github/workflows/dioshablahoyia-long.yml
+          ! grep -q 'MINUTES="5"' .github/workflows/dioshablahoyia-long.yml
           grep -q '10 Shorts diarios' .github/workflows/dioshablahoyia-shorts-5min.yml
           echo "Daily schedule validation OK"
