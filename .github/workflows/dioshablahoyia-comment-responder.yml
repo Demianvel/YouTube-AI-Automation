@@ -1,21 +1,21 @@
-name: Dios Habla Hoy IA - Responder comentarios
+name: Dios Habla Hoy IA - Responder comentarios 24x7
 
 on:
   schedule:
-    # Cada 2 horas. Se limita la cantidad de respuestas por ejecucion para evitar spam.
-    - cron: "17 */2 * * *"
+    # Monitoreo continuo 24/7: revisa comentarios nuevos cada 5 minutos.
+    - cron: "*/5 * * * *"
   workflow_dispatch:
     inputs:
       max_replies:
         description: Maximo de respuestas en esta ejecucion
         required: false
-        default: "6"
+        default: "12"
 
 permissions:
   contents: read
 
 concurrency:
-  group: dioshablahoyia-comment-responder
+  group: dioshablahoyia-comment-responder-24x7
   cancel-in-progress: false
 
 jobs:
@@ -24,8 +24,8 @@ jobs:
     timeout-minutes: 15
     env:
       YOUTUBE_TOKEN_DIOSHABLAHOYIA: ${{ secrets.YOUTUBE_TOKEN_DIOSHABLAHOYIA }}
-      COMMENT_REPLY_MAX: ${{ github.event_name == 'workflow_dispatch' && inputs.max_replies || '6' }}
-      COMMENT_THREAD_SCAN_MAX: "50"
+      COMMENT_REPLY_MAX: ${{ github.event_name == 'workflow_dispatch' && inputs.max_replies || '12' }}
+      COMMENT_THREAD_SCAN_MAX: "100"
 
     steps:
       - uses: actions/checkout@v4
@@ -39,5 +39,5 @@ jobs:
           python -m pip install --upgrade pip
           pip install google-api-python-client google-auth
 
-      - name: Reply to recent suitable comments
+      - name: Detect and reply to new suitable comments
         run: python scripts/dioshablahoyia_comment_responder.py
