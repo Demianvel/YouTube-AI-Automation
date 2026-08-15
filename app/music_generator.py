@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 from typing import Any
@@ -15,6 +16,102 @@ ALLOWED_STYLES = {
     "rkt", "trap_melodic", "pop_electronic", "rkt_trap", "christian_pop",
     "christian_trap", "christian_rkt",
 }
+
+_FALLBACK_STYLES = [
+    "progressive_house", "future_bass", "melodic_techno", "edm_festival",
+    "ambient_electronic", "pop_electronic", "trap_melodic", "rkt",
+    "christian_pop", "christian_electronic",
+]
+
+_FALLBACK_TITLES = {
+    "progressive_house": "Horizonte de Luz",
+    "electro_house": "Pulso de Medianoche",
+    "future_bass": "Pulso Infinito",
+    "melodic_techno": "Despues del Cielo",
+    "edm_festival": "Volver a Brillar",
+    "ambient_electronic": "Luz en Silencio",
+    "christian_electronic": "Camino de Luz",
+    "rkt": "Hasta Que Amanezca",
+    "trap_melodic": "Sin Mirar Atras",
+    "pop_electronic": "Todo Puede Cambiar",
+    "rkt_trap": "Noche en Movimiento",
+    "christian_pop": "Aqui Sigo Creyendo",
+    "christian_trap": "Fe en el Camino",
+    "christian_rkt": "Con Dios Voy",
+}
+
+_FALLBACK_BPM = {
+    "progressive_house": 126,
+    "electro_house": 128,
+    "future_bass": 150,
+    "melodic_techno": 124,
+    "edm_festival": 128,
+    "ambient_electronic": 92,
+    "christian_electronic": 122,
+    "rkt": 96,
+    "trap_melodic": 142,
+    "pop_electronic": 118,
+    "rkt_trap": 98,
+    "christian_pop": 104,
+    "christian_trap": 138,
+    "christian_rkt": 96,
+}
+
+_FALLBACK_VISUALS = [
+    "cinematic night city lights",
+    "sunrise mountain landscape",
+    "ocean waves cinematic",
+    "night highway light trails",
+    "dramatic clouds sunset",
+    "modern architecture night",
+    "urban street lights cinematic",
+    "church architecture sunrise",
+    "stars night sky landscape",
+    "urban skyline blue hour",
+]
+
+
+def _fallback_metadata(
+    minutes: int,
+    manual_style: str,
+    lyrics: str,
+    vocal_character: str,
+) -> dict[str, Any]:
+    marker = os.getenv("GITHUB_RUN_ID", "") or os.getenv("GITHUB_RUN_NUMBER", "") or "local"
+    digest = hashlib.sha256(f"demianvelo|{minutes}|{marker}|{manual_style}".encode()).digest()
+    style = manual_style or _FALLBACK_STYLES[digest[0] % len(_FALLBACK_STYLES)]
+    faith_style = style.startswith("christian_") or style == "christian_electronic"
+    base_title = _FALLBACK_TITLES.get(style, "Nueva Musica")
+    title = f"{base_title} x DemianVelo"
+    description_lines = [
+        f"{title} — musica original de DemianVelo.",
+        "Produccion y composicion original creada para este lanzamiento, sin copiar melodias ni samples reconocibles.",
+        "Videoclip cinematografico con una direccion visual propia y montaje sincronizado con la musica.",
+        "Escucha con auriculares para apreciar mejor la mezcla y la dinamica.",
+    ]
+    if faith_style:
+        description_lines[2] = "Una pieza de fe, esperanza y luz con direccion audiovisual cinematografica original."
+    return {
+        "topic": f"videoclip original {style} con atmosfera cinematografica",
+        "music_style": style,
+        "faith_theme": faith_style,
+        "has_user_lyrics": bool(lyrics),
+        "vocal_character": vocal_character,
+        "bpm": _FALLBACK_BPM.get(style, 128),
+        "title": title,
+        "description": "\n".join(description_lines),
+        "hashtags": ["#DemianVelo", "#Music", "#MusicaOriginal", "#NuevaMusica"],
+        "tags": [
+            "DemianVelo", "musica original", "original music", style.replace("_", " "),
+            "music video", "videoclip", "nueva musica", "musica 2026",
+            "produccion musical", "artista independiente", "cinematic music video",
+            "Argentina", "Latin music", "original song",
+        ],
+        "visual_queries": list(_FALLBACK_VISUALS),
+        "visual_direction": "Montaje cinematografico dinamico, luz natural y urbana, paisajes y arquitectura sin marcas ni personas reconocibles.",
+        "thumbnail_text": base_title,
+        "metadata_source": "local_resilient_fallback",
+    }
 
 
 def generate_music_metadata(
@@ -98,25 +195,29 @@ Reglas:
 - title verdadero y no engañoso.
 """.strip()
 
-    client = genai.Client(api_key=os.environ["GEMINI_API_KEY"])
-    response = client.models.generate_content(
-        model=TEXT_MODEL,
-        contents=prompt,
-        config=types.GenerateContentConfig(response_mime_type="application/json"),
-    )
-    data = json.loads(response.text)
+    data: dict[str, Any]
+    try:
+        api_key = os.getenv("GEMINI_API_KEY", "").strip()
+        if not api_key:
+            raise RuntimeError("GEMINI_API_KEY no configurada")
+        client = genai.Client(api_key=api_key)
+        response = client.models.generate_content(
+            model=TEXT_MODEL,
+            contents=prompt,
+            config=types.GenerateContentConfig(response_mime_type="application/json"),
+        )
+        data = json.loads(response.text)
+        data["metadata_source"] = "gemini"
+    except Exception as exc:
+        print(f"Gemini metadata no disponible ({exc}); usando metadata original local resiliente.")
+        data = _fallback_metadata(minutes, manual_style, lyrics, vocal_character)
+
     style = manual_style or str(data.get("music_style") or "progressive_house").strip().lower().replace(" ", "_")
     if style not in ALLOWED_STYLES:
         style = "progressive_house"
     queries = [" ".join(str(x).split())[:100] for x in (data.get("visual_queries") or []) if str(x).strip()]
     if len(queries) < 10:
-        fallback = [
-            "cinematic night city lights", "sunrise mountain landscape", "ocean waves cinematic",
-            "night highway light trails", "dramatic clouds sunset", "modern architecture night",
-            "urban street lights cinematic", "church architecture sunrise", "stars night sky landscape",
-            "urban skyline blue hour",
-        ]
-        for item in fallback:
+        for item in _FALLBACK_VISUALS:
             if len(queries) >= 10:
                 break
             if item not in queries:
