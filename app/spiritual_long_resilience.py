@@ -29,17 +29,20 @@ _COMMONS_QUERIES = (
 def _download_commons_landscape(out: Path, seed: int) -> str:
     for step in range(len(_COMMONS_QUERIES)):
         query = _COMMONS_QUERIES[(_safe_seed(seed) + step * 5) % len(_COMMONS_QUERIES)]
-        results = commons._search(query, "image")
+        results = [
+            item for item in commons._search(query, "image")
+            if str(item.get("license") or "").strip().lower().startswith(("cc0", "public domain"))
+        ]
         if not results:
             continue
         chosen = results[_safe_seed(seed ^ (step + 1) * 7919) % min(len(results), 16)]
         commons._download(chosen["url"], out)
-        return f"Wikimedia Commons licensed image/{chosen.get('title','nature')}"
-    raise RuntimeError("Wikimedia Commons no encontro un paisaje con licencia admitida.")
+        return f"Wikimedia Commons {chosen.get('license','CC0/Public Domain')} image/{chosen.get('title','nature')}"
+    raise RuntimeError("Wikimedia Commons no encontro un paisaje CC0 o de dominio publico para esta escena.")
 
 
 def download_landscape_image(prompt: str, out: Path, seed: int, style: str) -> str:
-    """Prefer new AI imagery, then licensed diverse Commons nature, then local reference."""
+    """Prefer new AI imagery, then public-domain/CC0 Commons nature, then local reference."""
     full_prompt = f"{prompt}, {style}"
     errors: list[str] = []
     token = os.getenv("HF_TOKEN", "").strip()
@@ -88,12 +91,9 @@ def download_landscape_image(prompt: str, out: Path, seed: int, style: str) -> s
     else:
         errors.append("Pollinations: falta POLLINATIONS_API_KEY")
 
-    # Prefer genuinely different licensed nature imagery before recycling the
-    # tiny local Jesus reference set. Long-form can use these visual breathing
-    # moments while the continuous narration carries the biblical reflection.
     try:
         provider = _download_commons_landscape(out, seed)
-        print("Usando paisaje con licencia abierta de Wikimedia Commons como respaldo visual largo.")
+        print("Usando paisaje CC0/dominio publico de Wikimedia Commons como respaldo visual largo.")
         return provider
     except Exception as exc:
         errors.append(f"Commons: {exc}")
