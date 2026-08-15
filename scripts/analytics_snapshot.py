@@ -10,7 +10,10 @@ from app.config import load_channel
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--channel", required=True, choices=["brotavida", "dineroclaro", "envikids", "demianvelo"])
+    # Do not hard-code channel choices here. load_channel() is the source of
+    # truth, so newly configured channels can be monitored without changing
+    # this CLI again.
+    parser.add_argument("--channel", required=True)
     parser.add_argument("--days", type=int, default=90)
     parser.add_argument("--out", default="")
     args = parser.parse_args()
