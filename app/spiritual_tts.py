@@ -7,7 +7,12 @@ import time
 import wave
 from pathlib import Path
 
-from .audio import continuous_speech_text, make_natural_spanish_voice
+from .audio import continuous_speech_text
+
+
+MALE_GEMINI_VOICE_DEFAULT = "Gacrux"
+MALE_KOKORO_VOICE_DEFAULT = "em_alex"
+SPIRITUAL_VOICE_PROFILE = "adult_male_warm_low_baritone_peace_love_latam"
 
 
 def safe_tts_chunks(text: str, max_words: int = 42, max_chars: int = 300) -> list[str]:
@@ -52,19 +57,26 @@ def _gemini_spiritual_voice(path: Path, text: str) -> str:
         raise RuntimeError("Falta GEMINI_API_KEY para Gemini TTS.")
 
     model = os.getenv("GEMINI_TTS_MODEL", "gemini-3.1-flash-tts-preview").strip()
-    voice = os.getenv("GEMINI_TTS_VOICE", "Gacrux").strip() or "Gacrux"
+    voice = (
+        os.getenv("SPIRITUAL_MALE_GEMINI_VOICE", "").strip()
+        or os.getenv("GEMINI_TTS_VOICE", "").strip()
+        or MALE_GEMINI_VOICE_DEFAULT
+    )
     client = genai.Client(api_key=api_key)
     prompt = f"""
 Synthesize speech only. Do not read these directions aloud.
 
+### NON-NEGOTIABLE VOICE IDENTITY
+Use an ADULT MALE voice only. Never use a female, child, androgynous, comic, aggressive or announcer-like voice. Keep the same masculine vocal identity throughout the complete narration.
+
 ### AUDIO PROFILE
-Adult male narrator with a warm low baritone, mature human tone, intimate and emotionally present. Natural Latin-American Spanish pronunciation. The performance should feel cinematic and peaceful, with subtle breath and warmth, never robotic, never like an advertisement, never shouted.
+Warm low male baritone, mature human tone, intimate and emotionally present. Natural Latin-American Spanish pronunciation. The performance must communicate peace, love, hope, compassion, closeness and serenity. It should feel cinematic, comforting and human, never robotic, never like an advertisement and never shouted.
 
 ### SCENE
-A compassionate spiritual message delivered directly to one listener in a quiet natural landscape at golden hour. The emotional qualities are peace, love, hope, closeness, serenity and sincere human warmth.
+A compassionate spiritual message delivered directly to one listener in a quiet natural landscape at golden hour. The listener should feel accompanied, loved, calm and hopeful.
 
 ### DIRECTOR'S NOTES
-Speak slowly but fluidly, with soft confidence and excellent diction. Keep pauses short and organic. Avoid theatrical preaching, exaggerated bass, artificial cathedral echo, whispering, or synthetic cadence. Let key hopeful words carry gentle emotion without overacting.
+Speak slowly but fluidly, with soft confidence, gentle warmth and excellent diction. Keep pauses short and organic. Avoid theatrical preaching, exaggerated bass, artificial cathedral echo, whispering or synthetic cadence. Let words about Dios, amor, paz, esperanza, fe and consuelo carry subtle heartfelt emotion without overacting.
 
 ### TRANSCRIPT — SPEAK EXACTLY THIS TEXT
 {text}
@@ -84,7 +96,7 @@ Speak slowly but fluidly, with soft confidence and excellent diction. Keep pause
             if not data:
                 raise RuntimeError("Gemini TTS no devolvio audio.")
             _write_pcm_wave(path, base64.b64decode(data), rate=24000)
-            return f"{model}:{voice}"
+            return f"{model}:{voice}:{SPIRITUAL_VOICE_PROFILE}"
         except Exception as exc:
             last_error = exc
             if attempt < 3:
@@ -98,8 +110,11 @@ def _kokoro_chunked_voice(path: Path, text: str) -> None:
     import soundfile as sf
     from kokoro import KPipeline
 
-    voice = os.getenv("KOKORO_VOICE", "em_alex").strip() or "em_alex"
-    speed = float(os.getenv("KOKORO_SPEED", "0.94"))
+    # em_alex is the Spanish male fallback used by this spiritual pipeline.
+    # Keep this fallback explicitly male so a provider outage never changes
+    # the narrator's gender or emotional identity.
+    voice = os.getenv("SPIRITUAL_MALE_KOKORO_VOICE", "").strip() or MALE_KOKORO_VOICE_DEFAULT
+    speed = float(os.getenv("KOKORO_SPEED", "0.93"))
     pipeline = KPipeline(lang_code="e")
     rendered: list[np.ndarray] = []
 
@@ -138,20 +153,20 @@ def _kokoro_chunked_voice(path: Path, text: str) -> None:
 
 
 def make_spiritual_spanish_voice(path: Path, text: str) -> str:
-    """Generate spiritual narration with Gemini TTS primary and resilient fallbacks."""
+    """Generate peaceful spiritual narration while enforcing an adult male voice on every path."""
     provider = os.getenv("TTS_PROVIDER", "gemini_tts").lower().strip()
     if provider in {"gemini", "gemini_tts", "gemini-tts"}:
         try:
             used = _gemini_spiritual_voice(path, text)
         except Exception as exc:
-            print(f"Gemini TTS no disponible ({exc}); usando Kokoro como respaldo.")
+            print(f"Gemini TTS no disponible ({exc}); usando respaldo masculino Kokoro.")
             _kokoro_chunked_voice(path, text)
-            used = "kokoro-spiritual-fallback-from-gemini"
-    elif provider == "kokoro":
-        _kokoro_chunked_voice(path, text)
-        used = "kokoro-spiritual-chunked-continuous"
+            used = f"kokoro-male-spiritual-fallback-from-gemini:{SPIRITUAL_VOICE_PROFILE}"
     else:
-        used = make_natural_spanish_voice(path, text)
+        # Spiritual Shorts must never fall through to a generic voice provider:
+        # every backup path is deliberately locked to the male Spanish voice.
+        _kokoro_chunked_voice(path, text)
+        used = f"kokoro-male-spiritual-forced:{SPIRITUAL_VOICE_PROFILE}"
 
     if not path.exists() or path.stat().st_size < 1000:
         raise RuntimeError(f"{used} genero un archivo de voz espiritual invalido.")
