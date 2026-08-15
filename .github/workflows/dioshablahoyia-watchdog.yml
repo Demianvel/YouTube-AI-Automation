@@ -3,12 +3,13 @@ name: Dios Habla Hoy IA watchdog
 on:
   workflow_dispatch:
   schedule:
-    # Revisa el objetivo de 10 Shorts diarios cada 15 minutos.
+    # Publicador Reino 4x10 revisa cada 15 minutos el objetivo diario.
     - cron: "7,22,37,52 * * * *"
   push:
     branches: [main]
     paths:
       - "scripts/dioshablahoyia_watchdog.py"
+      - "app/workers/divine_publisher_4x10.py"
       - ".github/workflows/dioshablahoyia-watchdog.yml"
 
 permissions:
@@ -24,6 +25,9 @@ jobs:
   watchdog:
     runs-on: ubuntu-latest
     timeout-minutes: 12
+    env:
+      PYTHONPATH: .
+      PUBLISHER_WORKER: Publicador Reino 4x10
     steps:
       - uses: actions/checkout@v4
         with:
@@ -33,14 +37,18 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Calculate today's Shorts deficit
+      - name: Calculate today's 4x10 deficit
         id: plan
         shell: bash
         run: |
           REPORT="$(python scripts/dioshablahoyia_watchdog.py)"
           echo "$REPORT"
           SHORT_MISSING="$(printf '%s' "$REPORT" | python -c 'import json,sys; print(json.load(sys.stdin)["short_missing"])')"
+          LONG_MISSING="$(printf '%s' "$REPORT" | python -c 'import json,sys; print(json.load(sys.stdin)["long_missing"])')"
+          LONG_MINUTES="$(printf '%s' "$REPORT" | python -c 'import json,sys; x=json.load(sys.stdin)["long_recovery_minutes"]; print(x if x is not None else "10")')"
           echo "short_missing=$SHORT_MISSING" >> "$GITHUB_OUTPUT"
+          echo "long_missing=$LONG_MISSING" >> "$GITHUB_OUTPUT"
+          echo "long_minutes=$LONG_MINUTES" >> "$GITHUB_OUTPUT"
 
       - name: Catch up one missing Dios Short
         if: steps.plan.outputs.short_missing != '0'
@@ -51,15 +59,33 @@ jobs:
           ACTIVE="$(gh run list -R "$GITHUB_REPOSITORY" --workflow shorts.yml --limit 30 --json status --jq '[.[] | select(.status == "queued" or .status == "in_progress" or .status == "waiting" or .status == "pending")] | length')"
           if [ "$ACTIVE" -gt 0 ]; then
             echo "Hay $ACTIVE Short(s) en cola/ejecucion; no duplicar."
-            exit 0
+          else
+            echo "Faltan ${{ steps.plan.outputs.short_missing }} Short(s); Publicador Reino 4x10 recupera uno ahora."
+            gh workflow run shorts.yml \
+              -R "$GITHUB_REPOSITORY" \
+              --ref main \
+              -f channel=dioshablahoyia \
+              -f content_mode=voice \
+              -f dry_run=false
           fi
-          echo "Faltan ${{ steps.plan.outputs.short_missing }} Short(s); recuperando uno ahora."
-          gh workflow run shorts.yml \
-            -R "$GITHUB_REPOSITORY" \
-            --ref main \
-            -f channel=dioshablahoyia \
-            -f content_mode=voice \
-            -f dry_run=false
+
+      - name: Catch up one missing long Dios video
+        if: steps.plan.outputs.long_missing != '0'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          ACTIVE="$(gh run list -R "$GITHUB_REPOSITORY" --workflow dioshablahoyia-long.yml --limit 20 --json status --jq '[.[] | select(.status == "queued" or .status == "in_progress" or .status == "waiting" or .status == "pending")] | length')"
+          if [ "$ACTIVE" -gt 0 ]; then
+            echo "Hay $ACTIVE video(s) largo(s) en cola/ejecucion; no duplicar."
+          else
+            echo "Faltan ${{ steps.plan.outputs.long_missing }} video(s) largo(s); recuperando uno de ${{ steps.plan.outputs.long_minutes }} min."
+            gh workflow run dioshablahoyia-long.yml \
+              -R "$GITHUB_REPOSITORY" \
+              --ref main \
+              -f minutes="${{ steps.plan.outputs.long_minutes }}" \
+              -f publish=true
+          fi
 
       - name: Report serious daily deficit
         if: failure()
@@ -69,5 +95,5 @@ jobs:
         run: |
           gh issue create \
             -R "$GITHUB_REPOSITORY" \
-            --title "Dios Habla Hoy watchdog necesita atencion" \
-            --body "El watchdog no pudo recuperar un Short faltante. Revisar Actions run $GITHUB_RUN_ID."
+            --title "Publicador Reino 4x10 necesita atencion" \
+            --body "El watchdog no pudo recuperar contenido faltante de Dios Habla Hoy. Revisar Actions run $GITHUB_RUN_ID."
