@@ -24,7 +24,7 @@ on:
     paths:
       - "triggers/dioshablahoyia-long.txt"
   schedule:
-    # Argentina UTC-3: 08:00, 12:00, 16:00 y 20:00 todos los dias.
+    # Argentina UTC-3: 08:00=5m, 12:00=10m, 16:00=20m, 20:00=30m todos los dias.
     - cron: "0 11 * * *"
     - cron: "0 15 * * *"
     - cron: "0 19 * * *"
@@ -54,15 +54,20 @@ jobs:
       HF_TOKEN: ${{ secrets.HF_TOKEN }}
       HF_VIDEO_PROVIDER: auto
       HF_VIDEO_MODEL: Wan-AI/Wan2.2-TI2V-5B
-      # Priorizar live-action generado. Si la cuota GPU se agota, continuar
-      # con imágenes fotorrealistas sintéticas y movimiento cinematográfico.
+      HF_IMAGE_PROVIDER: auto
+      HF_IMAGE_MODEL: black-forest-labs/FLUX.1-schnell
       SPIRITUAL_REQUIRE_LIVE_ACTION: "true"
       SPIRITUAL_ALLOW_STILL_FALLBACK: "true"
-      SPIRITUAL_LONG_AI_CLIPS: "20"
+      # Only a few expensive T2V key scenes per long video. Remaining scenes
+      # are HF photoreal images animated cinematically, avoiding ZeroGPU exhaustion.
+      SPIRITUAL_LONG_AI_CLIPS: "3"
       SPIRITUAL_LONG_LIPSYNC_ENABLED: "true"
+      SPIRITUAL_LIPSYNC_ENABLED: "true"
+      SPIRITUAL_VOICE_PROFILE: luminous_calm_v1
+      SPIRITUAL_CTA_OVERLAY: "true"
       TTS_PROVIDER: kokoro
       KOKORO_VOICE: em_alex
-      KOKORO_SPEED: "0.96"
+      KOKORO_SPEED: "0.94"
       YOUTUBE_TOKEN_DIOSHABLAHOYIA: ${{ secrets.YOUTUBE_TOKEN_DIOSHABLAHOYIA }}
 
     steps:
@@ -75,7 +80,7 @@ jobs:
           python-version: "3.11"
           cache: pip
 
-      - name: Resolve test, manual or daily settings
+      - name: Resolve manual or daily settings
         shell: bash
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
@@ -85,8 +90,8 @@ jobs:
             case "${{ github.event.schedule }}" in
               "0 11 * * *") MINUTES="5" ;;
               "0 15 * * *") MINUTES="10" ;;
-              "0 19 * * *") MINUTES="15" ;;
-              "0 23 * * *") MINUTES="20" ;;
+              "0 19 * * *") MINUTES="20" ;;
+              "0 23 * * *") MINUTES="30" ;;
               *) MINUTES="10" ;;
             esac
             PUBLISH="true"
@@ -101,14 +106,16 @@ jobs:
       - name: Install media and Python dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y ffmpeg espeak-ng libsndfile1 fonts-dejavu-core
+          sudo apt-get install -y ffmpeg espeak-ng libsndfile1 fonts-dejavu-core git
           python -m pip install --upgrade pip
+          pip install torch==2.6.0 --index-url https://download.pytorch.org/whl/cpu
           pip install -r requirements.txt
 
       - name: Verify required configuration
         shell: bash
         run: |
           test -n "$GEMINI_API_KEY" || { echo "Falta GEMINI_API_KEY"; exit 1; }
+          test -n "$HF_TOKEN" || { echo "Falta HF_TOKEN para fallback fotorrealista de Hugging Face"; exit 1; }
           if [ "$PUBLISH" = "true" ]; then
             test -n "$YOUTUBE_TOKEN_DIOSHABLAHOYIA" || { echo "Falta YOUTUBE_TOKEN_DIOSHABLAHOYIA"; exit 1; }
           fi
