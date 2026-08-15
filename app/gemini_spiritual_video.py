@@ -8,6 +8,9 @@ from pathlib import Path
 
 from google import genai
 
+from .workers.celestial_cinema_engine import mark_render_metadata, render_directive
+from .workers.peace_motion_director import apply_director_requirements, performance_directive
+
 
 ROOT = Path(__file__).resolve().parents[1]
 REFERENCE_DIR = ROOT / "assets" / "dioshablahoyia" / "reference"
@@ -66,19 +69,20 @@ def _visual_context(meta: dict) -> str:
 
 def _prompt(meta: dict, spoken_line: str) -> str:
     visual = _visual_context(meta)
+    render_block = render_directive(meta, vertical=True)
+    performance_block = performance_directive(spoken_line)
     return f"""
-Create a premium photorealistic live-action style vertical 9:16 cinematic video, one single continuous unbroken shot, no scene cuts, about 8 to 10 seconds.
+{render_block}
 
 Use <IMAGE_REF_0>, <IMAGE_REF_1> and <IMAGE_REF_2> only as subject references for the SAME recurring fully synthetic respectful representation of Jesus. Preserve the same facial identity, approximate age, shoulder-length wavy dark-brown hair, full groomed brown beard, warm hazel-brown eyes, natural skin texture and proportions. He wears an ivory/cream woven linen robe with a soft beige mantle, occasionally a muted deep-red cloth accent only when visually coherent. Do not imitate any actor, celebrity, public figure or identifiable real person.
 
-Visual direction: {visual}. Golden sunrise or sunset light, natural mountains/valley/river/lake or olive-grove environment, physically plausible atmosphere, cinematic depth of field, subtle wind in hair and robe, realistic skin and cloth detail. Camera slowly dollies toward him at chest-to-waist framing. He looks directly into camera with a compassionate calm expression, breathes naturally, blinks, makes tiny eye refocusing movements, gently extends one open hand toward the viewer and uses a second subtle natural hand gesture while speaking. Correct anatomy, five fingers per hand, natural shoulders/elbows/wrists, natural torso weight shift. No frozen pose, no mannequin motion, no plastic CGI skin, no cartoon, no illustration, no anime, no videogame look.
+SCENE DIRECTION:
+Create one single continuous unbroken premium cinematic shot, about 8 to 10 seconds, vertical 9:16. Visual context: {visual}. Golden sunrise or sunset light, natural mountains, valley, river, lake or olive-grove environment, physically plausible atmosphere, cinematic depth of field, subtle wind in hair and robe, realistic skin and cloth detail. Camera slowly dollies toward him at chest-to-waist framing.
 
-Dialogue and sound: the character speaks EXACTLY this Spanish line and nothing else: "{spoken_line}"
-Voice performance: adult male low warm baritone, human and intimate, neutral Latin-American Spanish, serene, compassionate, emotionally present, cinematic, soft natural breath, slow and confident but not theatrical. The voice should convey peace, love, hope and spiritual warmth. No robotic cadence, no advertising voice, no shouting, no exaggerated echo or artificial cathedral reverb. Add only very subtle natural ambience and a barely audible original cinematic spiritual pad underneath the dialogue.
+{performance_block}
 
-Mouth, jaw, cheeks, tongue visibility when appropriate, facial muscles, head motion and body gestures must follow the spoken performance naturally. Prioritize convincing audio-visual speech timing and natural lip synchronization. Keep the face stable and recognizable throughout the whole clip.
-
-No readable text, no captions, no subtitles, no logos, no visible watermark, no extra people, no duplicate character. This is an artistic synthetic character and must look like premium live-action cinema rather than animation. Use the supplied images as references, not as literal frozen opening frames.
+FINAL DELIVERY RULES:
+No readable text, no captions, no subtitles, no logos, no visible watermark, no extra people and no duplicate character. This is an artistic synthetic character and must look like premium live-action cinema rather than animation. Use the supplied images as identity references, not as literal frozen opening frames.
 """.strip()
 
 
@@ -154,6 +158,8 @@ def generate_gemini_spiritual_short(channel: dict, meta: dict, workdir: Path, fi
     if not final.exists() or final.stat().st_size < 100_000:
         raise RuntimeError("Gemini Omni genero un MP4 vacio o demasiado pequeno.")
 
+    mark_render_metadata(meta, format_name="short_vertical_9x16")
+    apply_director_requirements(meta)
     meta["visual_source"] = "gemini_omni_flash_reference_to_video"
     meta["text_to_video_engine"] = model
     meta["gemini_omni_primary"] = True
