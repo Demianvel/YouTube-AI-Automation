@@ -22,7 +22,7 @@ on:
     paths:
       - "triggers/dioshablahoyia-long.txt"
   schedule:
-    # Argentina UTC-3: 08:00=10m, 12:00=15m, 16:00=20m, 20:00=30m todos los dias.
+    # Publicador Reino 4x10 / Argentina UTC-3: 08:00, 12:00, 16:00, 20:00.
     - cron: "0 11 * * *"
     - cron: "0 15 * * *"
     - cron: "0 19 * * *"
@@ -42,8 +42,15 @@ jobs:
     timeout-minutes: 360
     env:
       PYTHONPATH: .
+      RENDER_WORKER: Motor Celestial Cinema
+      MOTION_DIRECTOR_WORKER: Director Paz Viva
+      PUBLISHER_WORKER: Publicador Reino 4x10
       GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
       GEMINI_TEXT_MODEL: gemini-3.6-flash
+      GEMINI_VIDEO_ENABLED: "true"
+      GEMINI_VIDEO_MODEL: gemini-omni-flash-preview
+      GEMINI_TTS_MODEL: gemini-3.1-flash-tts-preview
+      GEMINI_TTS_VOICE: Gacrux
       POLLINATIONS_API_KEY: ${{ secrets.POLLINATIONS_API_KEY }}
       POLLINATIONS_IMAGE_MODEL: flux
       HF_VIDEO_ENABLED: "true"
@@ -59,9 +66,9 @@ jobs:
       SPIRITUAL_LONG_AI_CLIPS: "3"
       SPIRITUAL_LONG_LIPSYNC_ENABLED: "true"
       SPIRITUAL_LIPSYNC_ENABLED: "true"
-      SPIRITUAL_VOICE_PROFILE: luminous_calm_v2
+      SPIRITUAL_VOICE_PROFILE: peace_motion_director
       SPIRITUAL_CTA_OVERLAY: "true"
-      TTS_PROVIDER: kokoro
+      TTS_PROVIDER: gemini_tts
       KOKORO_VOICE: em_alex
       KOKORO_SPEED: "0.94"
       YOUTUBE_TOKEN_DIOSHABLAHOYIA: ${{ secrets.YOUTUBE_TOKEN_DIOSHABLAHOYIA }}
@@ -111,7 +118,7 @@ jobs:
         shell: bash
         run: |
           if [ -z "$GEMINI_API_KEY" ]; then
-            echo "GEMINI_API_KEY ausente: se usara el guionista biblico local resiliente."
+            echo "GEMINI_API_KEY ausente: se usara el guionista biblico local resiliente y voz de respaldo."
           fi
           if [ -z "$HF_TOKEN" ]; then
             echo "HF_TOKEN ausente: se usaran referencias fotorrealistas locales de emergencia."
