@@ -16,7 +16,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: dioshablahoyia-shorts-daily-${{ github.run_id }}
+  group: dioshablahoyia-shorts-daily-dispatch
   cancel-in-progress: false
 
 jobs:
@@ -24,7 +24,32 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Check daily 10-Short cap
+        id: quota
+        shell: bash
+        run: |
+          REPORT="$(python scripts/dioshablahoyia_watchdog.py)"
+          echo "$REPORT"
+          ACTUAL="$(printf '%s' "$REPORT" | python -c 'import json,sys; print(json.load(sys.stdin)["short_actual"])')"
+          TARGET="$(printf '%s' "$REPORT" | python -c 'import json,sys; print(json.load(sys.stdin)["daily_short_target"])')"
+          if [ "$ACTUAL" -ge "$TARGET" ]; then
+            echo "launch=false" >> "$GITHUB_OUTPUT"
+            echo "Ya hay $ACTUAL/$TARGET Shorts publicados hoy en Argentina; no se supera el tope diario."
+          else
+            echo "launch=true" >> "$GITHUB_OUTPUT"
+            echo "Hay $ACTUAL/$TARGET Shorts publicados hoy; se habilita este slot."
+          fi
+
       - name: Lanzar Short fotorrealista biblico
+        if: steps.quota.outputs.launch == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash
@@ -37,3 +62,7 @@ jobs:
             -f content_mode=voice \
             -f dry_run=false
           echo "Generacion/publicacion solicitada correctamente."
+
+      - name: Daily target already complete
+        if: steps.quota.outputs.launch != 'true'
+        run: echo "Objetivo diario de 10 Shorts ya cumplido; este slot se omite."
