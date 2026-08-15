@@ -49,7 +49,7 @@ concurrency:
 jobs:
   publish:
     runs-on: ubuntu-latest
-    timeout-minutes: 120
+    timeout-minutes: 180
     env:
       PYTHONPATH: .
       GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
@@ -65,6 +65,8 @@ jobs:
       HF_TOKEN: ${{ secrets.HF_TOKEN }}
       HF_VIDEO_PROVIDER: auto
       HF_VIDEO_MODEL: Wan-AI/Wan2.2-TI2V-5B
+      HF_IMAGE_PROVIDER: auto
+      HF_IMAGE_MODEL: black-forest-labs/FLUX.1-schnell
       TTS_PROVIDER: chatterbox_latam
       TTS_FALLBACK_KOKORO: "true"
       CHATTERBOX_EXAGGERATION: "0.62"
@@ -126,18 +128,21 @@ jobs:
             echo "KOKORO_VOICE=em_alex" >> "$GITHUB_ENV"
             echo "KOKORO_SPEED=1.00" >> "$GITHUB_ENV"
           elif [ "$CHANNEL" = "dioshablahoyia" ]; then
-            # Dios Habla Hoy: Kokoro es el motor estable actual. Chatterbox V3
-            # tiene un mismatch de checkpoint y solo agrega varios minutos al run.
             echo "TTS_PROVIDER=kokoro" >> "$GITHUB_ENV"
             echo "KOKORO_VOICE=em_alex" >> "$GITHUB_ENV"
-            echo "KOKORO_SPEED=0.91" >> "$GITHUB_ENV"
-            # Primero se intenta video humano fotorrealista. Si ZeroGPU o el
-            # proveedor no tienen cuota, no cancelar el Short: usar imágenes
-            # fotorrealistas sintéticas con movimiento cinematográfico y voz.
+            echo "KOKORO_SPEED=0.93" >> "$GITHUB_ENV"
+            echo "SPIRITUAL_VOICE_PROFILE=luminous_calm_v1" >> "$GITHUB_ENV"
+            echo "SPIRITUAL_SHORT_SECONDS=180" >> "$GITHUB_ENV"
+            echo "SPIRITUAL_SHORT_SCENE_SECONDS=15" >> "$GITHUB_ENV"
+            echo "SPIRITUAL_SHORT_AI_CLIPS=3" >> "$GITHUB_ENV"
+            echo "SPIRITUAL_CTA_OVERLAY=true" >> "$GITHUB_ENV"
+            echo "SPIRITUAL_LIPSYNC_ENABLED=true" >> "$GITHUB_ENV"
             echo "SPIRITUAL_ALLOW_STILL_FALLBACK=true" >> "$GITHUB_ENV"
             echo "HF_VIDEO_STRICT=false" >> "$GITHUB_ENV"
             echo "HF_ZERO_RETRIES=1" >> "$GITHUB_ENV"
             if [ "${{ github.event_name }}" = "push" ]; then
+              # Smoke triggers prioritize reliability; scheduled/manual runs
+              # keep the full HF hybrid path above.
               echo "HF_VIDEO_ENABLED=false" >> "$GITHUB_ENV"
               echo "DIOS_FAST_UPLOAD_SMOKE=true" >> "$GITHUB_ENV"
             fi
@@ -190,8 +195,6 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y ffmpeg espeak-ng libsndfile1 fonts-dejavu-core git
           python -m pip install --upgrade pip
-          # Hosted runners do not expose an NVIDIA GPU to this pipeline. Preinstall
-          # CPU PyTorch so Kokoro does not pull several GB of CUDA 13 packages.
           pip install torch==2.6.0 --index-url https://download.pytorch.org/whl/cpu
           pip install -r requirements.txt
 
