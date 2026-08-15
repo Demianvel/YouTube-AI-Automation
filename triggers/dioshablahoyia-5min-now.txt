@@ -1,2 +1,2 @@
-trigger premium 3min retry - 2026-08-15T03:24Z
-Objetivo: validar fix FFmpeg CTA -> fallback fotorrealista local -> voz luminous_calm_v1 -> upload real.
+trigger premium Short post-OAuth - 2026-08-15T01:03-03:00
+Objetivo: validar voz continua + visual HF/fallback + upload real + comentario CTA.
