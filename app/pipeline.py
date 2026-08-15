@@ -14,6 +14,7 @@ from .history import append_history, read_history
 from .performance import enrich_history_with_youtube_stats
 from .premium_audio import apply_audio as premium_apply_audio
 from .hf_primary_router import generate_short
+from .spiritual_content_guard import enforce_spiritual_topic_guard
 from .spiritual_growth import enrich_short_growth
 from .spiritual_quality import enforce_spiritual_metadata
 from .spiritual_uniqueness import validate_spiritual_uniqueness
@@ -46,8 +47,6 @@ def _configure_spiritual_short(channel_slug: str, channel: dict) -> None:
     if channel_slug != "dioshablahoyia":
         return
 
-    # El motor audiovisual nativo funciona mejor con un solo clip corto continuo:
-    # preserva cara, cuerpo, voz y sincronizacion sin uniones entre escenas.
     target_seconds = max(8, min(60, int(os.getenv("SPIRITUAL_SHORT_SECONDS", "8"))))
     scene_seconds = max(8, min(30, int(os.getenv("SPIRITUAL_SHORT_SCENE_SECONDS", "8"))))
     scenes = max(1, math.ceil(target_seconds / scene_seconds))
@@ -65,7 +64,6 @@ def run(channel_slug: str, dry_run: bool = False, content_mode: str = "auto") ->
         )
 
     if channel_slug == "dioshablahoyia":
-        # Publicador Reino 4x10 is the final authority for this channel.
         validate_channel(channel_slug)
 
     channel = load_channel(channel_slug)
@@ -122,6 +120,7 @@ def run(channel_slug: str, dry_run: bool = False, content_mode: str = "auto") ->
         metadata = enrich_short_growth(metadata, previous)
         metadata = validate_spiritual_uniqueness(metadata, previous)
         metadata = mark_publish_metadata(metadata, content_type="short")
+        metadata = enforce_spiritual_topic_guard(metadata)
 
     metadata["content_mode"] = resolved_mode
     metadata["analytics_used"] = bool(channel.get("_analytics_digest"))
