@@ -4,7 +4,6 @@ import argparse
 import json
 import math
 import os
-from collections import defaultdict
 from datetime import datetime, timezone
 
 from . import video as video_module
@@ -20,6 +19,9 @@ from .spiritual_quality import enforce_spiritual_metadata
 from .spiritual_uniqueness import validate_spiritual_uniqueness
 from .youtube import upload_video
 
+ACTIVE_SHORT_CHANNELS = {"brotavida", "dioshablahoyia"}
+DISABLED_CHANNELS = {"dineroclaro", "envikids"}
+
 
 def _write_metadata(workdir, metadata: dict) -> None:
     (workdir / "metadata.json").write_text(
@@ -28,64 +30,16 @@ def _write_metadata(workdir, metadata: dict) -> None:
     )
 
 
-def _auto_brotavida_mode(previous: list[dict]) -> str:
-    modes = ("asmr", "music", "voice")
-    by_mode: dict[str, list[dict]] = defaultdict(list)
-    for row in previous:
-        mode = str(row.get("content_mode") or "").strip()
-        if mode in modes and row.get("status") == "uploaded":
-            by_mode[mode].append(row)
-
-    counts = {mode: len(by_mode[mode]) for mode in modes}
-    if min(counts.values(), default=0) < 2:
-        return min(modes, key=lambda m: counts[m])
-
-    def score(rows: list[dict]) -> float:
-        recent = rows[-8:]
-        values = []
-        for row in recent:
-            vph = float(row.get("vph") or 0)
-            like_rate = float(row.get("like_rate") or 0)
-            comment_rate = float(row.get("comment_rate") or 0)
-            share_rate = float(row.get("share_rate") or 0)
-            sub_rate = float(row.get("subscriber_gain_rate") or 0)
-            values.append(
-                math.log1p(max(0.0, vph))
-                + 18.0 * like_rate
-                + 45.0 * comment_rate
-                + 60.0 * share_rate
-                + 90.0 * sub_rate
-            )
-        return sum(values) / max(1, len(values))
-
-    ranked = sorted(modes, key=lambda m: score(by_mode[m]), reverse=True)
-    marker = datetime.now(timezone.utc).timetuple().tm_yday + datetime.now(timezone.utc).hour
-    if marker % 4 == 0:
-        return ranked[1 if len(ranked) > 1 else 0]
-    return ranked[0]
-
-
 def _apply_content_mode(channel_slug: str, channel: dict, requested: str, previous: list[dict]) -> str:
-    mode = (requested or "auto").lower().strip()
-    if channel_slug == "dineroclaro":
-        channel["audio_mode"] = "voice_music"
-        return "voice"
-
-    if channel_slug != "brotavida":
-        return "voice" if channel.get("audio_mode") != "music_only" else "music"
-
-    if mode == "auto":
-        mode = _auto_brotavida_mode(previous)
-    if mode == "asmr":
+    if channel_slug in DISABLED_CHANNELS:
+        raise RuntimeError(f"Canal desactivado por configuracion: {channel_slug}")
+    if channel_slug == "brotavida":
+        # BrotaVida queda exclusivamente como time-lapse botanico ASMR.
         channel["audio_mode"] = "asmr"
+        channel["visual_mode"] = "real_botanical_timelapse"
+        channel["require_real_video"] = True
         return "asmr"
-    if mode == "music":
-        channel["audio_mode"] = "music_only"
-        return "music"
-    if mode == "voice":
-        channel["audio_mode"] = "voice_music"
-        return "voice"
-    raise ValueError(f"content_mode no soportado para BrotaVida: {requested}")
+    return "voice"
 
 
 def _configure_spiritual_short(channel_slug: str, channel: dict) -> None:
@@ -102,6 +56,11 @@ def _configure_spiritual_short(channel_slug: str, channel: dict) -> None:
 
 
 def run(channel_slug: str, dry_run: bool = False, content_mode: str = "auto") -> dict:
+    if channel_slug not in ACTIVE_SHORT_CHANNELS:
+        raise RuntimeError(
+            f"Publicacion deshabilitada para {channel_slug}. Canales activos: {sorted(ACTIVE_SHORT_CHANNELS)}"
+        )
+
     channel = load_channel(channel_slug)
     _configure_spiritual_short(channel_slug, channel)
     previous = read_history(HISTORY_FILE, channel=channel_slug, limit=100)
@@ -142,12 +101,20 @@ def run(channel_slug: str, dry_run: bool = False, content_mode: str = "auto") ->
 
     resolved_mode = _apply_content_mode(channel_slug, channel, content_mode, previous)
     metadata = generate_metadata(channel, previous)
+
+    if channel_slug == "brotavida":
+        metadata["content_family"] = "seed_to_plant_timelapse"
+        metadata["audio_policy"] = "asmr_natural_foley_plus_optional_original_low_music_no_voice"
+        metadata["real_botanical_timelapse_required"] = True
+        metadata["no_synthetic_plant_visuals"] = True
+
     if channel_slug == "dioshablahoyia":
         metadata = enforce_spiritual_metadata(metadata, previous)
         metadata["target_short_seconds"] = int(channel["scenes_per_short"]) * int(channel["scene_seconds"])
         metadata["short_format"] = "vertical_up_to_3_minutes"
         metadata = enrich_short_growth(metadata, previous)
         metadata = validate_spiritual_uniqueness(metadata, previous)
+
     metadata["content_mode"] = resolved_mode
     metadata["analytics_used"] = bool(channel.get("_analytics_digest"))
 
@@ -187,7 +154,7 @@ def run(channel_slug: str, dry_run: bool = False, content_mode: str = "auto") ->
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--channel", required=True, choices=["brotavida", "dineroclaro", "envikids", "dioshablahoyia"])
+    parser.add_argument("--channel", required=True, choices=["brotavida", "dioshablahoyia"])
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--content-mode", default="auto", choices=["auto", "asmr", "music", "voice"])
     args = parser.parse_args()
