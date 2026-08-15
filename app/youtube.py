@@ -125,8 +125,10 @@ def _enforce_spiritual_voice_guard(channel: dict, metadata: dict) -> None:
     if not _is_spiritual_channel(channel):
         return
     passed = metadata.get("voice_continuity_passed")
-    coverage = float(metadata.get("voice_coverage_ratio") or 0.0)
-    longest = float(metadata.get("longest_voice_silence_seconds") or 999.0)
+    coverage_raw = metadata.get("voice_coverage_ratio")
+    longest_raw = metadata.get("longest_voice_silence_seconds")
+    coverage = float(coverage_raw if coverage_raw is not None else 0.0)
+    longest = float(longest_raw if longest_raw is not None else 999.0)
     if passed is not True or coverage < 0.96 or longest > 2.2:
         raise RuntimeError(
             "BLOQUEADO ANTES DE YOUTUBE: la narracion espiritual no supero el control de continuidad "
