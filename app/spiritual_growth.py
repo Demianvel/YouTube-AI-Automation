@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import math
 
 from .spiritual_engagement import engagement_comment
 
@@ -59,7 +60,7 @@ def _repair_repetition(metadata: dict) -> None:
     for index, scene in enumerate(scenes):
         narration = _clean(scene.get("narration"))
         key = narration.lower()
-        if not narration or len(narration.split()) < 12 or key in seen:
+        if not narration or len(narration.split()) < 6 or key in seen:
             bridge = _EXPANSIONS[(seed + index * 7) % len(_EXPANSIONS)]
             narration = bridge
             repairs += 1
@@ -69,58 +70,80 @@ def _repair_repetition(metadata: dict) -> None:
     metadata["repetitive_narration_repairs"] = repairs
 
 
-def _ensure_three_minute_narration(metadata: dict) -> None:
+def _short_word_target(metadata: dict, words_per_minute: int = 126) -> int:
+    """Return a calm, human narration budget that actually fits the Short."""
+    seconds = float(metadata.get("target_short_seconds") or 8)
+    seconds = max(4.0, min(60.0, seconds))
+    return max(8, math.ceil((seconds / 60.0) * words_per_minute * 1.02))
+
+
+def _truncate_words(text: str, limit: int) -> str:
+    words = _clean(text).split()
+    if len(words) <= limit:
+        return " ".join(words)
+    clipped = " ".join(words[:limit]).rstrip(",;:-")
+    if clipped and clipped[-1] not in ".!?":
+        clipped += "."
+    return clipped
+
+
+def _fit_short_narration(metadata: dict) -> None:
+    """Fit narration to the real Short duration instead of a 3-minute script.
+
+    The old growth path expanded every spiritual Short toward 390 words. For an
+    8-second video that creates a voice track well over a minute, so the quality
+    gate correctly blocks the upload. This function keeps a calm ~126 WPM budget
+    and distributes it across the actual number of scenes.
+    """
     scenes = list(metadata.get("scenes") or [])
     if not scenes:
         return
-    target_words = int(metadata.get("target_narration_words") or 390)
-    current_words = sum(len(_clean(scene.get("narration")).split()) for scene in scenes)
-    if current_words >= target_words:
-        metadata["narration_word_target"] = target_words
-        metadata["narration_words_after_growth"] = current_words
-        return
 
-    seed = _seed(metadata)
-    cursor = 0
-    while current_words < target_words and cursor < len(scenes) * 5:
-        index = cursor % len(scenes)
-        expansion = _EXPANSIONS[(seed + cursor * 5 + index) % len(_EXPANSIONS)]
-        existing = _clean(scenes[index].get("narration"))
-        if expansion.lower() not in existing.lower():
-            scenes[index]["narration"] = f"{existing} {expansion}".strip()
-            current_words += len(expansion.split())
-        cursor += 1
+    target_words = _short_word_target(metadata)
+    per_scene = max(4, math.ceil(target_words / len(scenes)))
+    remaining = target_words
+
+    for index, scene in enumerate(scenes):
+        slots_left = len(scenes) - index
+        allowance = max(4, min(per_scene, remaining - max(0, slots_left - 1) * 4))
+        narration = _clean(scene.get("narration"))
+        if not narration:
+            narration = _EXPANSIONS[(_seed(metadata) + index * 7) % len(_EXPANSIONS)]
+        scene["narration"] = _truncate_words(narration, allowance)
+        remaining -= len(scene["narration"].split())
+
     metadata["scenes"] = scenes
+    metadata["target_narration_words"] = target_words
     metadata["narration_word_target"] = target_words
-    metadata["narration_words_after_growth"] = current_words
+    metadata["narration_words_after_growth"] = sum(
+        len(_clean(scene.get("narration")).split()) for scene in scenes
+    )
+    metadata["narration_duration_policy"] = "duration_aware_short_126wpm"
 
 
 def enrich_short_growth(metadata: dict, previous: list[dict] | None = None) -> dict:
     previous = previous or []
     metadata["title_variants"] = _title_variants(metadata)
     metadata["retention_structure"] = {
-        "opening": "hook in first 1-2 seconds with a relatable need, question or promise of useful reflection",
-        "middle": "progressive biblical reflection with new visual or narrative beat every scene",
-        "payoff": "practical prayer, hope or action that resolves the opening idea",
-        "ending": "gentle subscribe/comment/share CTA connected to doing good, never coercive",
+        "opening": "hook in first 1-2 seconds with a relatable need or clear spiritual promise",
+        "middle": "one concise biblical idea matched to the available seconds",
+        "payoff": "a short practical hope or reflection that resolves the opening",
+        "ending": "CTA stays in description/pinned comment when the spoken time budget is too short",
     }
-    metadata["growth_strategy"] = "original_hook_progression_payoff_packaging_test_without_false_clickbait"
-    metadata["target_narration_words"] = 390
+    metadata["growth_strategy"] = "original_hook_concise_biblical_payoff_without_false_clickbait"
     _repair_repetition(metadata)
-    _ensure_three_minute_narration(metadata)
+    _fit_short_narration(metadata)
 
-    scenes = list(metadata.get("scenes") or [])
+    # A long spoken CTA cannot fit naturally inside an 8-10 second Short.
+    # Keep it available for packaging instead of forcing the TTS beyond the clip.
     cta = (
         "Si esta reflexión te acompañó, podés suscribirte para recibir nuevos mensajes de fe, "
         "compartirla con alguien a quien pueda hacerle bien y, si querés, escribir Amén o dejar tu intención en los comentarios. "
         "Que la palabra nos impulse siempre a compartir, ayudar y hacer el bien."
     )
-    if scenes:
-        last = _clean(scenes[-1].get("narration"))
-        if "suscrib" not in last.lower():
-            scenes[-1]["narration"] = f"{last} {cta}".strip()
-    metadata["scenes"] = scenes
-    metadata["cta_spoken"] = cta
+    metadata["cta_spoken"] = ""
+    metadata["cta_packaging"] = cta
+    metadata["cta_mode"] = "description_and_pinned_comment_only"
     metadata["pinned_comment_candidate"] = engagement_comment(
         f"short|{metadata.get('topic','')}|{metadata.get('title','')}|{_seed(metadata)}"
     )
