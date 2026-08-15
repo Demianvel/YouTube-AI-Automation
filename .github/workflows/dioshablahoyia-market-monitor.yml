@@ -1,0 +1,60 @@
+name: Dios Habla Hoy IA - Radar de tendencias
+
+on:
+  schedule:
+    # 06:20 Argentina (UTC-3): refresh before the main publishing day.
+    - cron: "20 9 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: dioshablahoyia-market-monitor
+  cancel-in-progress: false
+
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      YOUTUBE_TOKEN_DIOSHABLAHOYIA: ${{ secrets.YOUTUBE_TOKEN_DIOSHABLAHOYIA }}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install YouTube API dependencies
+        run: pip install google-api-python-client google-auth
+
+      - name: Analyze current Spanish religion niche signals
+        run: python scripts/dioshablahoyia_market_monitor.py
+
+      - name: Persist aggregated market signals
+        shell: bash
+        run: |
+          FILE="state/dioshablahoyia_market_signals.json"
+          test -f "$FILE" || exit 0
+          SNAPSHOT="$(cat "$FILE")"
+          git config user.name "youtube-ai-bot"
+          git config user.email "actions@users.noreply.github.com"
+          for attempt in 1 2 3 4 5; do
+            git fetch origin main
+            git reset --hard origin/main
+            mkdir -p state
+            printf '%s\n' "$SNAPSHOT" > "$FILE"
+            git add "$FILE"
+            if git diff --cached --quiet; then
+              exit 0
+            fi
+            git commit -m "chore: refresh Dios Habla Hoy market signals"
+            if git push origin HEAD:main; then
+              exit 0
+            fi
+          done
+          exit 1
