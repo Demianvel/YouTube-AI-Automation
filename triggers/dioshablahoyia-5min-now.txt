@@ -1,2 +1,2 @@
-trigger post-fix - 2026-08-15
-Objetivo: probar video HF primero y fallback fotorrealista con voz si ZeroGPU no tiene cuota.
+trigger premium 3min - 2026-08-15T03:01Z
+Objetivo: probar Short de hasta 180s con voz luminous_calm_v1, HF hibrido, CTA y publicacion real.
