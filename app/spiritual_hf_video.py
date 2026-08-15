@@ -7,6 +7,8 @@ from pathlib import Path
 
 from .audio import fit_voice_to_duration, make_natural_spanish_voice
 from .hf_video import _normalize, _provider_video, _safe_seed, _space_video, available
+from .spiritual_image import _animate as _animate_spiritual_image
+from .spiritual_image import _download as _download_spiritual_image
 from .spiritual_lipsync import apply_musetalk_lipsync, available as lipsync_available
 
 
@@ -56,6 +58,14 @@ def _continuous_voice(meta: dict, workdir: Path, duration: int) -> tuple[Path, s
     return voice, used
 
 
+def _image_scene(prompt: str, workdir: Path, index: int, duration: int, seed: int) -> tuple[Path, str]:
+    image = workdir / f"spiritual_hf_image_{index + 1}.jpg"
+    clip = workdir / f"spiritual_hf_image_scene_{index + 1}.mp4"
+    provider = _download_spiritual_image(prompt, image, seed)
+    _animate_spiritual_image(image, clip, duration, index)
+    return clip, f"{provider} + cinematic motion"
+
+
 def generate_spiritual_hf_short(channel: dict, meta: dict, workdir: Path, final: Path, apply_audio_fn) -> None:
     if not available():
         raise RuntimeError("HF video esta deshabilitado.")
@@ -69,6 +79,10 @@ def generate_spiritual_hf_short(channel: dict, meta: dict, workdir: Path, final:
     meta["voice_delivery"] = "single_continuous_narration_track"
     meta["character_identity_seed"] = _seed(meta, 0)
 
+    # A 3-minute Short does not need twelve expensive T2V calls. Use a few
+    # key live-action clips, then keep continuity with HF photoreal images +
+    # cinematic motion. This protects ZeroGPU quota while retaining variety.
+    ai_slots = max(0, min(int(os.getenv("SPIRITUAL_SHORT_AI_CLIPS", "3")), len(scenes)))
     clips: list[Path] = []
     prompts: list[str] = []
     providers: list[str] = []
@@ -76,21 +90,29 @@ def generate_spiritual_hf_short(channel: dict, meta: dict, workdir: Path, final:
     for index, scene in enumerate(scenes):
         prompt = _prompt(scene, index, len(scenes))
         prompts.append(prompt)
-        raw = workdir / f"spiritual_hf_raw_{index + 1}.mp4"
-        clip = workdir / f"spiritual_hf_scene_{index + 1}.mp4"
-        space_error = None
         visual_seed = _seed(meta, index)
-        try:
-            provider_label = _space_video(prompt, raw, scene_duration, visual_seed)
-        except Exception as exc:
-            space_error = exc
+
+        if index < ai_slots:
+            raw = workdir / f"spiritual_hf_raw_{index + 1}.mp4"
+            clip = workdir / f"spiritual_hf_scene_{index + 1}.mp4"
             try:
-                provider_label = _provider_video(prompt, raw, visual_seed)
-            except Exception as provider_exc:
-                raise RuntimeError(
-                    f"No hubo text-to-video de Hugging Face disponible. LTX ZeroGPU: {space_error}; provider: {provider_exc}"
-                ) from provider_exc
-        _normalize(raw, clip, scene_duration)
+                try:
+                    provider_label = _space_video(prompt, raw, scene_duration, visual_seed)
+                except Exception as space_error:
+                    try:
+                        provider_label = _provider_video(prompt, raw, visual_seed)
+                    except Exception as provider_error:
+                        raise RuntimeError(
+                            f"LTX ZeroGPU: {space_error}; provider: {provider_error}"
+                        ) from provider_error
+                _normalize(raw, clip, scene_duration)
+                clips.append(clip)
+                providers.append(provider_label)
+                continue
+            except Exception as exc:
+                print(f"T2V espiritual no disponible en escena {index + 1} ({exc}); usando imagen HF fotorrealista animada.")
+
+        clip, provider_label = _image_scene(prompt, workdir, index, scene_duration, visual_seed)
         clips.append(clip)
         providers.append(provider_label)
 
@@ -125,11 +147,12 @@ def generate_spiritual_hf_short(channel: dict, meta: dict, workdir: Path, final:
     meta["generated_visual_provider"] = providers
     meta["generated_video_prompts"] = prompts
     meta["synthetic_visual"] = True
-    meta["text_to_video_engine"] = "huggingface_ltx23_then_wan22_spiritual_live_action"
+    meta["text_to_video_engine"] = "huggingface_ltx23_then_wan22_plus_hf_image_hybrid"
+    meta["text_to_video_key_scenes_requested"] = ai_slots
     meta["character_reference_profile"] = "dioshablahoyia_photoreal_human_v2"
     meta["character_speaking_motion_requested"] = True
     meta["full_body_motion_requested"] = True
     meta["photoreal_human_required"] = True
     meta["no_cartoon_no_3d_animation"] = True
-    meta["render_quality"] = "1080x1920_30fps_hf_ai_live_action"
+    meta["render_quality"] = "1080x1920_30fps_hf_ai_hybrid_live_action"
     apply_audio_fn(audio_visual, final, channel, meta, total_duration, _seed(meta, 999))
