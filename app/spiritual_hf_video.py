@@ -10,6 +10,7 @@ from .hf_video import _normalize, _provider_video, _safe_seed, _space_video, ava
 from .spiritual_image import _animate as _animate_spiritual_image
 from .spiritual_image import _download as _download_spiritual_image
 from .spiritual_lipsync import apply_musetalk_lipsync, available as lipsync_available
+from .spiritual_voice import polish_voice
 
 
 def _seed(meta: dict, index: int) -> int:
@@ -54,7 +55,10 @@ def _continuous_voice(meta: dict, workdir: Path, duration: int) -> tuple[Path, s
         raise RuntimeError("No hay narracion para generar la voz continua del Short espiritual.")
     voice = workdir / "spiritual_continuous_voice.wav"
     used = make_natural_spanish_voice(voice, text)
+    voice_master = polish_voice(voice)
     fit_voice_to_duration(voice, duration)
+    if voice_master != "unprocessed":
+        used = f"{used}+{voice_master}"
     return voice, used
 
 
@@ -77,11 +81,9 @@ def generate_spiritual_hf_short(channel: dict, meta: dict, workdir: Path, final:
     meta["_precomputed_voice_path"] = str(voice_path)
     meta["_precomputed_tts_provider"] = voice_provider
     meta["voice_delivery"] = "single_continuous_narration_track"
+    meta["voice_profile"] = os.getenv("SPIRITUAL_VOICE_PROFILE", "default")
     meta["character_identity_seed"] = _seed(meta, 0)
 
-    # A 3-minute Short does not need twelve expensive T2V calls. Use a few
-    # key live-action clips, then keep continuity with HF photoreal images +
-    # cinematic motion. This protects ZeroGPU quota while retaining variety.
     ai_slots = max(0, min(int(os.getenv("SPIRITUAL_SHORT_AI_CLIPS", "3")), len(scenes)))
     clips: list[Path] = []
     prompts: list[str] = []
