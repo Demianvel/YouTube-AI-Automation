@@ -115,7 +115,9 @@ jobs:
           if [ -z "$GEMINI_API_KEY" ]; then
             echo "GEMINI_API_KEY ausente: se usara el guionista biblico local resiliente."
           fi
-          test -n "$HF_TOKEN" || { echo "Falta HF_TOKEN para fallback fotorrealista de Hugging Face"; exit 1; }
+          if [ -z "$HF_TOKEN" ]; then
+            echo "HF_TOKEN ausente: se usaran referencias fotorrealistas locales de emergencia."
+          fi
           if [ "$PUBLISH" = "true" ]; then
             test -n "$YOUTUBE_TOKEN_DIOSHABLAHOYIA" || { echo "Falta YOUTUBE_TOKEN_DIOSHABLAHOYIA"; exit 1; }
           fi
