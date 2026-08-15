@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import hashlib
 
+from .spiritual_engagement import engagement_comment
+
 
 _EXPANSIONS = (
     "No hace falta tener todas las respuestas para dar el siguiente paso. La fe puede empezar de una manera sencilla: reconocer lo que sentimos, presentarlo delante de Dios y elegir actuar con paciencia, verdad y amor.",
@@ -71,7 +73,7 @@ def _ensure_three_minute_narration(metadata: dict) -> None:
     scenes = list(metadata.get("scenes") or [])
     if not scenes:
         return
-    target_words = int(metadata.get("target_narration_words") or 365)
+    target_words = int(metadata.get("target_narration_words") or 390)
     current_words = sum(len(_clean(scene.get("narration")).split()) for scene in scenes)
     if current_words >= target_words:
         metadata["narration_word_target"] = target_words
@@ -80,7 +82,7 @@ def _ensure_three_minute_narration(metadata: dict) -> None:
 
     seed = _seed(metadata)
     cursor = 0
-    while current_words < target_words and cursor < len(scenes) * 4:
+    while current_words < target_words and cursor < len(scenes) * 5:
         index = cursor % len(scenes)
         expansion = _EXPANSIONS[(seed + cursor * 5 + index) % len(_EXPANSIONS)]
         existing = _clean(scenes[index].get("narration"))
@@ -103,7 +105,7 @@ def enrich_short_growth(metadata: dict, previous: list[dict] | None = None) -> d
         "ending": "gentle subscribe/comment/share CTA connected to doing good, never coercive",
     }
     metadata["growth_strategy"] = "original_hook_progression_payoff_packaging_test_without_false_clickbait"
-    metadata["target_narration_words"] = 365
+    metadata["target_narration_words"] = 390
     _repair_repetition(metadata)
     _ensure_three_minute_narration(metadata)
 
@@ -119,9 +121,8 @@ def enrich_short_growth(metadata: dict, previous: list[dict] | None = None) -> d
             scenes[-1]["narration"] = f"{last} {cta}".strip()
     metadata["scenes"] = scenes
     metadata["cta_spoken"] = cta
-    metadata["pinned_comment_candidate"] = (
-        "🙏 Si este mensaje te ayudó, podés dejar tu intención de oración o escribir Amén. "
-        "Compartilo con alguien que hoy necesite fe y esperanza, y suscribite para seguir construyendo una comunidad que busque hacer el bien."
+    metadata["pinned_comment_candidate"] = engagement_comment(
+        f"short|{metadata.get('topic','')}|{metadata.get('title','')}|{_seed(metadata)}"
     )
 
     description = str(metadata.get("description") or "").strip()
