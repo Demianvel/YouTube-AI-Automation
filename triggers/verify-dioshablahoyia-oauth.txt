@@ -1,1 +1,2 @@
-verify 2026-08-14T18:36Z
+verify 2026-08-15T08:35-03:00
+Require channel @dioshablahoyia + youtube.force-ssl for automatic top-level CTA comments.
