@@ -9,12 +9,10 @@ on:
         default: "10"
         type: choice
         options:
-          - "5"
           - "10"
           - "15"
           - "20"
           - "30"
-          - "40"
       publish:
         description: Publicar en YouTube al terminar
         required: true
@@ -24,7 +22,7 @@ on:
     paths:
       - "triggers/dioshablahoyia-long.txt"
   schedule:
-    # Argentina UTC-3: 08:00=5m, 12:00=10m, 16:00=20m, 20:00=30m todos los dias.
+    # Argentina UTC-3: 08:00=10m, 12:00=15m, 16:00=20m, 20:00=30m todos los dias.
     - cron: "0 11 * * *"
     - cron: "0 15 * * *"
     - cron: "0 19 * * *"
@@ -61,7 +59,7 @@ jobs:
       SPIRITUAL_LONG_AI_CLIPS: "3"
       SPIRITUAL_LONG_LIPSYNC_ENABLED: "true"
       SPIRITUAL_LIPSYNC_ENABLED: "true"
-      SPIRITUAL_VOICE_PROFILE: luminous_calm_v1
+      SPIRITUAL_VOICE_PROFILE: luminous_calm_v2
       SPIRITUAL_CTA_OVERLAY: "true"
       TTS_PROVIDER: kokoro
       KOKORO_VOICE: em_alex
@@ -86,8 +84,8 @@ jobs:
             PUBLISH="${{ inputs.publish }}"
           elif [ "${{ github.event_name }}" = "schedule" ]; then
             case "${{ github.event.schedule }}" in
-              "0 11 * * *") MINUTES="5" ;;
-              "0 15 * * *") MINUTES="10" ;;
+              "0 11 * * *") MINUTES="10" ;;
+              "0 15 * * *") MINUTES="15" ;;
               "0 19 * * *") MINUTES="20" ;;
               "0 23 * * *") MINUTES="30" ;;
               *) MINUTES="10" ;;
@@ -148,9 +146,9 @@ jobs:
             mkdir -p state
             touch "$HISTORY"
             if ! grep -Fqx "$NEW_RECORD" "$HISTORY"; then
-              printf '%s\n' "$NEW_RECORD" >> "$HISTORY"
+              printf '%s\n' "$NEW_RECORD" >> state/dioshablahoyia_long_history.jsonl
             fi
-            git add "$HISTORY"
+            git add state/dioshablahoyia_long_history.jsonl
             if git diff --cached --quiet; then
               exit 0
             fi
