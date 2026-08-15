@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import re
 import unicodedata
 
 
@@ -8,8 +7,8 @@ _SPIRITUAL_ANCHORS = (
     "dios", "jesus", "jesucristo", "cristo", "biblia", "biblico", "evangelio",
     "salmo", "oracion", "fe", "gracia", "espiritu santo", "senor", "mesias",
     "mateo", "marcos", "lucas", "juan", "romanos", "filipenses", "isaias",
-    "genesis", "daniel", "apocalipsis", "reyes", "zacarías", "zacarías",
-    "miqueas", "jonas", "noe", "elias", "jerusalen", "cristiana", "cristiano",
+    "genesis", "daniel", "apocalipsis", "reyes", "zacarias", "miqueas",
+    "jonas", "noe", "elias", "jerusalen", "cristiana", "cristiano",
 )
 
 _FORBIDDEN_EXTERNAL_SOURCES = (
@@ -21,9 +20,15 @@ _FORBIDDEN_EXTERNAL_SOURCES = (
 _OFF_TOPIC_TERMS = (
     "elecciones", "partido politico", "politica partidaria", "presidente actual",
     "futbol", "formula 1", "criptomoneda", "bitcoin", "casino", "apuestas",
-    "pornografia", "contenido sexual", "desnudez", "drogas recreativas",
-    "narcotrafico", "armas de fuego", "gore", "sangre explicita",
-    "celebridad", "chisme", "noticias de famosos",
+    "celebridad", "chisme", "noticias de famosos", "videojuego", "review de producto",
+)
+
+_SAFETY_BLOCK_TERMS = (
+    "pornografia", "contenido sexual explicito", "desnudez sexual", "abuso sexual",
+    "autolesion", "como suicidarse", "metodo de suicidio", "odio contra",
+    "supremacia racial", "terrorismo", "como fabricar explosivos", "como fabricar armas",
+    "venta de drogas", "narcotrafico", "armas de fuego", "gore", "decapitacion",
+    "tortura grafica", "sangre explicita", "maltrato animal", "estafa", "phishing",
 )
 
 _DECEPTIVE_TERMS = (
@@ -92,6 +97,13 @@ def _assert_spiritual_scope(metadata: dict) -> None:
             "BLOQUEADO POR GUARDIA EDITORIAL: se detecto contenido ajeno al canal: " + ", ".join(off_topic)
         )
 
+    unsafe = _contains_any(editorial, _SAFETY_BLOCK_TERMS)
+    if unsafe:
+        raise RuntimeError(
+            "BLOQUEADO POR SEGURIDAD YOUTUBE: se detecto contenido sensible o dañino fuera del perfil pacifico del canal: "
+            + ", ".join(unsafe)
+        )
+
     deceptive = _contains_any(editorial, _DECEPTIVE_TERMS)
     if deceptive:
         raise RuntimeError(
@@ -112,8 +124,6 @@ def enforce_spiritual_topic_guard(metadata: dict) -> dict:
                 + visual
             ).strip()
         scene["visual_prompt"] = visual[:1900]
-        # This field is kept only for schema compatibility. The spiritual channel
-        # must not search or reuse third-party stock media.
         scene["stock_query"] = "original synthetic Jesus God Bible cinematic scene no stock media"
 
     metadata["scenes"] = scenes
@@ -124,7 +134,11 @@ def enforce_spiritual_topic_guard(metadata: dict) -> dict:
     metadata["third_party_stock_allowed"] = False
     metadata["original_generated_media_only"] = True
     metadata["editorial_scope"] = "Jesus_Dios_Biblia_oracion_fe_only"
-    metadata["youtube_safety_profile"] = "strict_spiritual_original_v1"
+    metadata["youtube_safety_profile"] = "strict_spiritual_original_v2"
+    metadata["youtube_policy_categories_checked"] = [
+        "spam_deception", "sexual_content", "self_harm", "violent_graphic_content",
+        "dangerous_content", "hate_harassment", "regulated_goods", "external_reused_media",
+    ]
     metadata["contains_synthetic_media"] = True
 
     description = " ".join(str(metadata.get("description") or "").split()).strip()
@@ -146,9 +160,7 @@ def enforce_spiritual_topic_guard(metadata: dict) -> dict:
         if _normalize(required) not in {_normalize(x) for x in tags}:
             tags.append(required)
     metadata["tags"] = tags[:15]
-
-    hashtags = ["#Dios", "#Jesus", "#Biblia", "#Fe", "#Shorts"]
-    metadata["hashtags"] = hashtags
+    metadata["hashtags"] = ["#Dios", "#Jesus", "#Biblia", "#Fe", "#Shorts"]
 
     _assert_spiritual_scope(metadata)
     metadata["editorial_guard_passed"] = True
@@ -180,5 +192,5 @@ def validate_spiritual_upload_guard(metadata: dict) -> dict:
         raise RuntimeError("BLOQUEADO ANTES DE YOUTUBE: external_media_allowed no puede ser true en este canal.")
 
     metadata["youtube_safety_guard_passed"] = True
-    metadata["youtube_safety_guard_mode"] = "fail_closed_original_spiritual_only"
+    metadata["youtube_safety_guard_mode"] = "fail_closed_original_spiritual_only_v2"
     return metadata
