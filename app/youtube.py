@@ -85,6 +85,18 @@ def _probe_video(path: Path) -> tuple[float, int, int]:
     return duration, int(stream.get("width") or 0), int(stream.get("height") or 0)
 
 
+def _has_audio_stream(path: Path) -> bool:
+    result = subprocess.run(
+        [
+            "ffprobe", "-v", "error", "-select_streams", "a:0",
+            "-show_entries", "stream=codec_type", "-of", "json", str(path),
+        ],
+        capture_output=True, text=True, check=True,
+    )
+    data = json.loads(result.stdout)
+    return bool(data.get("streams"))
+
+
 def _enforce_short_only(video_path: Path) -> None:
     duration, width, height = _probe_video(video_path)
     if duration <= 0:
@@ -121,9 +133,28 @@ def _is_spiritual_channel(channel: dict) -> bool:
     return str(channel.get("handle") or "").lower().lstrip("/") == "@dioshablahoyia"
 
 
-def _enforce_spiritual_voice_guard(channel: dict, metadata: dict) -> None:
+def _is_native_gemini_clip(metadata: dict) -> bool:
+    return (
+        metadata.get("gemini_omni_primary") is True
+        and metadata.get("native_generated_audio") is True
+        and metadata.get("photoreal_live_action_look") is True
+    )
+
+
+def _enforce_spiritual_voice_guard(channel: dict, metadata: dict, video_path: Path) -> None:
     if not _is_spiritual_channel(channel):
         return
+
+    # Gemini Omni generates the spoken performance inside the same audiovisual
+    # clip. The legacy coverage/silence fields belong to the external TTS mixer
+    # and therefore do not exist for this native path. We still require a real
+    # audio stream before upload instead of blindly bypassing validation.
+    if _is_native_gemini_clip(metadata):
+        if not _has_audio_stream(video_path):
+            raise RuntimeError("BLOQUEADO ANTES DE YOUTUBE: Gemini devolvio un video sin stream de audio.")
+        metadata["voice_continuity_guard_mode"] = "native_audiovisual_clip_audio_stream_verified"
+        return
+
     passed = metadata.get("voice_continuity_passed")
     coverage_raw = metadata.get("voice_coverage_ratio")
     longest_raw = metadata.get("longest_voice_silence_seconds")
@@ -139,6 +170,19 @@ def _enforce_spiritual_voice_guard(channel: dict, metadata: dict) -> None:
 def _enforce_spiritual_visual_guard(channel: dict, metadata: dict) -> None:
     if not _is_spiritual_channel(channel):
         return
+
+    # The legacy diversity guard detects repeated still/reference frames across
+    # stitched multi-scene videos. A single natively generated moving clip is a
+    # different format, so requiring several source labels would falsely block
+    # it. Keep a strict provenance/profile check instead.
+    if _is_native_gemini_clip(metadata):
+        refs = metadata.get("character_reference_images") or []
+        if not refs:
+            raise RuntimeError("BLOQUEADO ANTES DE YOUTUBE: falta la referencia del personaje para el clip Gemini.")
+        metadata["visual_diversity_guard_mode"] = "single_native_generated_motion_clip"
+        metadata["native_reference_count"] = len(refs)
+        return
+
     labels = metadata.get("generated_visual_provider") or metadata.get("visual_providers") or []
     stats = validate_spiritual_visual_diversity(list(labels) if isinstance(labels, (list, tuple)) else [str(labels)])
     metadata.update(stats)
@@ -255,7 +299,7 @@ def set_custom_thumbnail(channel: dict, video_id: str, thumbnail_path: Path) -> 
 
 def upload_video(channel: dict, metadata: dict, video_path: Path) -> str:
     _enforce_short_only(video_path)
-    _enforce_spiritual_voice_guard(channel, metadata)
+    _enforce_spiritual_voice_guard(channel, metadata, video_path)
     _enforce_spiritual_visual_guard(channel, metadata)
     video_id = _upload(channel, metadata, video_path)
     _post_engagement_comment(channel, metadata, video_id)
@@ -264,7 +308,7 @@ def upload_video(channel: dict, metadata: dict, video_path: Path) -> str:
 
 def upload_long_video(channel: dict, metadata: dict, video_path: Path, thumbnail_path: Path | None = None, expected_minutes: int = 10) -> str:
     _enforce_long(video_path, expected_minutes=expected_minutes)
-    _enforce_spiritual_voice_guard(channel, metadata)
+    _enforce_spiritual_voice_guard(channel, metadata, video_path)
     _enforce_spiritual_visual_guard(channel, metadata)
     video_id = _upload(channel, metadata, video_path)
     metadata["thumbnail_upload_status"] = "not_requested"
