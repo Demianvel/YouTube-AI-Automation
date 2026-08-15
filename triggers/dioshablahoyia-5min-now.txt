@@ -1,2 +1,2 @@
-trigger premium 3min retry - 2026-08-15T03:09Z
-Objetivo: validar HF/ZeroGPU -> referencia fotorrealista local -> voz luminous_calm_v1 -> CTA -> upload real.
+trigger premium 3min retry - 2026-08-15T03:24Z
+Objetivo: validar fix FFmpeg CTA -> fallback fotorrealista local -> voz luminous_calm_v1 -> upload real.
