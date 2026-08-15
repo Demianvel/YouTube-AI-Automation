@@ -144,6 +144,13 @@ jobs:
         if: env.CHANNEL != ''
         shell: bash
         run: |
+          # BrotaVida publishes real botanical footage only. Without Pexels there is
+          # no valid real-stock source, so skip cleanly before consuming HF quota.
+          if [ "$CHANNEL" = "brotavida" ] && [ -z "$PEXELS_API_KEY" ]; then
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "BrotaVida pausado: falta PEXELS_API_KEY para obtener metraje botanico real. No se genera ni publica contenido generico."
+            exit 0
+          fi
           if [ "${{ github.event_name }}" = "push" ] && [ "$CHANNEL" = "dioshablahoyia" ] && [ -z "$YOUTUBE_TOKEN_DIOSHABLAHOYIA" ]; then
             echo "Falta YOUTUBE_TOKEN_DIOSHABLAHOYIA: el smoke test debe probar una subida real."
             exit 1
@@ -195,6 +202,10 @@ jobs:
             EXTRA="--dry-run"
           fi
           python -m app.pipeline --channel "$CHANNEL" --content-mode "$CONTENT_MODE" $EXTRA
+
+      - name: BrotaVida paused safely
+        if: env.CHANNEL == 'brotavida' && steps.readiness.outputs.ready != 'true'
+        run: echo "BrotaVida queda en pausa segura hasta configurar PEXELS_API_KEY; no se consume cuota de video IA."
 
       - name: Persist anti-duplicate history
         if: steps.readiness.outputs.ready == 'true' && success()
