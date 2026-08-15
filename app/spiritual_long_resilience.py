@@ -1,0 +1,106 @@
+from __future__ import annotations
+
+import os
+import subprocess
+from pathlib import Path
+
+from huggingface_hub import InferenceClient
+
+from .hf_video import _safe_seed
+
+
+def download_landscape_image(prompt: str, out: Path, seed: int, style: str) -> str:
+    """Prefer HF photoreal image generation; use Pollinations only when authenticated."""
+    full_prompt = f"{prompt}, {style}"
+    errors: list[str] = []
+    token = os.getenv("HF_TOKEN", "").strip()
+    if token:
+        try:
+            provider = os.getenv("HF_IMAGE_PROVIDER", "auto").strip() or "auto"
+            model = os.getenv("HF_IMAGE_MODEL", "black-forest-labs/FLUX.1-schnell").strip()
+            client = InferenceClient(provider=provider, api_key=token, timeout=180)
+            image = client.text_to_image(full_prompt, model=model, seed=_safe_seed(seed))
+            if image is None:
+                raise RuntimeError("HF no devolvio imagen")
+            image.convert("RGB").save(out, format="JPEG", quality=95, optimize=True)
+            if not out.exists() or out.stat().st_size < 20_000:
+                raise RuntimeError("HF devolvio una imagen invalida")
+            return f"Hugging Face Inference Providers / {model}"
+        except Exception as exc:
+            errors.append(f"HF image: {exc}")
+
+    key = os.getenv("POLLINATIONS_API_KEY", "").strip()
+    if key:
+        try:
+            from urllib.parse import quote
+            import requests
+
+            url = "https://gen.pollinations.ai/image/" + quote(full_prompt, safe="")
+            params = {
+                "model": os.getenv("POLLINATIONS_IMAGE_MODEL", "flux"),
+                "width": 1920,
+                "height": 1080,
+                "seed": _safe_seed(seed),
+                "nologo": "true",
+                "enhance": "true",
+            }
+            headers = {
+                "User-Agent": "YouTube-AI-Automation/1.0",
+                "Authorization": f"Bearer {key}",
+            }
+            response = requests.get(url, params=params, headers=headers, timeout=(20, 180))
+            response.raise_for_status()
+            if len(response.content) < 20_000:
+                raise RuntimeError("Pollinations devolvio una imagen invalida")
+            out.write_bytes(response.content)
+            return "Pollinations authenticated image API"
+        except Exception as exc:
+            errors.append(f"Pollinations: {exc}")
+    else:
+        errors.append("Pollinations: falta POLLINATIONS_API_KEY")
+
+    raise RuntimeError("No hubo generador fotorrealista disponible. " + "; ".join(errors))
+
+
+def create_thumbnail_candidates(video: Path, workdir: Path) -> tuple[Path, list[str]]:
+    """Create three visually different thumbnail candidates for manual/native Studio A/B testing."""
+    probes = [(8, "a"), (45, "b"), (78, "c")]
+    outputs: list[Path] = []
+    for pct, label in probes:
+        out = workdir / f"thumbnail_{label}.jpg"
+        # Use percentage seeking through ffprobe duration for deterministic frames.
+        duration = subprocess.run(
+            ["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "default=nw=1:nk=1", str(video)],
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        seconds = max(1.0, float(duration.stdout.strip() or 1.0) * (pct / 100.0))
+        subprocess.run([
+            "ffmpeg", "-y", "-loglevel", "error", "-ss", f"{seconds:.3f}", "-i", str(video),
+            "-frames:v", "1",
+            "-vf", "scale=1280:720:force_original_aspect_ratio=increase,crop=1280:720,eq=contrast=1.04:saturation=1.05,unsharp=5:5:0.25:5:5:0",
+            "-q:v", "2", str(out),
+        ], check=True)
+        outputs.append(out)
+    return outputs[0], [str(p) for p in outputs]
+
+
+def apply_long_cta_overlay(video: Path, duration_seconds: int) -> None:
+    if os.getenv("SPIRITUAL_CTA_OVERLAY", "true").lower().strip() != "true":
+        return
+    start = max(0.0, float(duration_seconds) - 12.0)
+    temp = video.with_name(video.stem + ".cta.mp4")
+    font = os.getenv("SPIRITUAL_CTA_FONT", "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf")
+    vf = (
+        f"drawbox=x=w*0.18:y=h*0.80:w=w*0.64:h=100:color=black@0.55:t=fill:enable='between(t,{start:.2f},{float(duration_seconds):.2f})',"
+        f"drawtext=fontfile='{font}':text='SUSCRIBITE  |  COMPARTI  |  AMEN':fontcolor=white:fontsize=38:"
+        f"x=(w-text_w)/2:y=h*0.825:enable='between(t,{start:.2f},{float(duration_seconds):.2f})'"
+    )
+    subprocess.run([
+        "ffmpeg", "-y", "-loglevel", "error", "-i", str(video),
+        "-vf", vf, "-c:v", "libx264", "-preset", "medium", "-crf", "18",
+        "-c:a", "copy", "-movflags", "+faststart", str(temp),
+    ], check=True)
+    if temp.exists() and temp.stat().st_size > 100_000:
+        temp.replace(video)
