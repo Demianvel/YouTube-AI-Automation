@@ -10,6 +10,7 @@ SECRET_NAME="YOUTUBE_TOKEN_DIOSHABLAHOYIA"
 TOKEN_FILE="${TMPDIR:-$HOME}/yt-dioshablahoyia-token.json"
 DOWNLOAD_DIR="/storage/emulated/0/Download"
 REQUIRED_COMMENT_SCOPE="https://www.googleapis.com/auth/youtube.force-ssl"
+BACKFILL_VIDEO_ID="${DIOS_BACKFILL_VIDEO_ID:-A4p_vWPLfMI}"
 
 cleanup() {
   rm -f "$TOKEN_FILE"
@@ -90,6 +91,7 @@ echo ""
 echo "=== Autorizar Dios Habla Hoy IA ==="
 echo "Google mostrara una URL de autorizacion."
 echo "Inicia sesion con la cuenta que administra $EXPECTED_HANDLE."
+echo "IMPORTANTE: acepta TODOS los permisos de YouTube que aparezcan."
 echo "Si esa cuenta administra varios canales o Brand Accounts, selecciona Dios Habla Hoy IA."
 echo ""
 
@@ -127,11 +129,40 @@ gh secret set "$SECRET_NAME" --repo "$REPO" < "$TOKEN_FILE"
 rm -f "$TOKEN_FILE"
 
 echo ""
+echo "Secret actualizado. Esperando propagacion en GitHub Actions..."
+sleep 6
+
+echo "Verificando canal y scope dentro de GitHub Actions..."
+gh workflow run verify-dioshablahoyia-oauth.yml -R "$REPO" --ref main
+sleep 5
+VERIFY_RUN="$(gh run list -R "$REPO" --workflow verify-dioshablahoyia-oauth.yml --event workflow_dispatch --limit 1 --json databaseId --jq '.[0].databaseId')"
+if [ -z "$VERIFY_RUN" ] || [ "$VERIFY_RUN" = "null" ]; then
+  echo "ERROR: no pude localizar la ejecucion de verificacion OAuth."
+  exit 1
+fi
+echo "OAuth verify run: $VERIFY_RUN"
+gh run watch -R "$REPO" "$VERIFY_RUN" --exit-status
+
+echo ""
+echo "OAuth confirmado. Reparando el comentario CTA del Short ya publicado $BACKFILL_VIDEO_ID..."
+gh workflow run dioshablahoyia-comment.yml \
+  -R "$REPO" \
+  --ref main \
+  -f video_id="$BACKFILL_VIDEO_ID"
+sleep 5
+COMMENT_RUN="$(gh run list -R "$REPO" --workflow dioshablahoyia-comment.yml --event workflow_dispatch --limit 1 --json databaseId --jq '.[0].databaseId')"
+if [ -z "$COMMENT_RUN" ] || [ "$COMMENT_RUN" = "null" ]; then
+  echo "ERROR: no pude localizar la ejecucion del comentario CTA."
+  exit 1
+fi
+echo "Comment run: $COMMENT_RUN"
+gh run watch -R "$REPO" "$COMMENT_RUN" --exit-status
+
+echo ""
 echo "Conexion completada."
 echo "Canal verificado: $EXPECTED_HANDLE"
 echo "Secret GitHub actualizado: $SECRET_NAME"
 echo "Scope de comentarios verificado: youtube.force-ssl"
+echo "Comentario CTA solicitado para: $BACKFILL_VIDEO_ID"
+echo "NOTA: la API oficial permite publicar el comentario superior, pero no fijarlo/pinnearlo automaticamente."
 echo "El token OAuth fue guardado cifrado en GitHub Actions y el archivo temporal fue eliminado."
-echo ""
-echo "Verificacion de presencia del secret:"
-gh secret list --repo "$REPO" | grep -F "$SECRET_NAME" || true
