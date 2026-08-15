@@ -4,7 +4,7 @@ import os
 import subprocess
 from pathlib import Path
 
-from .audio import make_natural_spanish_voice
+from .spiritual_tts import make_spiritual_spanish_voice
 from .premium_audio import make_premium_original_music
 from .spiritual_continuity import ensure_spoken_text, fit_and_validate_spiritual_voice
 from .spiritual_voice import polish_voice
@@ -50,7 +50,7 @@ def apply_spiritual_audio(video: Path, out: Path, channel: dict, meta: dict, dur
     if precomputed and voice_path.exists():
         used = precomputed_provider or "precomputed-spiritual-voice"
     else:
-        used = make_natural_spanish_voice(voice_path, text)
+        used = make_spiritual_spanish_voice(voice_path, text)
         master = polish_voice(voice_path)
         if master != "unprocessed":
             used = f"{used}+{master}"
