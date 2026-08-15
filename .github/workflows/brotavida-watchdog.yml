@@ -24,6 +24,8 @@ jobs:
   watchdog:
     runs-on: ubuntu-latest
     timeout-minutes: 12
+    env:
+      PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -33,8 +35,20 @@ jobs:
         with:
           python-version: "3.11"
 
+      - name: Check real botanical source
+        id: source
+        shell: bash
+        run: |
+          if [ -z "$PEXELS_API_KEY" ]; then
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "BrotaVida watchdog pausado: falta PEXELS_API_KEY. No se lanzaran reintentos que consuman cuota IA."
+          else
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Calculate today's BrotaVida deficit
         id: plan
+        if: steps.source.outputs.ready == 'true'
         shell: bash
         run: |
           REPORT="$(python scripts/brotavida_watchdog.py)"
@@ -43,7 +57,7 @@ jobs:
           echo "missing=$MISSING" >> "$GITHUB_OUTPUT"
 
       - name: Recover one missing BrotaVida Short
-        if: steps.plan.outputs.missing != '0'
+        if: steps.source.outputs.ready == 'true' && steps.plan.outputs.missing != '0'
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash
@@ -60,6 +74,10 @@ jobs:
             -f channel=brotavida \
             -f content_mode=asmr \
             -f dry_run=false
+
+      - name: BrotaVida recovery paused safely
+        if: steps.source.outputs.ready != 'true'
+        run: echo "Sin fuente real no se genera ni publica contenido BrotaVida."
 
       - name: Report recovery failure
         if: failure()
