@@ -15,6 +15,19 @@ SCOPES = [
 ]
 
 
+def _verify_granted_scopes(creds) -> None:
+    granted = set(creds.scopes or [])
+    missing = [scope for scope in SCOPES if scope not in granted]
+    print("\nSCOPES OAUTH CONCEDIDOS:")
+    for scope in sorted(granted):
+        print(f"- {scope}")
+    if missing:
+        raise RuntimeError(
+            "Google no concedio todos los permisos requeridos. Faltan: " + ", ".join(missing)
+        )
+    print("OK: youtube.force-ssl esta presente; el token permite crear comentarios superiores.")
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(
         description="Autoriza un canal de YouTube, verifica su identidad y genera el JSON para GitHub Secrets."
@@ -33,11 +46,13 @@ def main() -> None:
         prompt="consent",
     )
 
+    _verify_granted_scopes(creds)
+
     youtube = build("youtube", "v3", credentials=creds, cache_discovery=False)
     response = youtube.channels().list(part="id,snippet", mine=True).execute()
     items = response.get("items", [])
     if not items:
-        raise RuntimeError("No se pudo identificar un canal de YouTube para esta autorización.")
+        raise RuntimeError("No se pudo identificar un canal de YouTube para esta autorizacion.")
 
     channel = items[0]
     snippet = channel.get("snippet", {})
@@ -56,10 +71,19 @@ def main() -> None:
         expected = args.expected_handle.lower().lstrip("/")
         if actual != expected:
             raise RuntimeError(
-                f"Canal incorrecto. Se esperaba {args.expected_handle} pero Google autorizó {custom_url or title}."
+                f"Canal incorrecto. Se esperaba {args.expected_handle} pero Google autorizo {custom_url or title}."
             )
 
     token_json = creds.to_json()
+    token_data = json.loads(token_json)
+    serialized_scopes = set(token_data.get("scopes") or [])
+    missing_serialized = [scope for scope in SCOPES if scope not in serialized_scopes]
+    if missing_serialized:
+        raise RuntimeError(
+            "El JSON OAuth final perdio permisos requeridos; no se guardara. Faltan: "
+            + ", ".join(missing_serialized)
+        )
+
     if args.output:
         output = Path(args.output)
         output.write_text(token_json, encoding="utf-8")
