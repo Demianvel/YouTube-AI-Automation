@@ -26,13 +26,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        channel: [brotavida, dineroclaro, envikids, demianvelo]
+        channel: [brotavida, dineroclaro, demianvelo, dioshablahoyia]
     env:
       PYTHONPATH: .
       YOUTUBE_TOKEN_BROTAVIDA: ${{ secrets.YOUTUBE_TOKEN_BROTAVIDA }}
       YOUTUBE_TOKEN_DINEROCLARO: ${{ secrets.YOUTUBE_TOKEN_DINEROCLARO }}
-      YOUTUBE_TOKEN_ENVIKIDS: ${{ secrets.YOUTUBE_TOKEN_ENVIKIDS }}
       YOUTUBE_TOKEN_DEMIANVELO: ${{ secrets.YOUTUBE_TOKEN_DEMIANVELO }}
+      YOUTUBE_TOKEN_DIOSHABLAHOYIA: ${{ secrets.YOUTUBE_TOKEN_DIOSHABLAHOYIA }}
     steps:
       - uses: actions/checkout@v4
 
@@ -53,8 +53,8 @@ jobs:
           READY=false
           if [ "${{ matrix.channel }}" = "brotavida" ] && [ -n "$YOUTUBE_TOKEN_BROTAVIDA" ]; then READY=true; fi
           if [ "${{ matrix.channel }}" = "dineroclaro" ] && [ -n "$YOUTUBE_TOKEN_DINEROCLARO" ]; then READY=true; fi
-          if [ "${{ matrix.channel }}" = "envikids" ] && [ -n "$YOUTUBE_TOKEN_ENVIKIDS" ]; then READY=true; fi
           if [ "${{ matrix.channel }}" = "demianvelo" ] && [ -n "$YOUTUBE_TOKEN_DEMIANVELO" ]; then READY=true; fi
+          if [ "${{ matrix.channel }}" = "dioshablahoyia" ] && [ -n "$YOUTUBE_TOKEN_DIOSHABLAHOYIA" ]; then READY=true; fi
           echo "ready=$READY" >> "$GITHUB_OUTPUT"
           mkdir -p analytics-output
           if [ "$READY" != "true" ]; then
