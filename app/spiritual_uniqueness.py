@@ -20,19 +20,33 @@ def _normalized_script(metadata: dict) -> str:
     return " ".join(text.split())
 
 
-def validate_spiritual_uniqueness(metadata: dict, previous: list[dict] | None = None) -> dict:
-    """Reject template-like or duplicate Shorts before expensive rendering/upload.
+def _minimum_script_words(metadata: dict) -> int:
+    """Scale substance threshold to the intended Short duration.
 
-    Reusing a broad Christian theme is fine; what is blocked is near-identical
-    packaging or narration. A failed gate intentionally lets the scheduler or
-    watchdog try a fresh run/seed rather than publishing repetitive content.
+    The previous fixed 80-word gate was appropriate for long 1-3 minute Shorts,
+    but incorrectly rejected the new 8-10 second native cinematic clips.
     """
+    try:
+        seconds = int(metadata.get("target_short_seconds") or 60)
+    except Exception:
+        seconds = 60
+    # About 1.7 spoken words/second, with a floor that still blocks empty/template
+    # clips and the original 80-word ceiling for longer content.
+    return max(12, min(80, round(seconds * 1.7)))
+
+
+def validate_spiritual_uniqueness(metadata: dict, previous: list[dict] | None = None) -> dict:
+    """Reject template-like or duplicate Shorts before expensive rendering/upload."""
     previous = [row for row in (previous or []) if str(row.get("status") or "") == "uploaded"][-30:]
     title = _clean(metadata.get("title"))
     topic = _clean(metadata.get("topic"))
     script = _normalized_script(metadata)
-    if not script or len(script.split()) < 80:
-        raise RuntimeError("BLOQUEADO ANTI-SPAM: la narracion espiritual es demasiado breve para considerarse contenido sustancial.")
+    min_words = _minimum_script_words(metadata)
+    if not script or len(script.split()) < min_words:
+        raise RuntimeError(
+            f"BLOQUEADO ANTI-SPAM: la narracion espiritual tiene {len(script.split())} palabras; "
+            f"se requieren al menos {min_words} para este formato."
+        )
 
     script_hash = hashlib.sha256(script.encode("utf-8")).hexdigest()
     preview = script[:1200]
@@ -56,9 +70,6 @@ def validate_spiritual_uniqueness(metadata: dict, previous: list[dict] | None = 
         if preview and old_preview:
             highest_script = max(highest_script, similarity(preview, old_preview))
 
-    # A title can share common Christian words, so combine topic/title evidence
-    # before blocking. Narration similarity is stricter because it reflects the
-    # actual viewing experience rather than the niche vocabulary.
     if highest_script >= 0.78:
         raise RuntimeError(
             f"BLOQUEADO ANTI-SPAM: narracion demasiado parecida a contenido reciente ({highest_script:.1%})."
@@ -72,6 +83,7 @@ def validate_spiritual_uniqueness(metadata: dict, previous: list[dict] | None = 
     metadata["script_hash"] = script_hash
     metadata["narration_preview"] = preview
     metadata["uniqueness_gate_passed"] = True
+    metadata["uniqueness_min_words"] = min_words
     metadata["uniqueness_scores"] = {
         "highest_recent_title_similarity": round(highest_title, 4),
         "highest_recent_topic_similarity": round(highest_topic, 4),
