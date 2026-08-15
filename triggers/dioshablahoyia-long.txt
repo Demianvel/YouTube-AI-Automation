@@ -1,2 +1,2 @@
-Immediate 10-minute publish check - 2026-08-15T01:04-03:00
-Purpose: validate continuous narration + visual stack + real upload + CTA comment after OAuth refresh.
+Stability 10-minute publish test - 2026-08-15T01:24-03:00
+Purpose: verify chunk-safe Kokoro narration covers full 600s, continuity guard, resilient visuals, CTA/comment and real upload.
