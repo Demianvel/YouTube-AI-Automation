@@ -16,16 +16,29 @@ MAX_REPLIES_PER_RUN = max(1, min(12, int(os.getenv("COMMENT_REPLY_MAX", "6"))))
 MAX_THREADS = max(10, min(100, int(os.getenv("COMMENT_THREAD_SCAN_MAX", "50"))))
 
 _URL_RE = re.compile(r"https?://|www\.|\.com\b|\.net\b|\.org\b", re.IGNORECASE)
-_QUESTION_RE = re.compile(r"\?|\b(por que|por qué|como|cómo|que significa|qué significa|quien|quién|cuando|cuándo)\b", re.IGNORECASE)
+_QUESTION_RE = re.compile(r"\?|\b(por que|por qué|como|cómo|que significa|qué significa|quien|quién|cuando|cuándo|why|how|what does|who|when)\b", re.IGNORECASE)
 
 _SKIP_TERMS = (
-    "sub4sub", "suscribete a mi canal", "suscríbete a mi canal", "ganar dinero rapido",
-    "ganar dinero rápido", "casino", "apuestas", "bitcoin", "crypto", "telegram",
-    "whatsapp", "porno", "sexo explicito", "sexo explícito", "nudes", "drogas",
-    "arma", "matar", "suicidio", "odio", "estafa", "phishing",
+    "sub4sub", "suscribete a mi canal", "suscríbete a mi canal", "subscribe to my channel",
+    "ganar dinero rapido", "ganar dinero rápido", "make money fast", "casino", "apuestas",
+    "betting", "bitcoin", "crypto", "telegram", "whatsapp", "porno", "porn", "sexo explicito",
+    "sexo explícito", "nudes", "drogas", "drugs", "arma", "weapon", "matar", "kill",
+    "suicidio", "suicide", "odio", "hate", "estafa", "scam", "phishing",
 )
 
-_REPLY_BANK = {
+_ENGLISH_MARKERS = (
+    "god", "jesus", "lord", "faith", "hope", "love", "bless", "blessed", "blessing",
+    "thank you", "thanks", "pray", "prayer", "peace", "bible", "christ", "savior", "amen",
+    "my family", "my heart", "i need", "please pray", "beautiful message", "glory to god",
+)
+
+_SPANISH_MARKERS = (
+    "dios", "jesus", "jesús", "señor", "fe", "esperanza", "amor", "bendicion", "bendición",
+    "bendiciones", "gracias", "oracion", "oración", "paz", "biblia", "cristo", "mi familia",
+    "mi corazon", "mi corazón", "necesito", "oren por", "hermoso mensaje", "gloria a dios",
+)
+
+_REPLY_BANK_ES = {
     "amen": (
         "Amén 🙏 Que la paz de Dios acompañe tu corazón y renueve tu esperanza cada día.",
         "Amén. Que Dios te fortalezca, te dé serenidad y mantenga viva tu fe. 🙏",
@@ -74,6 +87,55 @@ _REPLY_BANK = {
     ),
 }
 
+_REPLY_BANK_EN = {
+    "amen": (
+        "Amen 🙏 May God's peace fill your heart and renew your hope each day.",
+        "Amen. May God strengthen you, give you serenity, and keep your faith alive. 🙏",
+        "Amen 🙏 May the love of God surround your life with peace, hope, and comfort.",
+        "Amen. May you walk in faith today and rest in God's peace. 🤍",
+        "Amen 🙏 May Jesus be a light on your path and hope in every step.",
+        "Amen. May the grace and peace of God be with you today. 🙏",
+    ),
+    "gratitude": (
+        "Thank you for sharing this 🙏 May God bless your life and fill it with peace.",
+        "Thank you from the heart. May God's love and hope stay with you always. 🤍",
+        "Thank you for being here 🙏 May Jesus renew your faith and bring serenity to your heart.",
+        "Thank you for your message. May God give you a day filled with peace and hope. 🙏",
+        "Thank you 🤍 May God's Word continue to plant faith and love in your heart.",
+    ),
+    "support": (
+        "May God hold you close in this moment and give you strength to take one step at a time. 🙏",
+        "May you find comfort, serenity, and hope in God. Keep drawing near to Him in prayer. 🤍",
+        "May Jesus walk with you and give you peace through what you are facing. 🙏",
+        "May faith give you strength today. Psalm 23 reminds us that we can trust in God's care. 🤍",
+        "May God renew your strength and give you calm to face this day with hope. 🙏",
+        "May God's love embrace your heart and help you keep moving forward with faith and patience. 🤍",
+    ),
+    "faith": (
+        "May your faith keep growing, and may God's peace guide every decision in your life. 🙏",
+        "Jesus calls us to walk in faith, love, and hope. May that peace remain in your heart. 🤍",
+        "May God continue to guide your path and strengthen your trust in Him. 🙏",
+        "Faith is also built one day at a time. May God give you peace and perseverance. 🤍",
+        "May God's Word be a light for your path and a source of hope each day. 🙏",
+        "May Jesus give you serenity for today and hope for what is ahead. 🤍",
+    ),
+    "love": (
+        "Blessings 🙏 May God's love fill your home with peace, unity, and hope.",
+        "May God bless you and may His love be with you in every step. 🤍",
+        "Blessings to you and your family. May faith, peace, and love always remain with you. 🙏",
+        "May the love of Jesus inspire your words, your choices, and the way you care for others. 🤍",
+        "May God pour peace over your life and help you share love with the people around you. 🙏",
+    ),
+    "general": (
+        "May God bless you and walk with you in peace, faith, and hope. 🙏",
+        "May Jesus be a light on your path, and may His love bring serenity to your heart. 🤍",
+        "May God's peace remain in your heart and strengthen your hope. 🙏",
+        "May you find a reason today to trust, give thanks, and keep walking in faith. 🤍",
+        "May God give you wisdom, peace, and a heart filled with hope. 🙏",
+        "May God's grace be with you and may your faith continue to grow each day. 🤍",
+    ),
+}
+
 
 def _normalize(value: object) -> str:
     text = " ".join(str(value or "").split()).lower()
@@ -112,6 +174,18 @@ def _author_channel_id(snippet: dict) -> str:
     return str(value.get("value") or "") if isinstance(value, dict) else ""
 
 
+def _language(text: str) -> str:
+    clean = _normalize(text)
+    en_score = sum(1 for marker in _ENGLISH_MARKERS if _normalize(marker) in clean)
+    es_score = sum(1 for marker in _SPANISH_MARKERS if _normalize(marker) in clean)
+    if en_score > es_score:
+        return "en"
+    if es_score > en_score:
+        return "es"
+    # Short comments such as plain 'Amen' are ambiguous; default to Spanish for this channel.
+    return "es"
+
+
 def _should_skip(text: str) -> tuple[bool, str]:
     clean = _normalize(text)
     if not clean:
@@ -119,7 +193,6 @@ def _should_skip(text: str) -> tuple[bool, str]:
     if _URL_RE.search(text):
         return True, "contains_link"
     if _QUESTION_RE.search(text):
-        # Questions can need a nuanced theological/pastoral answer. Leave them for manual review.
         return True, "question_manual_review"
     for term in _SKIP_TERMS:
         if _normalize(term) in clean:
@@ -131,25 +204,27 @@ def _category(text: str) -> str:
     clean = _normalize(text)
     if "amen" in clean:
         return "amen"
-    if any(x in clean for x in ("gracias", "agradezco", "hermoso video", "hermoso mensaje")):
+    if any(x in clean for x in ("gracias", "agradezco", "hermoso video", "hermoso mensaje", "thank you", "thanks", "beautiful video", "beautiful message")):
         return "gratitude"
     if any(x in clean for x in (
         "triste", "miedo", "ansiedad", "dolor", "solo", "sola", "cansado", "cansada",
         "necesito oracion", "necesito oración", "oren por", "ora por", "ayuda", "familia", "salud",
+        "sad", "afraid", "anxiety", "pain", "alone", "tired", "please pray", "pray for", "help", "family", "health",
     )):
         return "support"
-    if any(x in clean for x in ("bendiciones", "amor", "bendiga", "bendecir")):
+    if any(x in clean for x in ("bendiciones", "amor", "bendiga", "bendecir", "blessing", "bless", "love")):
         return "love"
-    if any(x in clean for x in ("dios", "jesus", "cristo", "biblia", "fe", "oracion", "oración")):
+    if any(x in clean for x in ("dios", "jesus", "cristo", "biblia", "fe", "oracion", "oración", "god", "christ", "bible", "faith", "prayer", "lord")):
         return "faith"
     return "general"
 
 
-def _reply_text(comment_id: str, text: str) -> str:
+def _reply_text(comment_id: str, text: str) -> tuple[str, str]:
     category = _category(text)
-    bank = _REPLY_BANK[category]
-    marker = hashlib.sha256(f"{comment_id}|{_normalize(text)}|{category}".encode("utf-8")).hexdigest()
-    return bank[int(marker[:8], 16) % len(bank)]
+    language = _language(text)
+    bank = (_REPLY_BANK_EN if language == "en" else _REPLY_BANK_ES)[category]
+    marker = hashlib.sha256(f"{comment_id}|{_normalize(text)}|{category}|{language}".encode("utf-8")).hexdigest()
+    return bank[int(marker[:8], 16) % len(bank)], language
 
 
 def _already_replied(youtube, parent_id: str, channel_id: str, total_reply_count: int) -> bool:
@@ -226,7 +301,7 @@ def run() -> dict:
             details.append({"comment_id": top_id, "action": "skip", "reason": "already_replied"})
             continue
 
-        reply = _reply_text(top_id, text)
+        reply, language = _reply_text(top_id, text)
         youtube.comments().insert(
             part="snippet",
             body={"snippet": {"parentId": top_id, "textOriginal": reply}},
@@ -238,6 +313,7 @@ def run() -> dict:
             "comment_id": top_id,
             "action": "replied",
             "category": _category(text),
+            "language": language,
             "reply": reply,
         })
 
@@ -247,7 +323,7 @@ def run() -> dict:
         "replied": replied,
         "skipped": skipped,
         "max_replies_per_run": MAX_REPLIES_PER_RUN,
-        "mode": "faith_hope_love_contextual_nonspam",
+        "mode": "faith_hope_love_contextual_bilingual_nonspam",
         "details": details,
     }
     print(json.dumps(result, ensure_ascii=False))
