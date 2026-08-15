@@ -47,6 +47,26 @@ def _title_variants(metadata: dict) -> list[str]:
     return result
 
 
+def _repair_repetition(metadata: dict) -> None:
+    scenes = list(metadata.get("scenes") or [])
+    if not scenes:
+        return
+    seed = _seed(metadata)
+    seen: set[str] = set()
+    repairs = 0
+    for index, scene in enumerate(scenes):
+        narration = _clean(scene.get("narration"))
+        key = narration.lower()
+        if not narration or len(narration.split()) < 12 or key in seen:
+            bridge = _EXPANSIONS[(seed + index * 7) % len(_EXPANSIONS)]
+            narration = bridge
+            repairs += 1
+        seen.add(narration.lower())
+        scene["narration"] = narration
+    metadata["scenes"] = scenes
+    metadata["repetitive_narration_repairs"] = repairs
+
+
 def _ensure_three_minute_narration(metadata: dict) -> None:
     scenes = list(metadata.get("scenes") or [])
     if not scenes:
@@ -54,16 +74,19 @@ def _ensure_three_minute_narration(metadata: dict) -> None:
     target_words = int(metadata.get("target_narration_words") or 365)
     current_words = sum(len(_clean(scene.get("narration")).split()) for scene in scenes)
     if current_words >= target_words:
+        metadata["narration_word_target"] = target_words
+        metadata["narration_words_after_growth"] = current_words
         return
 
     seed = _seed(metadata)
     cursor = 0
     while current_words < target_words and cursor < len(scenes) * 4:
         index = cursor % len(scenes)
-        expansion = _EXPANSIONS[(seed + cursor * 5) % len(_EXPANSIONS)]
+        expansion = _EXPANSIONS[(seed + cursor * 5 + index) % len(_EXPANSIONS)]
         existing = _clean(scenes[index].get("narration"))
-        scenes[index]["narration"] = f"{existing} {expansion}".strip()
-        current_words += len(expansion.split())
+        if expansion.lower() not in existing.lower():
+            scenes[index]["narration"] = f"{existing} {expansion}".strip()
+            current_words += len(expansion.split())
         cursor += 1
     metadata["scenes"] = scenes
     metadata["narration_word_target"] = target_words
@@ -81,6 +104,7 @@ def enrich_short_growth(metadata: dict, previous: list[dict] | None = None) -> d
     }
     metadata["growth_strategy"] = "original_hook_progression_payoff_packaging_test_without_false_clickbait"
     metadata["target_narration_words"] = 365
+    _repair_repetition(metadata)
     _ensure_three_minute_narration(metadata)
 
     scenes = list(metadata.get("scenes") or [])
