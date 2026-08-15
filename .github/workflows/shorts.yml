@@ -4,16 +4,14 @@ on:
   workflow_dispatch:
     inputs:
       channel:
-        description: Canal a ejecutar
+        description: Canal activo a ejecutar
         required: true
         type: choice
         options:
           - brotavida
-          - dineroclaro
-          - envikids
           - dioshablahoyia
       content_mode:
-        description: Formato de audio; los canales narrados usan voz
+        description: Formato de audio
         required: true
         default: auto
         type: choice
@@ -31,12 +29,9 @@ on:
     paths:
       - "triggers/dioshablahoyia-short.txt"
   schedule:
-    # Horarios UTC. Argentina (UTC-3):
-    # BrotaVida 10:00,12:00,14:00,16:00,18:00
-    # DineroClaro 10:10,12:10,14:10,16:10,18:10
-    # EnViKids PAUSADO: sin cron automatico.
-    - cron: "0 13,15,17,19,21 * * *"
-    - cron: "10 13,15,17,19,21 * * *"
+    # BrotaVida: 4 Shorts diarios, Argentina UTC-3: 09:30, 13:30, 17:30 y 21:30.
+    # DineroClaro y EnViKids: DESACTIVADOS por completo.
+    - cron: "30 0,12,16,20 * * *"
 
 permissions:
   contents: write
@@ -76,8 +71,6 @@ jobs:
       KOKORO_SPEED: "0.98"
       MUSIC_PROVIDER: local
       YOUTUBE_TOKEN_BROTAVIDA: ${{ secrets.YOUTUBE_TOKEN_BROTAVIDA }}
-      YOUTUBE_TOKEN_DINEROCLARO: ${{ secrets.YOUTUBE_TOKEN_DINEROCLARO }}
-      YOUTUBE_TOKEN_ENVIKIDS: ${{ secrets.YOUTUBE_TOKEN_ENVIKIDS }}
       YOUTUBE_TOKEN_DIOSHABLAHOYIA: ${{ secrets.YOUTUBE_TOKEN_DIOSHABLAHOYIA }}
 
     steps:
@@ -95,19 +88,19 @@ jobs:
           elif [ "${{ github.event_name }}" = "push" ]; then
             CHANNEL="dioshablahoyia"
             CONTENT_MODE="voice"
-          elif [ "${{ github.event.schedule }}" = "0 13,15,17,19,21 * * *" ]; then
+          elif [ "${{ github.event.schedule }}" = "30 0,12,16,20 * * *" ]; then
             CHANNEL="brotavida"
             CONTENT_MODE="asmr"
-          elif [ "${{ github.event.schedule }}" = "10 13,15,17,19,21 * * *" ]; then
-            CHANNEL="dineroclaro"
-            CONTENT_MODE="voice"
           else
             CHANNEL=""
             CONTENT_MODE="auto"
           fi
 
-          if [ "$CHANNEL" = "dineroclaro" ] || [ "$CHANNEL" = "envikids" ] || [ "$CHANNEL" = "dioshablahoyia" ]; then
+          if [ "$CHANNEL" = "dioshablahoyia" ]; then
             CONTENT_MODE="voice"
+          elif [ "$CHANNEL" = "brotavida" ]; then
+            # BrotaVida queda exclusivamente como germinacion/crecimiento ASMR.
+            CONTENT_MODE="asmr"
           fi
 
           echo "channel=$CHANNEL" >> "$GITHUB_OUTPUT"
@@ -115,23 +108,15 @@ jobs:
           echo "CHANNEL=$CHANNEL" >> "$GITHUB_ENV"
           echo "CONTENT_MODE=$CONTENT_MODE" >> "$GITHUB_ENV"
 
-          if [ "$CHANNEL" = "envikids" ]; then
-            echo "TTS_PROVIDER=kokoro" >> "$GITHUB_ENV"
-            echo "KOKORO_VOICE=ef_dora" >> "$GITHUB_ENV"
-            echo "KOKORO_SPEED=1.03" >> "$GITHUB_ENV"
-          elif [ "$CHANNEL" = "brotavida" ]; then
-            echo "TTS_PROVIDER=chatterbox_latam" >> "$GITHUB_ENV"
-            echo "KOKORO_VOICE=em_alex" >> "$GITHUB_ENV"
-            echo "KOKORO_SPEED=0.98" >> "$GITHUB_ENV"
-          elif [ "$CHANNEL" = "dineroclaro" ]; then
-            echo "TTS_PROVIDER=chatterbox_latam" >> "$GITHUB_ENV"
-            echo "KOKORO_VOICE=em_alex" >> "$GITHUB_ENV"
-            echo "KOKORO_SPEED=1.00" >> "$GITHUB_ENV"
+          if [ "$CHANNEL" = "brotavida" ]; then
+            echo "TTS_PROVIDER=none" >> "$GITHUB_ENV"
+            echo "BROTA_TIMELAPSE_ONLY=true" >> "$GITHUB_ENV"
+            echo "BROTA_AUDIO_MODE=asmr" >> "$GITHUB_ENV"
           elif [ "$CHANNEL" = "dioshablahoyia" ]; then
             echo "TTS_PROVIDER=kokoro" >> "$GITHUB_ENV"
             echo "KOKORO_VOICE=em_alex" >> "$GITHUB_ENV"
             echo "KOKORO_SPEED=0.93" >> "$GITHUB_ENV"
-            echo "SPIRITUAL_VOICE_PROFILE=luminous_calm_v1" >> "$GITHUB_ENV"
+            echo "SPIRITUAL_VOICE_PROFILE=luminous_calm_v2" >> "$GITHUB_ENV"
             echo "SPIRITUAL_SHORT_SECONDS=180" >> "$GITHUB_ENV"
             echo "SPIRITUAL_SHORT_SCENE_SECONDS=15" >> "$GITHUB_ENV"
             echo "SPIRITUAL_SHORT_AI_CLIPS=3" >> "$GITHUB_ENV"
@@ -141,8 +126,6 @@ jobs:
             echo "HF_VIDEO_STRICT=false" >> "$GITHUB_ENV"
             echo "HF_ZERO_RETRIES=1" >> "$GITHUB_ENV"
             if [ "${{ github.event_name }}" = "push" ]; then
-              # Smoke triggers prioritize reliability; scheduled/manual runs
-              # keep the full HF hybrid path above.
               echo "HF_VIDEO_ENABLED=false" >> "$GITHUB_ENV"
               echo "DIOS_FAST_UPLOAD_SMOKE=true" >> "$GITHUB_ENV"
             fi
@@ -174,10 +157,6 @@ jobs:
           READY=false
           if [ "$CHANNEL" = "brotavida" ] && [ -n "$YOUTUBE_TOKEN_BROTAVIDA" ]; then
             READY=true
-          elif [ "$CHANNEL" = "dineroclaro" ] && [ -n "$YOUTUBE_TOKEN_DINEROCLARO" ]; then
-            READY=true
-          elif [ "$CHANNEL" = "envikids" ] && [ -n "$YOUTUBE_TOKEN_ENVIKIDS" ]; then
-            READY=true
           elif [ "$CHANNEL" = "dioshablahoyia" ] && [ -n "$YOUTUBE_TOKEN_DIOSHABLAHOYIA" ]; then
             READY=true
           fi
@@ -197,17 +176,6 @@ jobs:
           python -m pip install --upgrade pip
           pip install torch==2.6.0 --index-url https://download.pytorch.org/whl/cpu
           pip install -r requirements.txt
-
-      - name: Install Chatterbox V3 family
-        if: steps.readiness.outputs.ready == 'true' && env.CONTENT_MODE == 'voice' && env.CHANNEL != 'dioshablahoyia' && github.event_name != 'push'
-        run: |
-          pip install torch==2.6.0 torchaudio==2.6.0 --index-url https://download.pytorch.org/whl/cpu
-          pip install -r requirements-chatterbox.txt
-          python - <<'PY'
-          from chatterbox.mtl_tts import ChatterboxMultilingualTTS
-          assert 'es' in ChatterboxMultilingualTTS.get_supported_languages()
-          print('Chatterbox V3 package OK.')
-          PY
 
       - name: Generate Short and optionally upload
         if: steps.readiness.outputs.ready == 'true'
