@@ -7,9 +7,11 @@ on:
     paths:
       - "app/spiritual_tts.py"
       - "app/spiritual_uniqueness.py"
+      - "app/spiritual_visual_uniqueness.py"
       - "app/spiritual_hf_video.py"
       - "app/spiritual_audio.py"
       - "app/spiritual_long_resilient_runner.py"
+      - "app/youtube.py"
       - "app/pipeline.py"
       - ".github/workflows/validate-spiritual-stability.yml"
 
@@ -69,4 +71,31 @@ jobs:
               print("Duplicate blocking OK:", exc)
           else:
               raise AssertionError("El gate anti-spam no bloqueo un guion identico")
+          PY
+
+      - name: Validate repetitive local visual fallback is blocked
+        shell: bash
+        run: |
+          python - <<'PY'
+          from app.spiritual_visual_uniqueness import validate_spiritual_visual_diversity
+
+          diverse = [
+              "Hugging Face / unique-a",
+              "Hugging Face / unique-b",
+              "local_proven_photoreal_reference/jesus_reference_a.jpg + cinematic motion",
+              "Hugging Face / unique-c",
+          ]
+          assert validate_spiritual_visual_diversity(diverse)["visual_diversity_gate_passed"] is True
+
+          repetitive = [
+              f"local_proven_photoreal_reference/jesus_reference_{x}.jpg + cinematic motion"
+              for x in ["a", "b", "c", "a", "b", "c", "a", "b"]
+          ]
+          try:
+              validate_spiritual_visual_diversity(repetitive)
+          except RuntimeError as exc:
+              assert "ANTI-SPAM VISUAL" in str(exc)
+              print("Visual repetition blocking OK:", exc)
+          else:
+              raise AssertionError("El gate visual no bloqueo referencias locales repetitivas")
           PY
