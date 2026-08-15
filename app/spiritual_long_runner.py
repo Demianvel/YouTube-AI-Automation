@@ -11,6 +11,8 @@ from . import spiritual_long_pipeline as base
 from .config import ROOT
 from .hf_video import _safe_seed
 from .history import similarity
+from .spiritual_long_resilience import apply_long_cta_overlay, create_thumbnail_candidates, download_landscape_image
+from .spiritual_voice import polish_voice
 
 HISTORY_FILE = ROOT / "state" / "dioshablahoyia_long_history.jsonl"
 
@@ -49,6 +51,13 @@ _VISUAL_MOTIFS = (
     "live-action full-body dolly shot of the recurring photoreal synthetic Jesus character slowly approaching camera while speaking continuously, realistic knees feet torso balance and robe folds",
 )
 
+_LONG_CTA = (
+    "Antes de terminar, llevá esta reflexión a una acción concreta de bien. Si este mensaje te acompañó, "
+    "podés suscribirte para recibir nuevas oraciones y reflexiones, compartirlo con alguien que hoy necesite esperanza "
+    "y, si querés, escribir Amén o dejar tu intención de oración en los comentarios. Que la fe nos ayude a escuchar, "
+    "acompañar, perdonar, compartir y hacer el bien cada día."
+)
+
 
 def _read_history(limit: int = 30) -> list[dict]:
     if not HISTORY_FILE.exists():
@@ -73,7 +82,7 @@ def _append_history(item: dict) -> None:
 
 def _run_seed(minutes: int) -> int:
     marker = os.getenv("GITHUB_RUN_ID", "") or os.getenv("GITHUB_RUN_NUMBER", "") or datetime.now(timezone.utc).isoformat()
-    value = int(hashlib.sha256(f"spiritual-long-v4|{minutes}|{marker}".encode()).hexdigest()[:8], 16)
+    value = int(hashlib.sha256(f"spiritual-long-v5|{minutes}|{marker}".encode()).hexdigest()[:8], 16)
     return _safe_seed(value)
 
 
@@ -142,7 +151,7 @@ def _enhance_metadata(meta: dict, previous: list[dict], minutes: int) -> dict:
     title, variants = _safe_title(meta, previous, minutes)
     meta["title"] = title
     meta["title_variants"] = variants
-    meta["spiritual_quality_profile"] = "premium_long_live_action_photoreal_v4"
+    meta["spiritual_quality_profile"] = "premium_long_live_action_photoreal_v5_growth"
     meta["synthetic_character_disclosure"] = True
     meta["character_is_fictional_artistic_representation"] = True
     meta["photoreal_human_required"] = True
@@ -150,6 +159,18 @@ def _enhance_metadata(meta: dict, previous: list[dict], minutes: int) -> dict:
     meta["continuous_speech_requested"] = True
     meta["lip_sync_requested"] = True
     meta["full_body_motion_requested"] = True
+    meta["growth_strategy"] = "hook_progression_biblical_value_payoff_packaging_variants_without_false_clickbait"
+    meta["retention_structure"] = {
+        "opening": "human need or question in first 15 seconds",
+        "development": "new biblical/practical insight in each section",
+        "payoff": "prayer plus practical act of faith or compassion",
+        "ending": "gentle subscribe/comment/share CTA linked to doing good",
+    }
+    meta["pinned_comment_candidate"] = (
+        "🙏 Si este mensaje te ayudó, podés escribir Amén o dejar tu intención de oración. "
+        "Compartilo con alguien que hoy necesite fe y esperanza y suscribite para seguir recibiendo nuevas reflexiones. "
+        "Que esta comunidad también se reconozca por ayudar y hacer el bien."
+    )
 
     refs = []
     for section in meta.get("sections") or []:
@@ -163,6 +184,8 @@ def _enhance_metadata(meta: dict, previous: list[dict], minutes: int) -> dict:
         description += "\n\nReferencias bíblicas tratadas: " + ", ".join(refs[:8]) + "."
     if "representación humana digital" not in description.lower() and "representacion humana digital" not in description.lower():
         description += "\n\nLa figura de Jesús es una representación humana digital fotorrealista generada con IA; no es una grabación de una persona real."
+    if "suscrib" not in description.lower():
+        description += "\n\nSuscribite para nuevas reflexiones, compartí este mensaje con respeto y dejá tu intención de oración si querés. Que la fe también se convierta en acciones de bien hacia los demás."
     meta["description"] = description[:4700].strip()
 
     seed = _run_seed(minutes)
@@ -176,7 +199,12 @@ def _enhance_metadata(meta: dict, previous: list[dict], minutes: int) -> dict:
             "Premium live-action cinema, realistic anatomy, five fingers per hand, natural hands arms head torso hips knees legs and walking balance, realistic cloth and environmental physics, photographic optics, natural depth of field and physically plausible lighting. "
             "Continuous believable speech performance suitable for audio-driven lip-sync. ABSOLUTELY NO cartoon, illustration, painting, anime, stylized 3D, game character, plastic CGI skin, doll face, frozen pose, malformed hands, readable text, subtitles, logo, watermark or celebrity likeness."
         )[:1900]
+    if sections:
+        final_narration = " ".join(str(sections[-1].get("narration") or "").split())
+        if "suscrib" not in final_narration.lower():
+            sections[-1]["narration"] = f"{final_narration} {_LONG_CTA}".strip()
     meta["sections"] = sections
+    meta["cta_spoken"] = _LONG_CTA
     return meta
 
 
@@ -185,6 +213,10 @@ def run(minutes: int, publish: bool = False) -> dict:
     original_picker = base._pick_reference_seed
     original_generate = base._generate_metadata
     original_seed = base._seed
+    original_visual = base._visual_for_section
+    original_voice = base.make_natural_spanish_voice
+    original_thumbnail = base._thumbnail
+    original_assemble = base._assemble
     captured: dict = {}
 
     base._pick_reference_seed = _reference_picker(previous)
@@ -198,14 +230,65 @@ def run(minutes: int, publish: bool = False) -> dict:
         captured["meta"] = meta
         return meta
 
+    def luminous_voice(path, text: str) -> str:
+        used = original_voice(path, text)
+        profile = polish_voice(path)
+        return used if profile == "unprocessed" else f"{used}+{profile}"
+
+    def resilient_visual(meta: dict, section: dict, index: int, workdir, ai_slots: int, duration: int):
+        prompt = section["visual_prompt"]
+        require_live = os.getenv("SPIRITUAL_REQUIRE_LIVE_ACTION", "true").lower().strip() == "true"
+        allow_still = os.getenv("SPIRITUAL_ALLOW_STILL_FALLBACK", "true").lower().strip() == "true"
+
+        if index < ai_slots:
+            ai_clip = workdir / f"spiritual_ai_key_{index + 1}.mp4"
+            try:
+                provider = base._try_text_to_video(prompt, ai_clip, safe_base_seed(meta, index))
+                extended = workdir / f"spiritual_visual_{index + 1}.mp4"
+                base._landscape_loop_video(ai_clip, extended, duration, index)
+                return extended, provider
+            except Exception as exc:
+                if require_live and not allow_still:
+                    raise
+                print(f"T2V long no disponible en seccion {index + 1} ({exc}); usando imagen HF fotorrealista animada.")
+        elif require_live and not allow_still:
+            raise RuntimeError(f"Seccion {index + 1} fuera de slots T2V y fallback deshabilitado")
+
+        image = workdir / f"spiritual_image_{index + 1}.jpg"
+        visual = workdir / f"spiritual_visual_{index + 1}.mp4"
+        provider = download_landscape_image(prompt, image, safe_base_seed(meta, index), base._character_style())
+        base._image_motion(image, visual, duration, index)
+        return visual, f"{provider} + cinematic motion fallback"
+
+    def thumbnail_variants(video, workdir):
+        primary, candidates = create_thumbnail_candidates(video, workdir)
+        meta = captured.get("meta") or {}
+        meta["thumbnail_variants"] = candidates
+        meta["thumbnail_ab_note"] = "three candidates generated for YouTube Studio Test & Compare when available"
+        return primary
+
+    def assemble_with_cta(meta: dict, channel: dict, workdir, requested_minutes: int):
+        video = original_assemble(meta, channel, workdir, requested_minutes)
+        apply_long_cta_overlay(video, requested_minutes * 60)
+        meta["cta_overlay"] = "SUSCRIBITE | COMPARTI | AMEN"
+        return video
+
     base._seed = safe_base_seed
     base._generate_metadata = generate
+    base._visual_for_section = resilient_visual
+    base.make_natural_spanish_voice = luminous_voice
+    base._thumbnail = thumbnail_variants
+    base._assemble = assemble_with_cta
     try:
         result = base.run(minutes, publish=publish)
     finally:
         base._pick_reference_seed = original_picker
         base._generate_metadata = original_generate
         base._seed = original_seed
+        base._visual_for_section = original_visual
+        base.make_natural_spanish_voice = original_voice
+        base._thumbnail = original_thumbnail
+        base._assemble = original_assemble
 
     meta = captured.get("meta") or {}
     record = {
@@ -221,6 +304,9 @@ def run(minutes: int, publish: bool = False) -> dict:
     }
     _append_history(record)
     result["anti_repeat_history"] = str(HISTORY_FILE)
+    result["title_variants"] = meta.get("title_variants") or []
+    result["thumbnail_variants"] = meta.get("thumbnail_variants") or []
+    result["pinned_comment_candidate"] = meta.get("pinned_comment_candidate")
     return result
 
 
