@@ -15,6 +15,7 @@ from .history import append_history, read_history
 from .performance import enrich_history_with_youtube_stats
 from .premium_audio import apply_audio as premium_apply_audio
 from .hf_primary_router import generate_short
+from .spiritual_growth import enrich_short_growth
 from .spiritual_quality import enforce_spiritual_metadata
 from .youtube import upload_video
 
@@ -92,7 +93,6 @@ def _configure_spiritual_short(channel_slug: str, channel: dict) -> None:
     target_seconds = max(60, min(180, int(os.getenv("SPIRITUAL_SHORT_SECONDS", "180"))))
     scene_seconds = max(8, min(30, int(os.getenv("SPIRITUAL_SHORT_SCENE_SECONDS", "15"))))
     scenes = max(4, math.ceil(target_seconds / scene_seconds))
-    # Keep the final render at or below YouTube's 3-minute Short ceiling.
     while scenes * scene_seconds > 180:
         scenes -= 1
     channel["scene_seconds"] = scene_seconds
@@ -145,6 +145,7 @@ def run(channel_slug: str, dry_run: bool = False, content_mode: str = "auto") ->
         metadata = enforce_spiritual_metadata(metadata, previous)
         metadata["target_short_seconds"] = int(channel["scenes_per_short"]) * int(channel["scene_seconds"])
         metadata["short_format"] = "vertical_up_to_3_minutes"
+        metadata = enrich_short_growth(metadata, previous)
     metadata["content_mode"] = resolved_mode
     metadata["analytics_used"] = bool(channel.get("_analytics_digest"))
 
