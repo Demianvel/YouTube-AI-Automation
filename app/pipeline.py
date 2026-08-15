@@ -17,6 +17,7 @@ from .premium_audio import apply_audio as premium_apply_audio
 from .hf_primary_router import generate_short
 from .spiritual_growth import enrich_short_growth
 from .spiritual_quality import enforce_spiritual_metadata
+from .spiritual_uniqueness import validate_spiritual_uniqueness
 from .youtube import upload_video
 
 
@@ -146,6 +147,7 @@ def run(channel_slug: str, dry_run: bool = False, content_mode: str = "auto") ->
         metadata["target_short_seconds"] = int(channel["scenes_per_short"]) * int(channel["scene_seconds"])
         metadata["short_format"] = "vertical_up_to_3_minutes"
         metadata = enrich_short_growth(metadata, previous)
+        metadata = validate_spiritual_uniqueness(metadata, previous)
     metadata["content_mode"] = resolved_mode
     metadata["analytics_used"] = bool(channel.get("_analytics_digest"))
 
@@ -172,6 +174,9 @@ def run(channel_slug: str, dry_run: bool = False, content_mode: str = "auto") ->
         "topic": metadata.get("topic"),
         "title": metadata.get("title"),
         "bible_reference": metadata.get("bible_reference"),
+        "script_hash": metadata.get("script_hash"),
+        "narration_preview": metadata.get("narration_preview"),
+        "uniqueness_gate_passed": metadata.get("uniqueness_gate_passed"),
         "video_id": video_id,
         "status": status,
     }
