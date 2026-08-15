@@ -1,0 +1,41 @@
+name: Dios Habla Hoy IA - Publicar comentario CTA
+
+on:
+  workflow_dispatch:
+    inputs:
+      video_id:
+        description: ID del video de YouTube
+        required: true
+        type: string
+      comment:
+        description: Comentario opcional; vacio = variante CTA automatica
+        required: false
+        default: ""
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  comment:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      PYTHONPATH: .
+      YOUTUBE_TOKEN_DIOSHABLAHOYIA: ${{ secrets.YOUTUBE_TOKEN_DIOSHABLAHOYIA }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install YouTube API dependencies
+        run: pip install google-api-python-client google-auth
+
+      - name: Post top-level CTA comment
+        shell: bash
+        run: |
+          python scripts/post_dios_comment.py \
+            --video-id "${{ inputs.video_id }}" \
+            --comment "${{ inputs.comment }}"
