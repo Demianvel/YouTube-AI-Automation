@@ -5,7 +5,7 @@ import os
 import subprocess
 from pathlib import Path
 
-from .audio import make_natural_spanish_voice
+from .spiritual_tts import make_spiritual_spanish_voice
 from .hf_video import _normalize, _provider_video, _safe_seed, _space_video, available
 from .spiritual_continuity import ensure_spoken_text, fit_and_validate_spiritual_voice
 from .spiritual_image import _animate as _animate_spiritual_image
@@ -58,7 +58,7 @@ def _continuous_voice(meta: dict, workdir: Path, duration: int) -> tuple[Path, s
     meta["spoken_text_continuity"] = text_stats
     meta["spoken_text_final_words"] = text_stats["final_words"]
     voice = workdir / "spiritual_continuous_voice.wav"
-    used = make_natural_spanish_voice(voice, text)
+    used = make_spiritual_spanish_voice(voice, text)
     voice_master = polish_voice(voice)
     continuity = fit_and_validate_spiritual_voice(voice, duration)
     meta.update(continuity)
