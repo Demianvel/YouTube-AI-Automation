@@ -8,10 +8,38 @@ from huggingface_hub import InferenceClient
 
 from .hf_video import _safe_seed
 from .spiritual_image import _local_reference
+from . import wikimedia_video as commons
+
+_COMMONS_QUERIES = (
+    "mountain sunrise landscape",
+    "forest stream nature",
+    "ocean waves sunrise",
+    "lake mountains landscape",
+    "olive grove landscape",
+    "desert dunes sunrise",
+    "snow mountain landscape",
+    "meadow sheep nature",
+    "wild birds nature",
+    "river valley landscape",
+    "forest sunlight mist",
+    "clouds sky landscape",
+)
+
+
+def _download_commons_landscape(out: Path, seed: int) -> str:
+    for step in range(len(_COMMONS_QUERIES)):
+        query = _COMMONS_QUERIES[(_safe_seed(seed) + step * 5) % len(_COMMONS_QUERIES)]
+        results = commons._search(query, "image")
+        if not results:
+            continue
+        chosen = results[_safe_seed(seed ^ (step + 1) * 7919) % min(len(results), 16)]
+        commons._download(chosen["url"], out)
+        return f"Wikimedia Commons licensed image/{chosen.get('title','nature')}"
+    raise RuntimeError("Wikimedia Commons no encontro un paisaje con licencia admitida.")
 
 
 def download_landscape_image(prompt: str, out: Path, seed: int, style: str) -> str:
-    """Prefer new HF imagery, then authenticated Pollinations, then proven local references."""
+    """Prefer new AI imagery, then licensed diverse Commons nature, then local reference."""
     full_prompt = f"{prompt}, {style}"
     errors: list[str] = []
     token = os.getenv("HF_TOKEN", "").strip()
@@ -60,9 +88,19 @@ def download_landscape_image(prompt: str, out: Path, seed: int, style: str) -> s
     else:
         errors.append("Pollinations: falta POLLINATIONS_API_KEY")
 
+    # Prefer genuinely different licensed nature imagery before recycling the
+    # tiny local Jesus reference set. Long-form can use these visual breathing
+    # moments while the continuous narration carries the biblical reflection.
+    try:
+        provider = _download_commons_landscape(out, seed)
+        print("Usando paisaje con licencia abierta de Wikimedia Commons como respaldo visual largo.")
+        return provider
+    except Exception as exc:
+        errors.append(f"Commons: {exc}")
+
     try:
         provider = _local_reference(out, seed)
-        print("Usando referencia fotorrealista local para mantener el video largo sin creditos externos.")
+        print("Usando referencia fotorrealista local de emergencia como ultimo respaldo.")
         return provider
     except Exception as exc:
         errors.append(f"local reference: {exc}")
