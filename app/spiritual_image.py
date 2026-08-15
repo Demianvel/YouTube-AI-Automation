@@ -11,6 +11,7 @@ from huggingface_hub import InferenceClient
 from PIL import Image, ImageEnhance, ImageOps
 
 from .hf_video import _safe_seed
+from .spiritual_commons import make_spiritual_commons_clip
 
 BASE = "https://gen.pollinations.ai/image/"
 ROOT = Path(__file__).resolve().parents[1]
@@ -81,8 +82,6 @@ def _local_reference(out: Path, seed: int) -> str:
     chosen = refs[_safe_seed(seed) % len(refs)]
     with Image.open(chosen) as original:
         image = original.convert("RGB")
-        # Deterministic non-destructive variation so emergency scenes are not
-        # byte-identical while preserving the same recurring visual identity.
         if (_safe_seed(seed) // 7) % 2:
             image = ImageOps.mirror(image)
         brightness = 0.97 + ((_safe_seed(seed) % 9) / 100.0)
@@ -160,6 +159,8 @@ def generate_spiritual_short(channel: dict, meta: dict, workdir: Path, final: Pa
     clips: list[Path] = []
     prompts: list[str] = []
     provider_labels: list[str] = []
+    credits: list[dict[str, str]] = list(meta.get("source_credits") or [])
+    used_commons_urls: set[str] = set()
 
     for index, scene in enumerate(meta.get("scenes") or []):
         prompt = str(scene.get("visual_prompt") or scene.get("stock_query") or "photoreal synthetic Jesus walking through a real peaceful valley at golden sunrise")
@@ -167,6 +168,24 @@ def generate_spiritual_short(channel: dict, meta: dict, workdir: Path, final: Pa
         image = workdir / f"spiritual_generated_{index + 1}.jpg"
         clip = workdir / f"spiritual_scene_{index + 1}.mp4"
         image_provider = _download(prompt, image, _seed(meta, index))
+
+        # When paid/free AI image capacity is exhausted, do not mass-produce a
+        # whole Short from the same three emergency portraits. Keep roughly one
+        # Jesus anchor shot out of three and use fresh licensed nature/animal
+        # B-roll for the other scenes. If Commons cannot provide enough variety,
+        # the central visual-diversity upload gate will reject the final video.
+        if image_provider.startswith("local_proven_photoreal_reference/") and index % 3 != 0:
+            try:
+                commons_clip, commons_provider, credit = make_spiritual_commons_clip(
+                    meta, workdir, index, scene_duration, used_commons_urls
+                )
+                clips.append(commons_clip)
+                provider_labels.append(commons_provider)
+                credits.append(credit)
+                continue
+            except Exception as exc:
+                print(f"Commons espiritual no disponible en escena {index + 1} ({exc}); conservando referencia local para que el gate final decida.")
+
         _animate(image, clip, scene_duration, index)
         provider_labels.append(f"{image_provider} + cinematic camera motion")
         clips.append(clip)
@@ -186,8 +205,10 @@ def generate_spiritual_short(channel: dict, meta: dict, workdir: Path, final: Pa
     total_duration = int(channel["scenes_per_short"]) * scene_duration
     meta["generated_visual_provider"] = provider_labels
     meta["generated_video_prompts"] = prompts
+    meta["source_credits"] = credits
     meta["synthetic_visual"] = True
     meta["character_reference_profile"] = "dioshablahoyia_photoreal_human_v2"
-    meta["render_quality"] = "1080x1920_30fps_photoreal_still_fallback"
+    meta["render_quality"] = "1080x1920_30fps_photoreal_mixed_fallback"
     meta["still_fallback_explicitly_enabled"] = True
+    meta["mixed_licensed_nature_fallback"] = True
     apply_audio_fn(visual, final, channel, meta, total_duration, _seed(meta, 999))
