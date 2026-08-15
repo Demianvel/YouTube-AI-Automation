@@ -17,6 +17,7 @@ from .hf_primary_router import generate_short
 from .spiritual_growth import enrich_short_growth
 from .spiritual_quality import enforce_spiritual_metadata
 from .spiritual_uniqueness import validate_spiritual_uniqueness
+from .workers.divine_publisher_4x10 import mark_publish_metadata, validate_channel
 from .youtube import upload_video
 
 ACTIVE_SHORT_CHANNELS = {"brotavida", "dioshablahoyia"}
@@ -62,6 +63,10 @@ def run(channel_slug: str, dry_run: bool = False, content_mode: str = "auto") ->
         raise RuntimeError(
             f"Publicacion deshabilitada para {channel_slug}. Canales activos: {sorted(ACTIVE_SHORT_CHANNELS)}"
         )
+
+    if channel_slug == "dioshablahoyia":
+        # Publicador Reino 4x10 is the final authority for this channel.
+        validate_channel(channel_slug)
 
     channel = load_channel(channel_slug)
     _configure_spiritual_short(channel_slug, channel)
@@ -116,6 +121,7 @@ def run(channel_slug: str, dry_run: bool = False, content_mode: str = "auto") ->
         metadata["short_format"] = "vertical_native_cinematic_short"
         metadata = enrich_short_growth(metadata, previous)
         metadata = validate_spiritual_uniqueness(metadata, previous)
+        metadata = mark_publish_metadata(metadata, content_type="short")
 
     metadata["content_mode"] = resolved_mode
     metadata["analytics_used"] = bool(channel.get("_analytics_digest"))
@@ -146,6 +152,8 @@ def run(channel_slug: str, dry_run: bool = False, content_mode: str = "auto") ->
         "script_hash": metadata.get("script_hash"),
         "narration_preview": metadata.get("narration_preview"),
         "uniqueness_gate_passed": metadata.get("uniqueness_gate_passed"),
+        "worker_publisher": metadata.get("worker_publisher"),
+        "worker_publisher_id": metadata.get("worker_publisher_id"),
         "video_id": video_id,
         "status": status,
         "comment_publish_status": metadata.get("comment_publish_status"),
