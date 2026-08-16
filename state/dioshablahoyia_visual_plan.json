@@ -1,0 +1,28 @@
+{
+  "generated_at": "2026-08-16T17:32:00.821652+00:00",
+  "date": "2026-08-16",
+  "family_order": [
+    "norway",
+    "biblical_stories",
+    "creation_and_nature",
+    "jesus_and_prayer",
+    "symbols_of_faith"
+  ],
+  "featured_location": "Norway",
+  "featured_norway_regions": [
+    "Lofoten",
+    "Geirangerfjord",
+    "Tromso",
+    "Senja"
+  ],
+  "featured_biblical_story": "rotating biblical story",
+  "policy": "daily deterministic rotation informed by aggregate channel signals; no autonomous model retraining",
+  "models": [
+    "black-forest-labs/FLUX.1-schnell",
+    "stabilityai/stable-diffusion-xl-base-1.0"
+  ],
+  "optional_video_models": [
+    "Wan-AI/Wan2.1-T2V-1.3B",
+    "Lightricks/LTX-Video"
+  ]
+}
