@@ -6,6 +6,32 @@
     "long_videos": 4,
     "shorts": 10
   },
+  "voice_brand": {
+    "primary_provider": "gemini_tts",
+    "primary_model": "gemini-3.1-flash-tts-preview",
+    "primary_voice": "Gacrux",
+    "fallback_voice": "em_alex",
+    "profile": "gacrux_biblical_narrator_v1",
+    "language": "es-419",
+    "gender": "adult_male",
+    "fixed_across_shorts_and_long_videos": true,
+    "delivery_modes": [
+      "biblical_story",
+      "biblical_reflection",
+      "prayer",
+      "night_prayer"
+    ]
+  },
+  "publishing_plan": {
+    "short_times_argentina": ["07:30", "09:00", "10:30", "12:00", "13:30", "15:00", "16:30", "18:00", "19:30", "21:00"],
+    "short_duration_seconds": 60,
+    "long_slots": [
+      {"time": "12:00", "minutes": 10, "format": "biblical_story"},
+      {"time": "15:00", "minutes": 15, "format": "prayer"},
+      {"time": "18:00", "minutes": 20, "format": "biblical_reflection"},
+      {"time": "21:00", "minutes": 30, "format": "night_prayer"}
+    ]
+  },
   "handoff_order": [
     "celestial_cinema_engine",
     "peace_motion_director",
@@ -29,7 +55,7 @@
         "natural_face_motion",
         "natural_body_motion",
         "stable_character_identity",
-        "human_warm_cinematic_voice",
+        "fixed_gacrux_biblical_narrator_voice",
         "peace_love_hope_emotion"
       ]
     },
