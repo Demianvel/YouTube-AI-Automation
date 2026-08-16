@@ -93,16 +93,16 @@ def _apply_style_metadata(meta: dict, minutes: int) -> dict:
 
 def _robust_image_motion(source: Path, out: Path, duration: int, index: int) -> None:
     """Animate a still on Ubuntu FFmpeg without the unsupported image2 -loop option."""
-    frames = duration * base.FPS
+    frames = max(1, duration * base.FPS)
     if index % 3 == 0:
         x_expr = "iw/2-(iw/zoom/2)"
         y_expr = "ih/2-(ih/zoom/2)"
     elif index % 3 == 1:
-        x_expr = "min(iw-iw/zoom,(iw-iw/zoom)*on/max(1,duration*30))"
+        x_expr = f"min(iw-iw/zoom,(iw-iw/zoom)*on/{frames})"
         y_expr = "ih/2-(ih/zoom/2)"
     else:
         x_expr = "iw/2-(iw/zoom/2)"
-        y_expr = "min(ih-ih/zoom,(ih-ih/zoom)*on/max(1,duration*30))"
+        y_expr = f"min(ih-ih/zoom,(ih-ih/zoom)*on/{frames})"
     vf = (
         f"scale={base.W * 2}:{base.H * 2}:force_original_aspect_ratio=increase,crop={base.W * 2}:{base.H * 2},"
         f"zoompan=z='min(zoom+0.00035,1.07)':x='{x_expr}':y='{y_expr}':d={frames}:s={base.W}x{base.H}:fps={base.FPS},"
