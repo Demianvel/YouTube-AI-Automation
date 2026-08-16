@@ -1,0 +1,102 @@
+name: Validate spiritual quality
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "app/spiritual_tts.py"
+      - "app/spiritual_quality.py"
+      - "app/spiritual_content_guard.py"
+      - "app/spiritual_image.py"
+      - "app/spiritual_hf_video.py"
+      - "app/spiritual_long_resilient_runner.py"
+      - "app/spiritual_engagement.py"
+      - "scripts/dioshablahoyia_comment_responder.py"
+      - ".github/workflows/shorts.yml"
+      - ".github/workflows/dioshablahoyia-long.yml"
+      - ".github/workflows/validate-spiritual-quality.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Compile changed Python modules
+        run: |
+          python -m py_compile \
+            app/spiritual_tts.py \
+            app/spiritual_quality.py \
+            app/spiritual_content_guard.py \
+            app/spiritual_image.py \
+            app/spiritual_hf_video.py \
+            app/spiritual_long_resilient_runner.py \
+            app/spiritual_engagement.py \
+            scripts/dioshablahoyia_comment_responder.py
+
+      - name: Test dynamic metadata and anti-repeat behavior
+        env:
+          GITHUB_RUN_ID: "987654321"
+          GITHUB_RUN_NUMBER: "321"
+        run: |
+          python - <<'PY'
+          from app.spiritual_content_guard import enforce_spiritual_topic_guard, _youtube_tag_cost
+          from app.spiritual_engagement import engagement_comment
+          from app.spiritual_quality import enforce_spiritual_metadata
+
+          sample = {
+              "topic": "Jesús calma la tormenta y enseña a confiar en medio del miedo",
+              "content_family": "Jesus calma la tormenta",
+              "title": "Cuando necesitás paz: Marcos 4:35-41",
+              "description": "Reflexión sobre Jesús, Dios y la Biblia.",
+              "scenes": [
+                  {
+                      "narration": f"Escena {i + 1}: Jesús y la Biblia nos enseñan a confiar en Dios.",
+                      "visual_prompt": "Jesus in a biblical reflection about God",
+                  }
+                  for i in range(6)
+              ],
+          }
+          previous = [
+              {"title": "Cuando necesitás paz: Marcos 4:35-41"},
+              {"title": "Una luz para el momento que estás atravesando"},
+          ]
+
+          quality = enforce_spiritual_metadata(sample, previous)
+          guarded = enforce_spiritual_topic_guard(quality)
+
+          signatures = guarded.get("visual_variety_signatures") or []
+          assert len(signatures) == 6, signatures
+          assert len(set(signatures)) == 6, signatures
+          assert guarded["title"] not in {item["title"] for item in previous}, guarded["title"]
+          assert guarded.get("voice_profile") == "voz_de_luz_serena_original_v1"
+          assert guarded.get("voice_brand") == "Voz de Luz"
+          assert 3 <= len(guarded.get("hashtags") or []) <= 5
+          assert "#Dios" in guarded["hashtags"]
+          assert "#Shorts" in guarded["hashtags"]
+          assert _youtube_tag_cost(guarded["tags"]) <= 500
+          assert guarded.get("youtube_tag_family") in {"peace", "prayer", "jesus", "bible", "strength", "love"}
+
+          comments = {
+              engagement_comment(f"Marcos 4 esperanza prueba {i}")
+              for i in range(40)
+          }
+          assert len(comments) >= 20, len(comments)
+          assert all("milagro garantizado" not in comment.lower() for comment in comments)
+
+          print({
+              "title": guarded["title"],
+              "hashtags": guarded["hashtags"],
+              "tag_cost": _youtube_tag_cost(guarded["tags"]),
+              "unique_visuals": len(set(signatures)),
+              "unique_engagement_samples": len(comments),
+          })
+          PY
