@@ -1,1 +1,1 @@
-2026-08-16T20:36:00-03:00 | retry Dios Habla Hoy Short with repaired valid visual fallback, HF FLUX first, anti-repeat, cinematic motion
+2026-08-16 | publish Dios Habla Hoy Short NOW in fast local cinematic mode; skip exhausted HF remote quotas; keep anti-repeat and Voz de Luz
