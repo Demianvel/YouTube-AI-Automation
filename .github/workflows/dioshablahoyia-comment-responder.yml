@@ -26,6 +26,7 @@ jobs:
       YOUTUBE_TOKEN_DIOSHABLAHOYIA: ${{ secrets.YOUTUBE_TOKEN_DIOSHABLAHOYIA }}
       COMMENT_REPLY_MAX: ${{ github.event_name == 'workflow_dispatch' && inputs.max_replies || '12' }}
       COMMENT_THREAD_SCAN_MAX: "100"
+      COMMENT_REPLY_LANGUAGE: "es"
 
     steps:
       - uses: actions/checkout@v4
@@ -39,5 +40,5 @@ jobs:
           python -m pip install --upgrade pip
           pip install google-api-python-client google-auth
 
-      - name: Detect and reply to new suitable comments
-        run: python scripts/dioshablahoyia_comment_responder.py
+      - name: Detectar y responder comentarios solo en español
+        run: python scripts/dioshablahoyia_comment_responder_es.py
