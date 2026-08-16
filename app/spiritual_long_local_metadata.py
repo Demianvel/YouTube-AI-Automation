@@ -2,10 +2,11 @@ from __future__ import annotations
 
 import hashlib
 import json
-import math
 import os
 from datetime import datetime, timezone
 from pathlib import Path
+
+from .spiritual_visual_library import enrich_visual_prompt, image_model_candidates, visual_config
 
 ROOT = Path(__file__).resolve().parents[1]
 REFS = ROOT / "config" / "dioshablahoyia_bible_references.json"
@@ -63,27 +64,33 @@ def generate_local_long_metadata(channel: dict, minutes: int) -> dict:
     target_words = max(120, round((minutes * 128) / sections_count))
 
     sections = []
-    environments = (
-        "photoreal green valley and river at golden sunrise",
-        "photoreal mountain lake beneath warm moving clouds",
-        "photoreal olive grove with soft afternoon sunlight",
-        "photoreal rocky coast with gentle waves at dawn",
-        "photoreal forest clearing after rain with natural mist",
-        "photoreal desert path with long sunrise shadows",
-        "photoreal snowy ridge beneath a calm aurora sky",
-    )
+    visual_manifest = []
     for index, item in enumerate(chosen):
         reference = str(item["reference"])
         theme = str(item["theme"])
+        visual_meta = {
+            "topic": theme,
+            "title": f"{theme} | Oración, Biblia, fe y esperanza",
+            "bible_reference": reference,
+        }
+        base_prompt = (
+            "Recurring synthetic photoreal human representation of Jesus speaking calmly with natural human body language, "
+            "premium cinematic live-action look, realistic environment and movement, no text and no logos"
+        )
+        visual_prompt, selected = enrich_visual_prompt(
+            base_prompt,
+            visual_meta,
+            index,
+            aspect="horizontal 16:9",
+        )
         sections.append({
             "heading": f"Reflexión {index + 1}: {reference}",
             "bible_reference": reference,
-            "visual_prompt": (
-                f"Recurring synthetic photoreal human representation of Jesus in a {environments[(seed + index) % len(environments)]}, "
-                "speaking calmly with natural human body language, cinematic live-action look, no text, no logos"
-            ),
+            "visual_prompt": visual_prompt,
+            "visual_theme": selected,
             "narration": _narration(target_words, index, seed, reference, theme),
         })
+        visual_manifest.append(selected)
 
     topic = str(chosen[0]["theme"]).split(";")[0].strip().capitalize()
     return {
@@ -99,6 +106,11 @@ def generate_local_long_metadata(channel: dict, minutes: int) -> dict:
         "duration_seconds": minutes * 60,
         "target_minutes": minutes,
         "contains_synthetic_media": True,
-        "metadata_provider": "local_resilient_bible_library",
+        "metadata_provider": "local_resilient_bible_library_with_daily_visual_rotation",
         "reference_seed": chosen,
+        "visual_rotation_manifest": visual_manifest,
+        "visual_engine_version": str(visual_config().get("version") or "visual-library-v1"),
+        "visual_image_models": image_model_candidates(),
+        "visual_norway_enabled": True,
+        "visual_noahs_ark_enabled": True,
     }
