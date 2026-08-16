@@ -181,7 +181,6 @@ def _zero_space_result_path(result) -> Path:
 
 
 def _gradio_space_client(space: str, token: str | None):
-    """Create a Gradio client across both pre-6 and Gradio 6 client APIs."""
     import inspect
     from gradio_client import Client
 
@@ -195,10 +194,34 @@ def _gradio_space_client(space: str, token: str | None):
     return Client(space, **kwargs)
 
 
-def _generate_zerogpu(reference: Path, prompt: str, out: Path, seed: int, target_size: tuple[int, int]) -> str:
+def _predict_zero(client, space: str, reference: Path, prompt: str, seed: int):
     from gradio_client import handle_file
 
-    space = os.getenv("HF_REFERENCE_ZERO_SPACE", "Qwen/Qwen-Image-Edit").strip() or "Qwen/Qwen-Image-Edit"
+    safe_seed = _safe_seed_for_space(seed)
+    if "kontext" in space.lower():
+        return client.predict(
+            handle_file(str(reference)),
+            prompt,
+            safe_seed,
+            False,
+            2.5,
+            22,
+            api_name="/infer",
+        )
+    return client.predict(
+        handle_file(str(reference)),
+        prompt,
+        safe_seed,
+        False,
+        4.0,
+        20,
+        False,
+        api_name="/infer",
+    )
+
+
+def _generate_zerogpu(reference: Path, prompt: str, out: Path, seed: int, target_size: tuple[int, int]) -> str:
+    space = os.getenv("HF_REFERENCE_ZERO_SPACE", "black-forest-labs/FLUX.1-Kontext-Dev").strip() or "black-forest-labs/FLUX.1-Kontext-Dev"
     token = os.getenv("HF_TOKEN", "").strip() or None
     attempts = [("public", None)]
     if token:
@@ -208,16 +231,7 @@ def _generate_zerogpu(reference: Path, prompt: str, out: Path, seed: int, target
     for mode, client_token in attempts:
         try:
             client = _gradio_space_client(space, client_token)
-            result = client.predict(
-                handle_file(str(reference)),
-                prompt,
-                _safe_seed_for_space(seed),
-                False,
-                4.0,
-                20,
-                False,
-                api_name="/infer",
-            )
+            result = _predict_zero(client, space, reference, prompt, seed)
             source = _zero_space_result_path(result)
             with Image.open(source) as generated:
                 _save_generated(generated, out, target_size)
