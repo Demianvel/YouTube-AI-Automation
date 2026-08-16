@@ -1,0 +1,69 @@
+{
+  "generated_at": "2026-08-16T09:46:25.158647+00:00",
+  "window_hours": 72,
+  "region": "AR",
+  "language": "es",
+  "queries": [
+    "Dios oración",
+    "Biblia reflexión",
+    "Jesús fe",
+    "Salmo 91",
+    "oración para dormir"
+  ],
+  "videos_analyzed": 37,
+  "top_terms": [
+    {
+      "term": "jesús",
+      "samples": 12,
+      "signal_score": 5.8405
+    },
+    {
+      "term": "salmo 91",
+      "samples": 9,
+      "signal_score": 5.7639
+    },
+    {
+      "term": "esperanza",
+      "samples": 2,
+      "signal_score": 5.3734
+    },
+    {
+      "term": "amor",
+      "samples": 7,
+      "signal_score": 5.236
+    },
+    {
+      "term": "fe",
+      "samples": 13,
+      "signal_score": 5.0163
+    },
+    {
+      "term": "dios",
+      "samples": 11,
+      "signal_score": 4.825
+    },
+    {
+      "term": "biblia",
+      "samples": 7,
+      "signal_score": 4.4686
+    },
+    {
+      "term": "paz",
+      "samples": 3,
+      "signal_score": 3.6606
+    },
+    {
+      "term": "oración",
+      "samples": 15,
+      "signal_score": 3.2335
+    },
+    {
+      "term": "noche",
+      "samples": 2,
+      "signal_score": 2.6262
+    }
+  ],
+  "method": "public_youtube_recent_video_vph_and_engagement_aggregate",
+  "copy_policy": "aggregate_patterns_only_no_titles_scripts_thumbnails_or_channel_copying",
+  "purpose": "inform_original_packaging_not_guarantee_virality"
+}
