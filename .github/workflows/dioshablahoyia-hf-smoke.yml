@@ -1,0 +1,69 @@
+name: Dios Habla Hoy IA - HF reference smoke test
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - ".github/workflows/dioshablahoyia-hf-smoke.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    env:
+      PYTHONPATH: .
+      HF_TOKEN: ${{ secrets.HF_TOKEN }}
+      HF_REFERENCE_IMAGE_ENABLED: "true"
+      HF_REFERENCE_IMAGE_PROVIDER: auto
+      HF_REFERENCE_IMAGE_MODEL: black-forest-labs/FLUX.1-Kontext-dev
+      SPIRITUAL_REFERENCE_AVOID_RECENT: "8"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install minimal Hugging Face image dependencies
+        run: pip install "huggingface_hub>=0.34.4,<2" "Pillow>=11"
+
+      - name: Verify HF token is configured
+        shell: bash
+        run: |
+          if [ -z "$HF_TOKEN" ]; then
+            echo "HF_TOKEN_MISSING"
+            exit 2
+          fi
+          echo "HF_TOKEN_PRESENT"
+
+      - name: Generate one new reference-guided image
+        shell: bash
+        run: |
+          mkdir -p output/hf-smoke
+          python - <<'PY'
+          from pathlib import Path
+          from app.spiritual_reference_generation import generate_reference_guided_image
+
+          out = Path("output/hf-smoke/reference_guided_test.jpg")
+          provider, reference = generate_reference_guided_image(
+              "A peaceful original devotional scene about hope in God, cinematic Norwegian mountain valley, natural river and warm sky",
+              out,
+              20260816,
+              target_size=(540, 960),
+          )
+          print("HF_REFERENCE_TEST_SUCCESS")
+          print("PROVIDER=" + provider)
+          print("REFERENCE=" + reference)
+          print("OUTPUT_BYTES=" + str(out.stat().st_size))
+          PY
+
+      - name: Upload generated test image
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dioshablahoyia-hf-reference-smoke-${{ github.run_id }}
+          path: output/hf-smoke/reference_guided_test.jpg
+          retention-days: 1
