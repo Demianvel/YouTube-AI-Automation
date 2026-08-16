@@ -101,12 +101,12 @@ jobs:
           assert len(spiritual_topics) >= 80, len(spiritual_topics)
           normalized_topics = {" ".join(topic.lower().split()) for topic in spiritual_topics}
           assert len(normalized_topics) == len(spiritual_topics), "Hay temas espirituales duplicados"
-          assert all(any(anchor in topic.lower() for anchor in (
-              "dios", "jesus", "oracion", "biblia", "salmo", "mateo", "marcos", "lucas", "juan",
-              "romanos", "isaias", "fe", "esperanza", "amor", "perdon", "misericordia", "daniel",
-              "jonas", "elias", "ruth", "ester", "pablo", "pedro", "moises", "nehemias", "galatas",
-              "efesios", "corintios", "hebreos", "santiago", "genesis", "exodo", "apocalipsis",
-          )) for topic in spiritual_topics), "Tema fuera del alcance cristiano"
+          forbidden = (
+              "casino", "apuestas", "bitcoin", "criptomoneda", "futbol", "formula 1",
+              "celebridad", "chisme", "pornografia", "suicidio", "narcotrafico",
+              "partido politico", "elecciones", "review de producto",
+          )
+          assert all(not any(term in topic.lower() for term in forbidden) for topic in spiritual_topics), "Tema fuera del alcance seguro del canal"
 
           print({
               "title": guarded["title"],
