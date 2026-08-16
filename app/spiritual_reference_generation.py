@@ -180,12 +180,27 @@ def _zero_space_result_path(result) -> Path:
     return path
 
 
+def _gradio_space_client(space: str, token: str | None):
+    """Create a Gradio client across both pre-6 and Gradio 6 client APIs."""
+    import inspect
+    from gradio_client import Client
+
+    params = inspect.signature(Client).parameters
+    kwargs: dict = {"verbose": False}
+    if token:
+        if "token" in params:
+            kwargs["token"] = token
+        elif "hf_token" in params:
+            kwargs["hf_token"] = token
+    return Client(space, **kwargs)
+
+
 def _generate_zerogpu(reference: Path, prompt: str, out: Path, seed: int, target_size: tuple[int, int]) -> str:
-    from gradio_client import Client, handle_file
+    from gradio_client import handle_file
 
     space = os.getenv("HF_REFERENCE_ZERO_SPACE", "Qwen/Qwen-Image-Edit").strip() or "Qwen/Qwen-Image-Edit"
     token = os.getenv("HF_TOKEN", "").strip() or None
-    client = Client(space, hf_token=token, verbose=False)
+    client = _gradio_space_client(space, token)
     result = client.predict(
         handle_file(str(reference)),
         prompt,
