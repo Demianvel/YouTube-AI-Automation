@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import unicodedata
 
 
@@ -40,30 +41,63 @@ _DECEPTIVE_TERMS = (
     "dios me reveló", "si ignoras esto", "si ignorás esto",
 )
 
-# YouTube counts commas and also treats tags containing spaces as quoted for the
-# 500-character snippet.tags limit. This curated 18-tag pack costs 499 chars by
-# that API counting rule, so it stays inside the official maximum while keeping
-# every keyword tightly related to Dios, Jesus, Biblia, fe, esperanza and amor.
-_YOUTUBE_TAGS_500 = (
-    "Dios",
-    "Jesús",
-    "Jesucristo",
-    "Biblia",
-    "Fe en Dios y Jesucristo",
-    "Esperanza y confianza en Dios",
-    "Amor de Dios cada día",
-    "Oración cristiana para el alma",
-    "Paz de Dios en la dificultad",
-    "Palabra de Dios y reflexión bíblica",
-    "Reflexión cristiana diaria",
-    "Mensajes cristianos de esperanza y amor",
-    "Enseñanzas de Jesús para la vida",
-    "Versículos bíblicos de fe y esperanza",
-    "Oración para encontrar paz y consuelo",
-    "Fe esperanza amor y confianza en Dios",
-    "Videos cristianos sobre Jesús y la Biblia",
-    "Dios Habla Hoy",
-)
+# Six safe SEO families rotate with the actual subject. Each pack stays well
+# below YouTube's 500-character API cost, leaving room for one or two specific
+# tags derived from the biblical reference and topic of each upload.
+_TAG_PACKS = {
+    "peace": (
+        "Dios", "Jesús", "Biblia", "Paz de Dios", "Serenidad en Dios",
+        "Esperanza cristiana", "Reflexión bíblica para el alma",
+        "Palabra de Dios para hoy", "Fe en momentos difíciles",
+        "Oración para encontrar paz", "Confianza en Dios cada día",
+        "Jesús trae paz al corazón", "Mensajes cristianos de esperanza",
+        "Dios Habla Hoy", "Amor de Dios", "Descanso en Dios",
+        "Versículos de fe y consuelo", "Shorts cristianos",
+    ),
+    "prayer": (
+        "Dios", "Jesús", "Biblia", "Oración cristiana", "Oración de la mañana",
+        "Oración de la noche", "Oración para dormir en paz",
+        "Fe y esperanza en Dios", "Palabra de Dios para hoy",
+        "Reflexión cristiana diaria", "Jesucristo y la Biblia",
+        "Paz interior con Dios", "Oración para la familia",
+        "Confianza en el Señor", "Dios Habla Hoy",
+        "Mensajes de amor y consuelo", "Versículos bíblicos", "Shorts de oración",
+    ),
+    "jesus": (
+        "Dios", "Jesús", "Jesucristo", "Biblia", "Enseñanzas de Jesús",
+        "Palabras de Jesús", "Evangelio de Jesucristo", "Reflexión sobre Jesús",
+        "Fe en Cristo", "Amor de Dios", "Esperanza en Jesucristo",
+        "Jesús es el buen pastor", "Camino verdad y vida",
+        "Mensaje cristiano para hoy", "Biblia y fe", "Dios Habla Hoy",
+        "Videos cristianos", "Shorts cristianos",
+    ),
+    "bible": (
+        "Dios", "Jesús", "Biblia", "Palabra de Dios", "Reflexión bíblica",
+        "Estudio bíblico breve", "Versículos bíblicos", "Evangelio para hoy",
+        "Enseñanzas de la Biblia", "Fe esperanza y amor", "Promesas bíblicas",
+        "Historias de la Biblia", "Jesucristo en la Biblia",
+        "Mensaje cristiano diario", "Paz y consuelo espiritual",
+        "Dios Habla Hoy", "Videos de fe", "Shorts bíblicos",
+    ),
+    "strength": (
+        "Dios", "Jesús", "Biblia", "Fortaleza espiritual",
+        "Fe en tiempos difíciles", "Esperanza cuando todo duele",
+        "Dios acompaña tu camino", "Confianza en Dios", "Oración por fortaleza",
+        "Paz en la tormenta", "Jesús sostiene al cansado",
+        "Palabra de aliento cristiana", "Reflexión para no rendirse",
+        "Amor y cuidado de Dios", "Versículos de esperanza",
+        "Dios Habla Hoy", "Mensajes cristianos", "Shorts de fe",
+    ),
+    "love": (
+        "Dios", "Jesús", "Biblia", "Amor de Dios", "Misericordia de Dios",
+        "Perdón y nuevo comienzo", "Jesús y el amor al prójimo",
+        "Gracia de Dios", "Reflexión cristiana sobre el amor",
+        "Fe esperanza y caridad", "Palabra de Dios para el corazón",
+        "Compasión cristiana", "Evangelio y misericordia",
+        "Oración por paz y amor", "Dios Habla Hoy",
+        "Enseñanzas de Jesucristo", "Videos cristianos", "Shorts cristianos",
+    ),
+}
 
 
 def _normalize(value: object) -> str:
@@ -137,8 +171,71 @@ def _assert_spiritual_scope(metadata: dict) -> None:
         )
 
 
+def _tag_family(metadata: dict) -> str:
+    text = _normalize(" ".join(str(metadata.get(key) or "") for key in (
+        "topic", "content_family", "title", "description", "bible_reference"
+    )))
+    if any(word in text for word in ("oracion", "orar", "noche", "manana", "amen")):
+        return "prayer"
+    if any(word in text for word in ("perdon", "misericordia", "amor", "compasion", "projimo")):
+        return "love"
+    if any(word in text for word in ("cansado", "miedo", "prueba", "tormenta", "fortaleza", "dolor")):
+        return "strength"
+    if any(word in text for word in ("jesus", "jesucristo", "cristo", "mesias", "pastor")):
+        return "jesus"
+    if any(word in text for word in ("paz", "serenidad", "descanso", "ansiedad", "esperanza")):
+        return "peace"
+    return "bible"
+
+
+def _dynamic_tags(metadata: dict) -> list[str]:
+    family = _tag_family(metadata)
+    tags = list(_TAG_PACKS[family])
+    candidates = []
+    reference = " ".join(str(metadata.get("bible_reference") or "").split())[:55]
+    topic = " ".join(str(metadata.get("content_family") or metadata.get("topic") or "").split())[:65]
+    if reference:
+        candidates.append(f"Reflexión sobre {reference}")
+    if topic:
+        candidates.append(topic)
+
+    normalized = {_normalize(tag) for tag in tags}
+    for candidate in candidates:
+        if _normalize(candidate) in normalized:
+            continue
+        trial = tags + [candidate]
+        if _youtube_tag_cost(trial) <= 500:
+            tags.append(candidate)
+            normalized.add(_normalize(candidate))
+    return tags
+
+
+def _dynamic_hashtags(metadata: dict) -> list[str]:
+    supplied = [str(tag).strip() for tag in (metadata.get("hashtags") or []) if str(tag).strip()]
+    result: list[str] = []
+    for tag in supplied:
+        clean = tag if tag.startswith("#") else f"#{tag}"
+        if clean.lower() not in {x.lower() for x in result}:
+            result.append(clean)
+        if len(result) >= 5:
+            break
+
+    mandatory = ["#Dios", "#Shorts"]
+    if not any(tag.lower() in {"#jesus", "#jesucristo", "#cristo"} for tag in result):
+        mandatory.insert(1, "#Jesus")
+    if not any(tag.lower() in {"#biblia", "#palabradedios", "#reflexionbiblica"} for tag in result):
+        mandatory.insert(-1, "#Biblia")
+
+    for tag in mandatory:
+        if tag.lower() not in {x.lower() for x in result}:
+            if len(result) >= 5:
+                result.pop()
+            result.append(tag)
+    return result[:5]
+
+
 def enforce_spiritual_topic_guard(metadata: dict) -> dict:
-    """Lock Dios Habla Hoy IA to original Jesus/God/Bible content before rendering."""
+    """Lock the channel to safe original spiritual content without flattening variety."""
     metadata = dict(metadata)
     scenes = [dict(scene) for scene in (metadata.get("scenes") or [])]
 
@@ -160,14 +257,16 @@ def enforce_spiritual_topic_guard(metadata: dict) -> dict:
     metadata["third_party_stock_allowed"] = False
     metadata["original_generated_media_only"] = True
     metadata["editorial_scope"] = "Jesus_Dios_Biblia_oracion_fe_only"
-    metadata["youtube_safety_profile"] = "strict_spiritual_original_v2"
+    metadata["youtube_safety_profile"] = "strict_spiritual_original_v3_dynamic"
     metadata["youtube_policy_categories_checked"] = [
         "spam_deception", "sexual_content", "self_harm", "violent_graphic_content",
         "dangerous_content", "hate_harassment", "regulated_goods", "external_reused_media",
     ]
     metadata["contains_synthetic_media"] = True
+    metadata["voice_profile"] = "voz_de_luz_serena_original_v1"
+    metadata["voice_brand"] = "Voz de Luz"
 
-    description = " ".join(str(metadata.get("description") or "").split()).strip()
+    description = str(metadata.get("description") or "").strip()
     disclosure = (
         "Contenido cristiano original. La representación visual de Jesús es artística y generada digitalmente; "
         "no es una grabación literal de un hecho real."
@@ -176,13 +275,16 @@ def enforce_spiritual_topic_guard(metadata: dict) -> dict:
         description = (description + "\n\n" + disclosure).strip()
     metadata["description"] = description[:4600]
 
-    metadata["tags"] = list(_YOUTUBE_TAGS_500)
-    metadata["youtube_tag_character_cost"] = _youtube_tag_cost(_YOUTUBE_TAGS_500)
+    tags = _dynamic_tags(metadata)
+    metadata["tags"] = tags
+    metadata["youtube_tag_character_cost"] = _youtube_tag_cost(tags)
     metadata["youtube_tag_limit"] = 500
-    metadata["hashtags"] = ["#Dios", "#Jesus", "#Biblia", "#Fe", "#Shorts"]
+    metadata["youtube_tag_family"] = _tag_family(metadata)
+    metadata["hashtags"] = _dynamic_hashtags(metadata)
 
     _assert_spiritual_scope(metadata)
     metadata["editorial_guard_passed"] = True
+    metadata["editorial_guard_preserved_dynamic_metadata"] = True
     return metadata
 
 
@@ -219,5 +321,5 @@ def validate_spiritual_upload_guard(metadata: dict) -> dict:
         raise RuntimeError("BLOQUEADO ANTES DE YOUTUBE: external_media_allowed no puede ser true en este canal.")
 
     metadata["youtube_safety_guard_passed"] = True
-    metadata["youtube_safety_guard_mode"] = "fail_closed_original_spiritual_only_v2"
+    metadata["youtube_safety_guard_mode"] = "fail_closed_original_spiritual_only_v3_dynamic"
     return metadata
