@@ -54,7 +54,11 @@ jobs:
           import json
           from pathlib import Path
 
-          from app.spiritual_content_guard import enforce_spiritual_topic_guard, _youtube_tag_cost
+          from app.spiritual_content_guard import (
+              enforce_spiritual_topic_guard,
+              validate_spiritual_upload_guard,
+              _youtube_tag_cost,
+          )
           from app.spiritual_engagement import engagement_comment
           from app.spiritual_quality import enforce_spiritual_metadata
           from app.spiritual_source_growth_engine import ground_and_optimize_spiritual_metadata
@@ -100,8 +104,40 @@ jobs:
           assert 3 <= len(guarded.get("hashtags") or []) <= 5
           assert "#Dios" in guarded["hashtags"]
           assert "#Shorts" in guarded["hashtags"]
+          assert "#VideoCristiano" not in guarded["hashtags"]
           assert _youtube_tag_cost(guarded["tags"]) <= 500
           assert guarded.get("youtube_tag_family") in {"peace", "prayer", "jesus", "bible", "strength", "love"}
+
+          long_sample = {
+              "topic": "La paz de Jesús en medio de la ansiedad",
+              "content_family": "reflexion biblica profunda",
+              "title": "Jesús y la paz que permanece",
+              "description": "Video cristiano original sobre Dios, Jesús y la Biblia.",
+              "bible_reference": "Juan 14:27",
+              "target_minutes": 10,
+              "sections": [
+                  {
+                      "narration": "Jesús nos enseña en la Biblia a confiar en la paz de Dios.",
+                      "visual_prompt": "Jesus walking beside living water in a biblical reflection about God",
+                  },
+                  {
+                      "narration": "La Palabra de Dios ofrece esperanza para la vida cotidiana.",
+                      "visual_prompt": "Open Bible in natural light as a symbol of God's guidance",
+                  },
+              ],
+              "source_credits": [],
+              "external_media_allowed": False,
+              "generated_visual_provider": ["local_project_original", "local_project_original"],
+          }
+          validate_spiritual_upload_guard(long_sample)
+          assert long_sample.get("voice_profile") == "voz_de_luz_serena_original_v1"
+          assert long_sample.get("voice_brand") == "Voz de Luz"
+          assert "#VideoCristiano" in long_sample["hashtags"]
+          assert "#Shorts" not in long_sample["hashtags"]
+          assert _youtube_tag_cost(long_sample["tags"]) <= 500
+          assert not any(tag.startswith("Shorts") for tag in long_sample["tags"])
+          assert "creaciones artísticas digitales" in long_sample["description"]
+          assert long_sample.get("youtube_safety_guard_format") == "long"
 
           comments = {
               engagement_comment(f"Marcos 4 esperanza prueba {i}")
@@ -123,10 +159,12 @@ jobs:
           assert all(not any(term in topic.lower() for term in forbidden) for topic in spiritual_topics), "Tema fuera del alcance seguro del canal"
 
           print({
-              "title": guarded["title"],
+              "short_title": guarded["title"],
               "title_variants": guarded["title_variants"],
-              "hashtags": guarded["hashtags"],
-              "tag_cost": _youtube_tag_cost(guarded["tags"]),
+              "short_hashtags": guarded["hashtags"],
+              "long_hashtags": long_sample["hashtags"],
+              "short_tag_cost": _youtube_tag_cost(guarded["tags"]),
+              "long_tag_cost": _youtube_tag_cost(long_sample["tags"]),
               "unique_visuals": len(set(signatures)),
               "unique_engagement_samples": len(comments),
               "spiritual_topics": len(spiritual_topics),
