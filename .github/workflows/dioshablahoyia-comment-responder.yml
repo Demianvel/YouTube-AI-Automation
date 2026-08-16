@@ -70,8 +70,9 @@ jobs:
             echo "Intento $attempt/3 del respondedor 24x7"
             if python scripts/dioshablahoyia_comment_responder_es.py; then
               exit 0
+            else
+              status=$?
             fi
-            status=$?
             if [ "$attempt" -lt 3 ]; then
               sleep $((attempt * 20))
             fi
