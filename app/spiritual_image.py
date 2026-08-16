@@ -11,6 +11,7 @@ from huggingface_hub import InferenceClient
 from PIL import Image, ImageDraw, ImageEnhance, ImageFilter, ImageOps
 
 from .hf_video import _safe_seed
+from .spiritual_reference_generation import generate_reference_guided_image
 
 BASE = "https://gen.pollinations.ai/image/"
 ROOT = Path(__file__).resolve().parents[1]
@@ -20,7 +21,7 @@ W, H = 1080, 1920
 
 def _seed(meta: dict, index: int) -> int:
     marker = os.getenv("GITHUB_RUN_ID", "") or os.getenv("GITHUB_RUN_NUMBER", "")
-    raw = f"spiritual-variety-v3|{meta.get('topic','')}|{meta.get('title','')}|{index}|{marker}"
+    raw = f"spiritual-variety-v4|{meta.get('topic','')}|{meta.get('title','')}|{index}|{marker}"
     return _safe_seed(int(hashlib.sha256(raw.encode()).hexdigest()[:8], 16))
 
 
@@ -117,15 +118,14 @@ def _vignette(image: Image.Image, strength: int) -> Image.Image:
 
 def _local_variant(original: Image.Image, seed: int) -> tuple[Image.Image, int]:
     safe = _safe_seed(seed)
-    variant = safe % 24
+    variant = safe % 30
     source = original.convert("RGB")
     if (safe // 7) % 2:
         source = ImageOps.mirror(source)
 
     centering = _centering(variant)
-    if variant < 12:
-        # Twelve full-frame crops with varied focal position and zoom.
-        zoom = 1.00 + (variant % 4) * 0.045
+    if variant < 15:
+        zoom = 1.00 + (variant % 5) * 0.04
         fitted = ImageOps.fit(
             source,
             (int(W * zoom), int(H * zoom)),
@@ -136,9 +136,6 @@ def _local_variant(original: Image.Image, seed: int) -> tuple[Image.Image, int]:
         top = max(0, (fitted.height - H) // 2)
         image = fitted.crop((left, top, left + W, top + H))
     else:
-        # Twelve layered compositions: softly blurred photographic background plus
-        # a sharper reframed foreground. This preserves photorealism while changing
-        # silhouette, scale and negative space for every scene.
         background = ImageOps.fit(
             source,
             (W, H),
@@ -146,16 +143,16 @@ def _local_variant(original: Image.Image, seed: int) -> tuple[Image.Image, int]:
             centering=centering,
         ).filter(ImageFilter.GaussianBlur(24 + (variant % 4) * 4))
         background = ImageEnhance.Brightness(background).enhance(0.68 + (variant % 3) * 0.06)
-        max_w = int(W * (0.82 + (variant % 3) * 0.05))
-        max_h = int(H * (0.78 + (variant % 2) * 0.08))
+        max_w = int(W * (0.76 + (variant % 4) * 0.05))
+        max_h = int(H * (0.72 + (variant % 3) * 0.07))
         foreground = ImageOps.contain(source, (max_w, max_h), method=Image.Resampling.LANCZOS)
         foreground = ImageEnhance.Sharpness(foreground).enhance(1.08)
         canvas = background.convert("RGBA")
-        x_shift = (-1, 0, 1)[variant % 3] * int(W * 0.06)
+        x_shift = (-2, -1, 0, 1, 2)[variant % 5] * int(W * 0.035)
         y_shift = (-1, 0, 1)[(variant // 3) % 3] * int(H * 0.035)
         x = (W - foreground.width) // 2 + x_shift
         y = (H - foreground.height) // 2 + y_shift
-        alpha = Image.new("L", foreground.size, 255)
+
         edge = Image.new("L", foreground.size, 0)
         edge_draw = ImageDraw.Draw(edge)
         edge_draw.rounded_rectangle(
@@ -164,30 +161,20 @@ def _local_variant(original: Image.Image, seed: int) -> tuple[Image.Image, int]:
             fill=255,
         )
         edge = edge.filter(ImageFilter.GaussianBlur(10))
-        alpha = ImageChops_lighter(alpha, edge)
-        canvas.alpha_composite(foreground.convert("RGBA"), dest=(x, y))
+        foreground_rgba = foreground.convert("RGBA")
+        foreground_rgba.putalpha(edge)
+        canvas.alpha_composite(foreground_rgba, dest=(x, y))
         image = canvas.convert("RGB")
 
-    brightness = 0.96 + ((safe % 11) / 100.0)
-    contrast = 0.98 + (((safe // 11) % 10) / 100.0)
-    color = 0.97 + (((safe // 17) % 12) / 100.0)
+    brightness = 0.95 + ((safe % 13) / 100.0)
+    contrast = 0.97 + (((safe // 11) % 12) / 100.0)
+    color = 0.96 + (((safe // 17) % 14) / 100.0)
     image = ImageEnhance.Brightness(image).enhance(brightness)
     image = ImageEnhance.Contrast(image).enhance(contrast)
     image = ImageEnhance.Color(image).enhance(color)
     image = _light_overlay(image, variant)
-    image = _vignette(image, 50 + (variant % 4) * 10)
+    image = _vignette(image, 45 + (variant % 5) * 10)
     return image, variant
-
-
-def ImageChops_lighter(first: Image.Image, second: Image.Image) -> Image.Image:
-    # Local helper avoids importing the full ImageChops module in older Pillow
-    # builds while preserving a soft alpha edge.
-    return Image.fromarray(
-        __import__("numpy").maximum(
-            __import__("numpy").asarray(first, dtype="uint8"),
-            __import__("numpy").asarray(second, dtype="uint8"),
-        )
-    )
 
 
 def _local_reference(out: Path, seed: int) -> str:
@@ -195,18 +182,29 @@ def _local_reference(out: Path, seed: int) -> str:
     if not refs:
         raise RuntimeError("No hay referencias fotorrealistas locales de emergencia.")
     safe = _safe_seed(seed)
-    chosen = refs[(safe // 29) % len(refs)]
+
+    user_refs = [ref for ref in refs if "_user_" in ref.name]
+    pool = user_refs or refs
+    chosen = pool[(safe // 29) % len(pool)]
+
     with Image.open(chosen) as original:
         image, variant = _local_variant(original, safe)
         image.save(out, format="JPEG", quality=95, optimize=True)
     if not out.exists() or out.stat().st_size < 20_000:
         raise RuntimeError("La referencia fotorrealista local no pudo prepararse.")
-    return f"local_project_jesus_reference/{chosen.name}/variant_{variant:02d}_of_24"
+    return f"local_project_jesus_reference/reference:{chosen.name}/variant_{variant:02d}_of_30"
 
 
 def _download(prompt: str, out: Path, seed: int) -> str:
     full_prompt = f"{prompt}, {_style()}"
     errors: list[str] = []
+
+    try:
+        provider, _ = generate_reference_guided_image(full_prompt, out, seed)
+        return provider
+    except Exception as exc:
+        errors.append(f"HF reference image: {exc}")
+        print(f"Hugging Face reference-guided image no disponible ({exc}); intentando text-to-image.")
 
     try:
         return _download_hf(full_prompt, out, seed)
@@ -234,8 +232,9 @@ def _download(prompt: str, out: Path, seed: int) -> str:
 
 def _animate(source: Path, out: Path, duration: int, index: int) -> None:
     frames = duration * 30
-    motion = index % 6
-    zoom_rate = 0.00055 + motion * 0.00005
+    motion = index % 8
+    zoom_rate = 0.00048 + motion * 0.000045
+
     if motion == 0:
         x_expr, y_expr = "iw/2-(iw/zoom/2)", "ih/2-(ih/zoom/2)"
     elif motion == 1:
@@ -246,13 +245,20 @@ def _animate(source: Path, out: Path, duration: int, index: int) -> None:
         x_expr, y_expr = "iw/2-(iw/zoom/2)", "min(ih-ih/zoom,(ih-ih/zoom)*on/max(1,duration*30))"
     elif motion == 4:
         x_expr, y_expr = "iw/2-(iw/zoom/2)", "max(0,(ih-ih/zoom)*(1-on/max(1,duration*30)))"
-    else:
+    elif motion == 5:
         x_expr = "min(iw-iw/zoom,(iw-iw/zoom)*on/max(1,duration*30))"
         y_expr = "min(ih-ih/zoom,(ih-ih/zoom)*on/max(1,duration*30))"
+    elif motion == 6:
+        x_expr = "max(0,(iw-iw/zoom)*(1-on/max(1,duration*30)))"
+        y_expr = "min(ih-ih/zoom,(ih-ih/zoom)*on/max(1,duration*30))"
+    else:
+        x_expr = "min(iw-iw/zoom,(iw-iw/zoom)*on/max(1,duration*30))"
+        y_expr = "max(0,(ih-ih/zoom)*(1-on/max(1,duration*30)))"
+
     vf = (
         f"scale={W * 2}:{H * 2}:force_original_aspect_ratio=increase,"
         f"crop={W * 2}:{H * 2},"
-        f"zoompan=z='min(zoom+{zoom_rate:.5f},1.09)':x='{x_expr}':y='{y_expr}':d={frames}:s={W}x{H}:fps=30,"
+        f"zoompan=z='min(zoom+{zoom_rate:.5f},1.095)':x='{x_expr}':y='{y_expr}':d={frames}:s={W}x{H}:fps=30,"
         "setsar=1,eq=contrast=1.025:saturation=1.045:brightness=0.004"
     )
     subprocess.run([
@@ -280,7 +286,7 @@ def generate_spiritual_short(channel: dict, meta: dict, workdir: Path, final: Pa
         clip = workdir / f"spiritual_scene_{index + 1}.mp4"
         image_provider = _download(prompt, image, _seed(meta, index))
         _animate(image, clip, scene_duration, index)
-        provider_labels.append(f"{image_provider} + original cinematic motion_{index % 6}")
+        provider_labels.append(f"{image_provider} + original cinematic motion_{index % 8}")
         clips.append(clip)
 
     if not clips:
@@ -302,10 +308,10 @@ def generate_spiritual_short(channel: dict, meta: dict, workdir: Path, final: Pa
     meta["synthetic_visual"] = True
     meta["external_media_allowed"] = False
     meta["original_generated_media_only"] = True
-    meta["character_reference_profile"] = "dioshablahoyia_photoreal_human_v3_high_variety"
-    meta["render_quality"] = "1080x1920_30fps_photoreal_original_high_variety_fallback"
+    meta["character_reference_profile"] = "dioshablahoyia_photoreal_human_v4_reference_guided"
+    meta["render_quality"] = "1080x1920_30fps_photoreal_original_reference_guided_high_variety_fallback"
     meta["still_fallback_explicitly_enabled"] = True
-    meta["local_visual_variants_per_reference"] = 24
+    meta["local_visual_variants_per_reference"] = 30
     meta["local_reference_count"] = len(list(REFERENCE_DIR.glob("jesus_reference_*.jpg")))
     meta["mixed_licensed_nature_fallback"] = False
     apply_audio_fn(visual, final, channel, meta, total_duration, _seed(meta, 999))
