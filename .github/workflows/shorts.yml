@@ -25,6 +25,9 @@ on:
         required: true
         default: true
         type: boolean
+  push:
+    paths:
+      - "triggers/dioshablahoyia-short-now.txt"
   schedule:
     # BrotaVida: 4 Shorts diarios. Dios Habla Hoy usa su watchdog de 10 Shorts/dia.
     - cron: "30 0,12,16,20 * * *"
@@ -34,7 +37,7 @@ permissions:
   issues: write
 
 concurrency:
-  group: youtube-ai-publisher-${{ github.event_name == 'workflow_dispatch' && github.run_id || github.event.schedule || 'unknown' }}
+  group: youtube-ai-publisher-${{ github.event_name == 'schedule' && github.event.schedule || github.run_id }}
   cancel-in-progress: false
 
 jobs:
@@ -71,6 +74,8 @@ jobs:
       HF_REFERENCE_IMAGE_ENABLED: "true"
       HF_REFERENCE_IMAGE_PROVIDER: auto
       HF_REFERENCE_IMAGE_MODEL: black-forest-labs/FLUX.1-Kontext-dev
+      HF_REFERENCE_ZERO_SPACE: Qwen/Qwen-Image-Edit
+      HF_REFERENCE_ZERO_SPACE_FIRST: "true"
       SPIRITUAL_REFERENCE_AVOID_RECENT: "8"
       TTS_PROVIDER: chatterbox_latam
       TTS_FALLBACK_KOKORO: "true"
@@ -95,6 +100,9 @@ jobs:
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             CHANNEL="${{ inputs.channel }}"
             CONTENT_MODE="${{ inputs.content_mode }}"
+          elif [ "${{ github.event_name }}" = "push" ]; then
+            CHANNEL="dioshablahoyia"
+            CONTENT_MODE="voice"
           elif [ "${{ github.event.schedule }}" = "30 0,12,16,20 * * *" ]; then
             CHANNEL="brotavida"
             CONTENT_MODE="asmr"
@@ -141,6 +149,7 @@ jobs:
             echo "GEMINI_VIDEO_ENABLED=false" >> "$GITHUB_ENV"
             echo "HF_VIDEO_STRICT=false" >> "$GITHUB_ENV"
             echo "HF_ZERO_RETRIES=1" >> "$GITHUB_ENV"
+            echo "HF_REFERENCE_ZERO_SPACE_FIRST=true" >> "$GITHUB_ENV"
           fi
           echo "Seleccionado: $CHANNEL / $CONTENT_MODE"
 
