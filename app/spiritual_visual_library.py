@@ -51,7 +51,7 @@ def _daily_marker(metadata: dict[str, Any]) -> str:
 
 
 def _seed(metadata: dict[str, Any], index: int, aspect: str) -> int:
-    raw = f"visual-library-v1|{_daily_marker(metadata)}|{index}|{aspect}"
+    raw = f"visual-library-v2|{_daily_marker(metadata)}|{index}|{aspect}"
     return int(hashlib.sha256(raw.encode("utf-8")).hexdigest()[:12], 16)
 
 
@@ -74,33 +74,31 @@ def _family_order(config: dict[str, Any], metadata: dict[str, Any]) -> list[str]
     families = config.get("families") or {}
     plan = _load_json(PLAN_PATH)
     planned = [str(item) for item in (plan.get("family_order") or []) if str(item) in families]
-    forced = _forced_family(metadata)
     names = planned or list(families)
+    forced = _forced_family(metadata)
     if forced and forced in names:
         names = [forced] + [name for name in names if name != forced]
     elif forced and forced in families:
         names = [forced] + names
-    return names
-
-
-def _weighted_families(config: dict[str, Any], metadata: dict[str, Any]) -> list[str]:
-    families = config.get("families") or {}
-    weighted: list[str] = []
-    for name in _family_order(config, metadata):
-        row = families.get(name) or {}
-        weight = max(1, int(row.get("weight", 1)))
-        weighted.extend([name] * weight)
-    return weighted or ["creation_and_nature"]
+    for required in ("norway", "creation_and_nature", "jesus_and_prayer", "biblical_stories", "symbols_of_faith"):
+        if required in families and required not in names:
+            names.append(required)
+    return names or ["creation_and_nature"]
 
 
 def choose_visual_theme(metadata: dict[str, Any], index: int, *, aspect: str) -> dict[str, str]:
     config = visual_config()
     families = config.get("families") or {}
-    weighted = _weighted_families(config, metadata)
+    order = _family_order(config, metadata)
     seed = _seed(metadata, index, aspect)
+    forced = _forced_family(metadata)
 
-    # A large prime stride prevents adjacent scenes from selecting the same family.
-    family = weighted[(seed + index * 17) % len(weighted)]
+    if index == 0 and forced in families:
+        family = str(forced)
+    else:
+        offset = _seed(metadata, 0, aspect) % len(order)
+        family = order[(offset + index) % len(order)]
+
     row = families.get(family) or {}
     scenes = [str(item).strip() for item in (row.get("scenes") or []) if str(item).strip()]
     if not scenes:
@@ -173,7 +171,7 @@ def enrich_metadata_visuals(metadata: dict[str, Any], *, content_type: str) -> d
         manifest.append(selected)
     metadata[rows_key] = rows
     metadata["visual_rotation_manifest"] = manifest
-    metadata["visual_engine_version"] = str(visual_config().get("version") or "visual-library-v1")
+    metadata["visual_engine_version"] = str(visual_config().get("version") or "visual-library-v2")
     metadata["visual_image_models"] = image_model_candidates()
     metadata["visual_daily_rotation"] = True
     metadata["visual_norway_enabled"] = True
