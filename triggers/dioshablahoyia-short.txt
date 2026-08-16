@@ -1,2 +1,3 @@
-Dios Habla Hoy IA strict Algenib voice test 2026-08-16 12:32 Argentina
-Purpose: generate and upload one real 60-second Short only if the primary Gemini Algenib biblical narrator voice succeeds. Do not substitute Kokoro during this explicit voice-quality test.
+Dios Habla Hoy IA — Short Voz de Luz solicitado el 2026-08-16.
+Generar y publicar un Short real de aproximadamente 60 segundos con voz masculina Voz de Luz, locución serena y clara, escenas variadas de Jesús, Dios mediante símbolos bíblicos y Biblia, título y descripción dinámicos, hashtags contextuales, comentario único y controles estrictos anti-repetición y seguridad.
+Usar la voz primaria Gemini Algenib con el master voz_de_luz_serena_original_v1. Fallar de forma segura si la voz primaria no puede generarse; no sustituirla durante esta prueba de calidad.
