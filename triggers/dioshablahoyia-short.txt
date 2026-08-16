@@ -1,4 +1,4 @@
-Dios Habla Hoy IA — segunda prueba de voz en off solicitada el 2026-08-16.
-Generar y publicar un Short real de 60 segundos con Voz de Luz masculina, serena, cálida y clara, en modo voz en off continua, sin sincronización labial.
-Usar seis escenas visuales diferentes y no repetidas: Jesús en distintas acciones y encuadres, Biblia abierta, oración, luz divina mediante símbolos bíblicos, naturaleza y cierre espiritual. Mantener título, descripción, hashtags y comentario dinámicos.
-Intentar primero Gemini Algenib con el perfil voz_de_luz_serena_original_v1. Si Gemini está limitado, usar el respaldo masculino del mismo perfil y master para no interrumpir la publicación.
+Dios Habla Hoy IA — prueba de voz en off completada el 2026-08-16.
+Short publicado correctamente con duración de 60 segundos, narración continua, sin sincronización labial y seis escenas visuales variadas.
+Video ID: 0OxyzsShXjI
+Mantener SPIRITUAL_VOICEOVER_MODE=true y SPIRITUAL_LIPSYNC_ENABLED=false como configuración permanente de los Shorts del canal.
