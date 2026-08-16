@@ -200,21 +200,32 @@ def _generate_zerogpu(reference: Path, prompt: str, out: Path, seed: int, target
 
     space = os.getenv("HF_REFERENCE_ZERO_SPACE", "Qwen/Qwen-Image-Edit").strip() or "Qwen/Qwen-Image-Edit"
     token = os.getenv("HF_TOKEN", "").strip() or None
-    client = _gradio_space_client(space, token)
-    result = client.predict(
-        handle_file(str(reference)),
-        prompt,
-        _safe_seed_for_space(seed),
-        False,
-        4.0,
-        30,
-        False,
-        api_name="/infer",
-    )
-    source = _zero_space_result_path(result)
-    with Image.open(source) as generated:
-        _save_generated(generated, out, target_size)
-    return f"Hugging Face ZeroGPU Space / {space} / reference:{reference.name}"
+    attempts = [("public", None)]
+    if token:
+        attempts.append(("authenticated", token))
+    errors: list[str] = []
+
+    for mode, client_token in attempts:
+        try:
+            client = _gradio_space_client(space, client_token)
+            result = client.predict(
+                handle_file(str(reference)),
+                prompt,
+                _safe_seed_for_space(seed),
+                False,
+                4.0,
+                20,
+                False,
+                api_name="/infer",
+            )
+            source = _zero_space_result_path(result)
+            with Image.open(source) as generated:
+                _save_generated(generated, out, target_size)
+            return f"Hugging Face ZeroGPU Space / {space} / {mode} / reference:{reference.name}"
+        except Exception as exc:
+            errors.append(f"{mode}: {exc}")
+
+    raise RuntimeError("; ".join(errors))
 
 
 def _safe_seed_for_space(seed: int) -> int:
