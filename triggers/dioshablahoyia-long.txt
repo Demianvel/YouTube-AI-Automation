@@ -1,2 +1,2 @@
-Stability 10-minute publish test - 2026-08-15T01:24-03:00
-Purpose: verify chunk-safe Kokoro narration covers full 600s, continuity guard, resilient visuals, CTA/comment and real upload.
+Repaired 10-minute long-form publish validation - 2026-08-16T12:03-03:00
+Purpose: verify fixed FFmpeg still fallback, canonical Gacrux biblical narrator profile, resilient local biblical metadata, CTA and real YouTube upload.
