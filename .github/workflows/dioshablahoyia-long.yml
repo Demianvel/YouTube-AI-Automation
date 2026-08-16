@@ -22,18 +22,20 @@ on:
     paths:
       - "triggers/dioshablahoyia-long.txt"
   schedule:
-    # Publicador Reino 4x10 / Argentina UTC-3: 08:00, 12:00, 16:00, 20:00.
-    - cron: "0 11 * * *"
+    # Argentina UTC-3: 12:00, 15:00, 18:00 y 21:00.
+    # 12:00 = 10 min historia biblica; 15:00 = 15 min oracion;
+    # 18:00 = 20 min reflexion biblica; 21:00 = 30 min oracion nocturna.
     - cron: "0 15 * * *"
-    - cron: "0 19 * * *"
-    - cron: "0 23 * * *"
+    - cron: "0 18 * * *"
+    - cron: "0 21 * * *"
+    - cron: "0 0 * * *"
 
 permissions:
   contents: write
   issues: write
 
 concurrency:
-  group: dioshablahoyia-long-${{ github.run_id }}
+  group: dioshablahoyia-long-publisher
   cancel-in-progress: false
 
 jobs:
@@ -51,6 +53,7 @@ jobs:
       GEMINI_VIDEO_MODEL: gemini-omni-flash-preview
       GEMINI_TTS_MODEL: gemini-3.1-flash-tts-preview
       GEMINI_TTS_VOICE: Gacrux
+      SPIRITUAL_MALE_GEMINI_VOICE: Gacrux
       POLLINATIONS_API_KEY: ${{ secrets.POLLINATIONS_API_KEY }}
       POLLINATIONS_IMAGE_MODEL: flux
       HF_VIDEO_ENABLED: "true"
@@ -66,11 +69,12 @@ jobs:
       SPIRITUAL_LONG_AI_CLIPS: "3"
       SPIRITUAL_LONG_LIPSYNC_ENABLED: "true"
       SPIRITUAL_LIPSYNC_ENABLED: "true"
-      SPIRITUAL_VOICE_PROFILE: peace_motion_director
+      SPIRITUAL_VOICE_PROFILE: biblical_narrator_gacrux_v1
       SPIRITUAL_CTA_OVERLAY: "true"
       TTS_PROVIDER: gemini_tts
       KOKORO_VOICE: em_alex
-      KOKORO_SPEED: "0.94"
+      SPIRITUAL_MALE_KOKORO_VOICE: em_alex
+      KOKORO_SPEED: "0.93"
       YOUTUBE_TOKEN_DIOSHABLAHOYIA: ${{ secrets.YOUTUBE_TOKEN_DIOSHABLAHOYIA }}
 
     steps:
@@ -86,25 +90,28 @@ jobs:
       - name: Resolve manual or daily settings
         shell: bash
         run: |
+          STYLE="auto"
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             MINUTES="${{ inputs.minutes }}"
             PUBLISH="${{ inputs.publish }}"
           elif [ "${{ github.event_name }}" = "schedule" ]; then
             case "${{ github.event.schedule }}" in
-              "0 11 * * *") MINUTES="10" ;;
-              "0 15 * * *") MINUTES="15" ;;
-              "0 19 * * *") MINUTES="20" ;;
-              "0 23 * * *") MINUTES="30" ;;
-              *) MINUTES="10" ;;
+              "0 15 * * *") MINUTES="10"; STYLE="biblical_story" ;;
+              "0 18 * * *") MINUTES="15"; STYLE="prayer" ;;
+              "0 21 * * *") MINUTES="20"; STYLE="biblical_reflection" ;;
+              "0 0 * * *") MINUTES="30"; STYLE="night_prayer" ;;
+              *) MINUTES="10"; STYLE="auto" ;;
             esac
             PUBLISH="true"
           else
             MINUTES="10"
             PUBLISH="true"
+            STYLE="auto"
           fi
           echo "MINUTES=$MINUTES" >> "$GITHUB_ENV"
           echo "PUBLISH=$PUBLISH" >> "$GITHUB_ENV"
-          echo "Long-form settings: ${MINUTES}min, publish=${PUBLISH}"
+          echo "SPIRITUAL_NARRATION_STYLE=$STYLE" >> "$GITHUB_ENV"
+          echo "Long-form settings: ${MINUTES}min, style=${STYLE}, publish=${PUBLISH}"
 
       - name: Install media and Python dependencies
         run: |
@@ -118,7 +125,7 @@ jobs:
         shell: bash
         run: |
           if [ -z "$GEMINI_API_KEY" ]; then
-            echo "GEMINI_API_KEY ausente: se usara el guionista biblico local resiliente y voz de respaldo."
+            echo "GEMINI_API_KEY ausente: se usara el guionista biblico local resiliente y voz masculina fija de respaldo."
           fi
           if [ -z "$HF_TOKEN" ]; then
             echo "HF_TOKEN ausente: se usaran referencias fotorrealistas locales de emergencia."
