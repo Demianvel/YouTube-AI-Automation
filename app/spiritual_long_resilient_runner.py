@@ -14,6 +14,7 @@ from . import spiritual_long_runner as enhanced
 from .spiritual_long_local_metadata import generate_local_long_metadata
 from .spiritual_source_growth_engine import ground_and_optimize_spiritual_metadata
 from .spiritual_tts import make_spiritual_spanish_voice
+from .spiritual_visual_library import enrich_metadata_visuals
 from .workers.celestial_cinema_engine import mark_render_metadata, render_directive
 from .workers.divine_publisher_4x10 import mark_publish_metadata
 from .workers.peace_motion_director import apply_director_requirements, performance_directive
@@ -23,7 +24,11 @@ _LONG_ENVIRONMENTS = (
     "a real olive grove at dawn with moving leaves and warm natural light",
     "a real mountain lake at sunrise with mist and gentle water movement",
     "a real desert path under a vast golden sky with wind moving the robe",
-    "a real Nordic valley beneath an aurora borealis and natural stars",
+    "the real Lofoten Islands in Norway at blue hour, steep snowy peaks above a calm Arctic sea and warm fishing village lights",
+    "the real Geirangerfjord in Norway with emerald water, immense cliffs, natural mist and distant waterfalls",
+    "the real Tromso region in northern Norway beneath a vivid green and violet aurora borealis reflected on a silent fjord",
+    "the real island of Senja in Norway with rugged coastal mountains, moving clouds and cold northern sunlight",
+    "a real Norwegian waterfall descending through dark rock and lush moss after rain",
     "a real rocky coast where storm clouds slowly open to sunlight",
     "a real ancient stone village street in soft morning light",
     "a real cedar forest with mist and shafts of sunlight",
@@ -64,6 +69,7 @@ _LONG_SYMBOLIC_CUTAWAYS = (
     "a narrow stone path becoming illuminated ahead as a symbol of hope",
     "hands holding an open Bible while pages move gently in the breeze",
     "a quiet church interior receiving soft natural colored light",
+    "Noah's Ark as a historically inspired wooden vessel resting after the flood beneath a peaceful rainbow, animals safe and non-chaotic",
 )
 
 _LONG_TITLE_TEMPLATES = {
@@ -168,7 +174,8 @@ FORMATO EDITORIAL: alterna de manera natural entre historia biblica, reflexion y
     diversity = """
 DIVERSIDAD VISUAL Y EDITORIAL OBLIGATORIA:
 - Ninguna seccion puede repetir el mismo encuadre, ambiente, gesto o accion de la anterior.
-- Alterna Jesus hablando, caminando, enseñando, orando y acompañando, con planos abiertos de creacion y cortes simbolicos de Dios mediante Biblia, cruz, luz natural, paloma, agua, tumba vacia o camino iluminado.
+- Alterna Jesus hablando, caminando, enseñando, orando y acompañando, con planos abiertos de creacion y cortes simbolicos de Dios mediante Biblia, cruz, luz natural, paloma, agua, tumba vacia, arca de Noe o camino iluminado.
+- Incluye con frecuencia paisajes reales de Noruega: Lofoten, Geirangerfjord, Tromso, Senja, fiordos, cascadas, nieve y aurora boreal, sin repetir la misma composicion.
 - No representes a Dios Padre como un humano gigante ni como una cara en el cielo.
 - Evita repetir formulas de titulo, aperturas de descripcion, frases de introduccion o llamados a comentar usados en videos recientes.
 - Mantiene una narracion continua con la identidad original Voz de Luz: baritono masculino calido, sereno, claro, cercano y con autoridad suave.
@@ -326,7 +333,7 @@ def _direct_long_metadata(meta: dict, minutes: int, previous: list[dict]) -> dic
     meta["fixed_voice_identity"] = "Voz de Luz"
     meta["voice_profile"] = "voz_de_luz_serena_original_v1"
     meta["voice_reference_mode"] = "two_reference_style_blend_no_speaker_clone"
-    meta["visual_variety_profile"] = "long_form_jesus_and_god_symbolic_rotation_v3"
+    meta["visual_variety_profile"] = "long_form_jesus_god_norway_biblical_rotation_v4"
     meta["recent_titles_avoided"] = [
         str(item.get("title") or "") for item in previous[-10:] if item.get("title")
     ]
@@ -362,6 +369,7 @@ def run(minutes: int, publish: bool = False) -> dict:
             previous,
             content_type="long",
         )
+        enhanced_meta = enrich_metadata_visuals(enhanced_meta, content_type="long")
         return _direct_long_metadata(enhanced_meta, requested_minutes, previous)
 
     base._generate_metadata = resilient
