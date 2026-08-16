@@ -19,6 +19,7 @@ jobs:
       HF_REFERENCE_IMAGE_ENABLED: "true"
       HF_REFERENCE_IMAGE_PROVIDER: auto
       HF_REFERENCE_IMAGE_MODEL: black-forest-labs/FLUX.1-Kontext-dev
+      HF_REFERENCE_ZERO_SPACE: Qwen/Qwen-Image-Edit
       SPIRITUAL_REFERENCE_AVOID_RECENT: "8"
     steps:
       - uses: actions/checkout@v4
@@ -28,7 +29,7 @@ jobs:
           python-version: "3.11"
 
       - name: Install minimal Hugging Face image dependencies
-        run: pip install "huggingface_hub>=0.34.4,<2" "Pillow>=11"
+        run: pip install "huggingface_hub>=0.34.4,<2" "Pillow>=11" "gradio_client>=1.11,<3"
 
       - name: Verify HF token is configured
         shell: bash
@@ -39,31 +40,11 @@ jobs:
           fi
           echo "HF_TOKEN_PRESENT"
 
-      - name: Generate one new reference-guided image
+      - name: Inspect ZeroGPU image-edit API
         shell: bash
         run: |
-          mkdir -p output/hf-smoke
           python - <<'PY'
-          from pathlib import Path
-          from app.spiritual_reference_generation import generate_reference_guided_image
-
-          out = Path("output/hf-smoke/reference_guided_test.jpg")
-          provider, reference = generate_reference_guided_image(
-              "A peaceful original devotional scene about hope in God, cinematic Norwegian mountain valley, natural river and warm sky",
-              out,
-              20260816,
-              target_size=(540, 960),
-          )
-          print("HF_REFERENCE_TEST_SUCCESS")
-          print("PROVIDER=" + provider)
-          print("REFERENCE=" + reference)
-          print("OUTPUT_BYTES=" + str(out.stat().st_size))
+          from gradio_client import Client
+          client = Client("Qwen/Qwen-Image-Edit", verbose=False)
+          print(client.view_api(return_format="dict"))
           PY
-
-      - name: Upload generated test image
-        if: success()
-        uses: actions/upload-artifact@v4
-        with:
-          name: dioshablahoyia-hf-reference-smoke-${{ github.run_id }}
-          path: output/hf-smoke/reference_guided_test.jpg
-          retention-days: 1
