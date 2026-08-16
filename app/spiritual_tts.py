@@ -11,11 +11,14 @@ from pathlib import Path
 from .audio import continuous_speech_text
 
 
-# Canonical channel voice. This is deliberately not selected dynamically:
-# every Dios Habla Hoy narration asks for the same Gemini male voice.
-MALE_GEMINI_VOICE_DEFAULT = "Gacrux"
+# Canonical Dios Habla Hoy channel voice.
+# The user reference Short bm6LxLsrMbE is treated as a STYLE reference only:
+# we do not clone or impersonate an identifiable speaker. Algenib is the fixed
+# Gemini male base voice used to reproduce the requested deep biblical tone.
+MALE_GEMINI_VOICE_DEFAULT = "Algenib"
 MALE_KOKORO_VOICE_DEFAULT = "em_alex"
-SPIRITUAL_VOICE_PROFILE = "gacrux_biblical_narrator_v1"
+SPIRITUAL_VOICE_PROFILE = "algenib_deep_biblical_narrator_bm6_reference_v2"
+REFERENCE_STYLE_VIDEO_ID = "bm6LxLsrMbE"
 
 
 def safe_tts_chunks(text: str, max_words: int = 42, max_chars: int = 300) -> list[str]:
@@ -76,22 +79,23 @@ def _delivery_mode(text: str) -> str:
 def _director_notes(mode: str) -> str:
     if mode == "night_prayer":
         return (
-            "Deliver it as a peaceful night prayer: intimate, reassuring and slightly slower, as if accompanying one listener before sleep. "
-            "Use gentle downward phrasing, warm breath support and short natural pauses. Keep excellent intelligibility and end with calm spiritual resolution."
+            "Deliver it as a peaceful night prayer with a deep, warm and reassuring baritone. "
+            "Use a slightly slower pace, gentle downward sentence endings, natural breath support and short organic pauses. "
+            "The listener should feel accompanied before sleep, never frightened or pressured."
         )
     if mode == "prayer":
         return (
-            "Deliver it as a sincere guided prayer: close, compassionate and reverent, speaking with calm conviction rather than performance. "
-            "Let petitions, gratitude and words of hope breathe naturally, while keeping the flow continuous and emotionally restrained."
+            "Deliver it as a sincere guided prayer: intimate, reverent and compassionate, with calm conviction. "
+            "Keep the lower register warm and present, let gratitude and petitions breathe naturally, and avoid theatrical preaching."
         )
     if mode == "biblical_story":
         return (
-            "Deliver it as a premium biblical storyteller: clear narrative progression, warm authority, subtle wonder and excellent diction. "
-            "Give names and biblical references careful articulation; build interest through meaning, not theatrical suspense or shouting."
+            "Deliver it as a premium biblical storyteller with deep male resonance, controlled gravity and clear narrative progression. "
+            "Use subtle wonder, excellent diction and deliberate emphasis on names and Scripture references, without movie-trailer exaggeration."
         )
     return (
-        "Deliver it as a thoughtful biblical narrator: warm, trustworthy and contemplative, with clear emphasis on Scripture, hope and practical meaning. "
-        "Maintain an intimate one-to-one tone and a fluid pace suitable for sustained listening."
+        "Deliver it as a thoughtful biblical narrator: deep, warm, trustworthy and contemplative. "
+        "Maintain a calm one-to-one tone, clear Scripture emphasis and a measured fluid pace suitable for sustained listening."
     )
 
 
@@ -101,14 +105,15 @@ def _brand_master(path: Path) -> None:
         return
     temp = path.with_name(path.stem + ".brand-master.wav")
     filters = (
-        "highpass=f=58,"
-        "lowpass=f=12200,"
-        "equalizer=f=145:t=q:w=0.90:g=1.25,"
-        "equalizer=f=280:t=q:w=1.10:g=0.45,"
-        "equalizer=f=2600:t=q:w=1.00:g=1.05,"
-        "equalizer=f=6500:t=q:w=1.30:g=-0.45,"
-        "acompressor=threshold=-21dB:ratio=1.45:attack=14:release=160:makeup=1.15,"
-        "loudnorm=I=-16.5:TP=-1.5:LRA=5.5"
+        "highpass=f=54,"
+        "lowpass=f=11800,"
+        "equalizer=f=125:t=q:w=0.85:g=1.45,"
+        "equalizer=f=190:t=q:w=0.95:g=0.65,"
+        "equalizer=f=330:t=q:w=1.10:g=-0.55,"
+        "equalizer=f=2350:t=q:w=1.00:g=0.85,"
+        "equalizer=f=6200:t=q:w=1.25:g=-0.70,"
+        "acompressor=threshold=-22dB:ratio=1.50:attack=15:release=170:makeup=1.18,"
+        "loudnorm=I=-16.5:TP=-1.5:LRA=5.2"
     )
     try:
         subprocess.run([
@@ -132,25 +137,24 @@ def _gemini_spiritual_voice(path: Path, text: str) -> str:
         raise RuntimeError("Falta GEMINI_API_KEY para Gemini TTS.")
 
     model = os.getenv("GEMINI_TTS_MODEL", "gemini-3.1-flash-tts-preview").strip()
-    # Hard lock: preserve the same narrator identity used by the reference Shorts.
     voice = MALE_GEMINI_VOICE_DEFAULT
     mode = _delivery_mode(text)
     client = genai.Client(api_key=api_key)
     prompt = f"""
 Synthesize speech only. Do not read these directions aloud.
 
-### NON-NEGOTIABLE CHANNEL VOICE IDENTITY
-Use the Gacrux ADULT MALE voice for the complete narration. Keep exactly the same masculine vocal identity from beginning to end and across every episode. Never switch to a female, child, androgynous, comic, aggressive, commercial-announcer or character voice.
+### FIXED CHANNEL VOICE
+Use the Algenib ADULT MALE voice for the complete narration. Keep the same masculine vocal identity from beginning to end and across every Dios Habla Hoy Short and long-form video. The requested YouTube reference is a style target only; do not imitate or claim to reproduce any identifiable real speaker.
 
-### SIGNATURE AUDIO PROFILE
-Warm low male baritone, mature human tone, intimate and emotionally present. Natural Latin-American Spanish pronunciation, neutral enough for the whole Spanish-speaking audience. The voice must communicate peace, love, hope, compassion, closeness and serenity. Sound like a premium biblical narrator speaking to one person, never robotic, never like an advertisement and never shouted.
+### SIGNATURE BIBLICAL AUDIO PROFILE
+Deep warm male baritone with a lightly textured/gravelly character, mature human tone, controlled low resonance and clear intelligibility. Natural neutral Latin-American Spanish pronunciation. The delivery must communicate peace, faith, hope, compassion, reverence and closeness. It should sound like a premium biblical narrator speaking personally to one listener, never robotic, never commercial, never shouted and never like a movie trailer.
 
 ### DELIVERY MODE
 {mode}
 {_director_notes(mode)}
 
 ### PERMANENT DIRECTION
-Speak fluidly with soft confidence, gentle warmth and excellent diction. Keep pauses short and organic. Avoid theatrical preaching, exaggerated bass, fake solemnity, artificial cathedral echo, whispering, sing-song cadence or synthetic rhythm. Give subtle heartfelt emphasis to Dios, Jesús, Biblia, fe, amor, paz, esperanza and consuelo without overacting. Preserve natural breaths and sentence endings.
+Keep a measured but fluid rhythm. Use short organic pauses and natural breaths. Favor calm authority over dramatic intensity. Keep the chest resonance present without forcing artificial bass. Give subtle heartfelt emphasis to Dios, Jesús, Señor, Biblia, fe, amor, paz, esperanza and consuelo. Avoid whispering, fake solemnity, exaggerated preacher cadence, cathedral echo, sing-song rhythm, growling, harshness or synthetic pacing.
 
 ### TRANSCRIPT — SPEAK EXACTLY THIS TEXT
 {text}
@@ -184,10 +188,10 @@ def _kokoro_chunked_voice(path: Path, text: str) -> None:
     import soundfile as sf
     from kokoro import KPipeline
 
-    # One fixed male emergency fallback. It is mastered with the same channel EQ
-    # so provider outages do not change gender, loudness or overall presentation.
+    # One fixed male emergency fallback. It receives the same channel master so
+    # provider outages do not change gender, loudness or overall presentation.
     voice = MALE_KOKORO_VOICE_DEFAULT
-    speed = float(os.getenv("KOKORO_SPEED", "0.93"))
+    speed = float(os.getenv("KOKORO_SPEED", "0.91"))
     pipeline = KPipeline(lang_code="e")
     rendered: list[np.ndarray] = []
 
@@ -210,7 +214,7 @@ def _kokoro_chunked_voice(path: Path, text: str) -> None:
         if piece_count == 0:
             raise RuntimeError(f"Kokoro no genero audio para el fragmento espiritual {index}/{len(chunks)}.")
 
-    pause = np.zeros(max(1, int(24000 * 0.014)), dtype=np.float32)
+    pause = np.zeros(max(1, int(24000 * 0.016)), dtype=np.float32)
     joined: list[np.ndarray] = []
     for index, audio in enumerate(rendered):
         if index:
@@ -226,7 +230,7 @@ def _kokoro_chunked_voice(path: Path, text: str) -> None:
 
 
 def make_spiritual_spanish_voice(path: Path, text: str) -> str:
-    """Generate the fixed Dios Habla Hoy male narrator with a safe fixed fallback."""
+    """Generate the fixed Dios Habla Hoy biblical narrator with a safe fixed fallback."""
     provider = os.getenv("TTS_PROVIDER", "gemini_tts").lower().strip()
     mode = _delivery_mode(text)
     if provider in {"gemini", "gemini_tts", "gemini-tts"}:
