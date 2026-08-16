@@ -21,7 +21,7 @@ jobs:
       HF_REFERENCE_IMAGE_ENABLED: "true"
       HF_REFERENCE_IMAGE_PROVIDER: auto
       HF_REFERENCE_IMAGE_MODEL: black-forest-labs/FLUX.1-Kontext-dev
-      HF_REFERENCE_ZERO_SPACE: Qwen/Qwen-Image-Edit
+      HF_REFERENCE_ZERO_SPACE: black-forest-labs/FLUX.1-Kontext-Dev
       HF_REFERENCE_ZERO_SPACE_FIRST: "true"
       SPIRITUAL_REFERENCE_AVOID_RECENT: "8"
     steps:
