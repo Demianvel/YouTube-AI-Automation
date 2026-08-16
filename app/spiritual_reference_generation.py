@@ -11,6 +11,7 @@ from PIL import Image
 ROOT = Path(__file__).resolve().parents[1]
 REFERENCE_DIR = ROOT / "assets" / "dioshablahoyia" / "reference"
 HISTORY_FILE = ROOT / "state" / "history.jsonl"
+LONG_HISTORY_FILE = ROOT / "state" / "dioshablahoyia_long_history.jsonl"
 
 CAMERAS = (
     "cinematic close-up with shallow depth of field",
@@ -73,19 +74,24 @@ def _provider_strings(row: dict) -> list[str]:
     return values
 
 
-def _recent_reference_names(limit_records: int = 40) -> list[str]:
-    if not HISTORY_FILE.exists():
-        return []
+def _history_rows() -> list[dict]:
     rows: list[dict] = []
-    for raw in HISTORY_FILE.read_text(encoding="utf-8").splitlines():
-        try:
-            row = json.loads(raw)
-        except Exception:
+    for path in (HISTORY_FILE, LONG_HISTORY_FILE):
+        if not path.exists():
             continue
-        if row.get("channel") == "dioshablahoyia":
-            rows.append(row)
+        for raw in path.read_text(encoding="utf-8").splitlines():
+            try:
+                row = json.loads(raw)
+            except Exception:
+                continue
+            if row.get("channel") == "dioshablahoyia":
+                rows.append(row)
+    return rows
+
+
+def _recent_reference_names(limit_records: int = 40) -> list[str]:
     names: list[str] = []
-    for row in rows[-limit_records:]:
+    for row in _history_rows()[-limit_records:]:
         for label in _provider_strings(row):
             marker = "reference:"
             if marker in label:
