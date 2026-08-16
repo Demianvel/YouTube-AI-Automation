@@ -1,0 +1,185 @@
+name: Publish all Dios Habla Hoy videos
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "triggers/dioshablahoyia-publish-all.txt"
+
+permissions:
+  contents: write
+  issues: write
+
+concurrency:
+  group: dioshablahoyia-long-publisher
+  cancel-in-progress: true
+
+jobs:
+  publish-all:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    env:
+      PYTHONPATH: .
+      TZ: America/Argentina/Buenos_Aires
+      RENDER_WORKER: Motor Celestial Cinema
+      MOTION_DIRECTOR_WORKER: Director Paz Viva
+      PUBLISHER_WORKER: Publicador Reino 4x10
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      GEMINI_TEXT_MODEL: gemini-3.6-flash
+      GEMINI_VIDEO_ENABLED: "false"
+      GEMINI_VIDEO_MODEL: gemini-omni-flash-preview
+      GEMINI_TTS_MODEL: gemini-3.1-flash-tts-preview
+      GEMINI_TTS_VOICE: Algenib
+      SPIRITUAL_MALE_GEMINI_VOICE: Algenib
+      SPIRITUAL_VOICE_PROFILE: voz_de_luz_serena_original_v1
+      SPIRITUAL_VOICE_BRAND: Voz de Luz
+      SPIRITUAL_VOICE_REFERENCE_MODE: two_reference_style_blend_no_speaker_clone
+      SPIRITUAL_VOICEOVER_MODE: "true"
+      SPIRITUAL_REQUIRE_PRIMARY_VOICE: "false"
+      POLLINATIONS_API_KEY: ${{ secrets.POLLINATIONS_API_KEY }}
+      POLLINATIONS_IMAGE_MODEL: flux
+      HF_VIDEO_ENABLED: "false"
+      HF_ZERO_RETRIES: "0"
+      HF_TOKEN: ${{ secrets.HF_TOKEN }}
+      HF_IMAGE_PROVIDER: auto
+      HF_IMAGE_MODEL: black-forest-labs/FLUX.1-schnell
+      SPIRITUAL_REQUIRE_LIVE_ACTION: "false"
+      SPIRITUAL_ALLOW_STILL_FALLBACK: "true"
+      SPIRITUAL_LONG_AI_CLIPS: "0"
+      SPIRITUAL_LONG_LIPSYNC_ENABLED: "false"
+      SPIRITUAL_LIPSYNC_ENABLED: "false"
+      SPIRITUAL_CTA_OVERLAY: "true"
+      SPIRITUAL_VISUAL_VARIETY_LEVEL: high
+      SPIRITUAL_EDITORIAL_VARIETY_LEVEL: high
+      TTS_PROVIDER: gemini_tts
+      TTS_FALLBACK_KOKORO: "true"
+      KOKORO_VOICE: em_alex
+      SPIRITUAL_MALE_KOKORO_VOICE: em_alex
+      KOKORO_SPEED: "0.93"
+      YOUTUBE_TOKEN_DIOSHABLAHOYIA: ${{ secrets.YOUTUBE_TOKEN_DIOSHABLAHOYIA }}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Verify YouTube publishing access
+        shell: bash
+        run: |
+          test -n "$YOUTUBE_TOKEN_DIOSHABLAHOYIA" || { echo "Falta YOUTUBE_TOKEN_DIOSHABLAHOYIA"; exit 1; }
+
+      - name: Install media and Python dependencies once
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg espeak-ng libsndfile1 fonts-dejavu-core git
+          python -m pip install --upgrade pip
+          pip install torch==2.6.0 --index-url https://download.pytorch.org/whl/cpu
+          pip install -r requirements.txt
+
+      - name: Publish 10, 15, 20 and 30 minute videos
+        shell: bash
+        run: |
+          set +e
+          FAILED=0
+          mkdir -p output/publish-all
+          HISTORY="state/dioshablahoyia_long_history.jsonl"
+
+          already_uploaded_today() {
+            local minutes="$1"
+            MINUTES_CHECK="$minutes" python - <<'PY'
+          import json, os, sys
+          from datetime import datetime
+          from pathlib import Path
+          from zoneinfo import ZoneInfo
+
+          minutes = int(os.environ["MINUTES_CHECK"])
+          tz = ZoneInfo("America/Argentina/Buenos_Aires")
+          today = datetime.now(tz).date()
+          path = Path("state/dioshablahoyia_long_history.jsonl")
+          if not path.exists():
+              sys.exit(1)
+          for raw in path.read_text(encoding="utf-8").splitlines():
+              try:
+                  row = json.loads(raw)
+                  created = datetime.fromisoformat(str(row.get("created_at", "")).replace("Z", "+00:00")).astimezone(tz).date()
+              except Exception:
+                  continue
+              if created == today and int(row.get("minutes", 0)) == minutes and row.get("status") == "uploaded":
+                  sys.exit(0)
+          sys.exit(1)
+          PY
+          }
+
+          persist_latest_record() {
+            local minutes="$1"
+            local saved="/tmp/dios-long-${minutes}.json"
+            tail -n 1 "$HISTORY" > "$saved"
+            for attempt in 1 2 3 4 5; do
+              git fetch origin main
+              git reset --hard origin/main
+              mkdir -p state
+              touch "$HISTORY"
+              local record
+              record="$(cat "$saved")"
+              if [ -n "$record" ] && ! grep -Fqx "$record" "$HISTORY"; then
+                printf '%s\n' "$record" >> "$HISTORY"
+              fi
+              git add "$HISTORY"
+              if git diff --cached --quiet; then
+                return 0
+              fi
+              git commit -m "chore: record ${minutes}-minute Dios long upload"
+              if git push origin HEAD:main; then
+                return 0
+              fi
+            done
+            return 1
+          }
+
+          for spec in "10|biblical_story" "15|prayer" "20|biblical_reflection" "30|night_prayer"; do
+            MINUTES="${spec%%|*}"
+            STYLE="${spec##*|}"
+
+            if already_uploaded_today "$MINUTES"; then
+              echo "${MINUTES} minutos ya fue publicado hoy; se omite."
+              continue
+            fi
+
+            export SPIRITUAL_NARRATION_STYLE="$STYLE"
+            echo "Publicando video de ${MINUTES} minutos con estilo ${STYLE} y voz en off..."
+            if python -m app.spiritual_long_resilient_runner --minutes "$MINUTES" --publish; then
+              mkdir -p "output/publish-all/${MINUTES}min"
+              cp -a output/dioshablahoyia-long/. "output/publish-all/${MINUTES}min/" 2>/dev/null || true
+              if ! persist_latest_record "$MINUTES"; then
+                echo "No se pudo persistir el historial de ${MINUTES} minutos."
+                FAILED=1
+              fi
+            else
+              echo "Fallo la publicacion de ${MINUTES} minutos; se continua con la siguiente."
+              FAILED=1
+              git fetch origin main
+              git reset --hard origin/main
+            fi
+          done
+
+          exit "$FAILED"
+
+      - name: Upload batch artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dioshablahoyia-publish-all-${{ github.run_id }}
+          path: output/publish-all/
+          retention-days: 3
+
+      - name: Open issue if any duration failed
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh issue create --title "Publish all: alguna duracion no pudo subirse" --body "El lote de videos largos de Dios Habla Hoy tuvo al menos un fallo. Revisar Actions run $GITHUB_RUN_ID. Las duraciones exitosas se conservaron y registraron."
