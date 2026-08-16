@@ -63,12 +63,14 @@ def _reference_files() -> list[Path]:
 
 
 def _provider_strings(row: dict) -> list[str]:
-    value = row.get("generated_visual_provider") or []
-    if isinstance(value, str):
-        return [value]
-    if isinstance(value, list):
-        return [str(item) for item in value]
-    return []
+    values: list[str] = []
+    for key in ("generated_visual_provider", "visual_providers"):
+        value = row.get(key) or []
+        if isinstance(value, str):
+            values.append(value)
+        elif isinstance(value, list):
+            values.extend(str(item) for item in value)
+    return values
 
 
 def _recent_reference_names(limit_records: int = 40) -> list[str]:
@@ -102,8 +104,8 @@ def choose_reference(seed: int) -> Path:
     preferred = [ref for ref in refs if ref.name not in recent]
     pool = preferred or refs
 
-    # User-provided reference files are preferred when present, but all references
-    # remain eligible so the channel keeps a broad visual identity bank.
+    # Prefer the user's supplied bank whenever it still contains a reference that
+    # has not been used recently. Defaults remain emergency identity references.
     user_pool = [ref for ref in pool if "_user_" in ref.name]
     if user_pool:
         pool = user_pool
@@ -122,21 +124,46 @@ def _variation(seed: int) -> tuple[str, str, str, str]:
     )
 
 
-def build_reference_prompt(base_prompt: str, seed: int) -> str:
+def build_reference_prompt(base_prompt: str, seed: int, target_size: tuple[int, int] = (1080, 1920)) -> str:
     camera, action, environment, lighting = _variation(seed)
-    fingerprint = hashlib.sha256(f"{base_prompt}|{seed}".encode()).hexdigest()[:10]
+    width, height = target_size
+    orientation = "vertical 9:16" if height > width else "horizontal 16:9"
+    fingerprint = hashlib.sha256(f"{base_prompt}|{seed}|{width}x{height}".encode()).hexdigest()[:10]
     return (
         f"{base_prompt}. Use the supplied image only as a visual identity and wardrobe reference for the recurring synthetic Jesus character. "
         "Create a clearly NEW photograph-like scene; do not copy the original background, pose, crop, camera angle or lighting. "
         f"New composition: {camera}. New action: {action}. New environment: {environment}. Lighting: {lighting}. "
         "Preserve a reverent adult synthetic Jesus identity with shoulder-length wavy dark-brown hair, groomed beard, warm eyes, natural skin texture, "
         "cream or ivory linen robe and optional muted beige or deep-red mantle. Keep realistic anatomy, natural hands and physically plausible fabric. "
-        "Premium live-action cinema, photorealistic optics, natural atmospheric depth, vertical 9:16, no text and no watermark. "
+        f"Premium live-action cinema, photorealistic optics, natural atmospheric depth, {orientation}, no text and no watermark. "
         f"Variation fingerprint {fingerprint}."
     )
 
 
-def generate_reference_guided_image(full_prompt: str, out: Path, seed: int) -> tuple[str, str]:
+def _normalize_to_target(image: Image.Image, target_size: tuple[int, int]) -> Image.Image:
+    width, height = target_size
+    target_ratio = width / max(1, height)
+    current_ratio = image.width / max(1, image.height)
+    if abs(current_ratio - target_ratio) > 0.03:
+        if current_ratio > target_ratio:
+            new_w = int(image.height * target_ratio)
+            left = max(0, (image.width - new_w) // 2)
+            image = image.crop((left, 0, left + new_w, image.height))
+        else:
+            new_h = int(image.width / target_ratio)
+            top = max(0, (image.height - new_h) // 2)
+            image = image.crop((0, top, image.width, top + new_h))
+    if image.size != target_size:
+        image = image.resize(target_size, Image.Resampling.LANCZOS)
+    return image
+
+
+def generate_reference_guided_image(
+    full_prompt: str,
+    out: Path,
+    seed: int,
+    target_size: tuple[int, int] = (1080, 1920),
+) -> tuple[str, str]:
     if os.getenv("HF_REFERENCE_IMAGE_ENABLED", "true").lower().strip() != "true":
         raise RuntimeError("HF reference image generation esta deshabilitado.")
 
@@ -147,7 +174,7 @@ def generate_reference_guided_image(full_prompt: str, out: Path, seed: int) -> t
     reference = choose_reference(seed)
     provider = os.getenv("HF_REFERENCE_IMAGE_PROVIDER", "auto").strip() or "auto"
     model = os.getenv("HF_REFERENCE_IMAGE_MODEL", "black-forest-labs/FLUX.1-Kontext-dev").strip()
-    prompt = build_reference_prompt(full_prompt, seed)
+    prompt = build_reference_prompt(full_prompt, seed, target_size=target_size)
 
     client = InferenceClient(provider=provider, api_key=token, timeout=240)
     image = client.image_to_image(
@@ -159,23 +186,7 @@ def generate_reference_guided_image(full_prompt: str, out: Path, seed: int) -> t
     if image is None:
         raise RuntimeError("Hugging Face image-to-image no devolvio una imagen.")
 
-    image = image.convert("RGB")
-    # Providers can return different aspect ratios. Normalize only after generation
-    # while retaining the newly generated composition.
-    target_ratio = 9 / 16
-    current_ratio = image.width / max(1, image.height)
-    if abs(current_ratio - target_ratio) > 0.03:
-        if current_ratio > target_ratio:
-            new_w = int(image.height * target_ratio)
-            left = max(0, (image.width - new_w) // 2)
-            image = image.crop((left, 0, left + new_w, image.height))
-        else:
-            new_h = int(image.width / target_ratio)
-            top = max(0, (image.height - new_h) // 2)
-            image = image.crop((0, top, image.width, top + new_h))
-
-    if image.width < 720 or image.height < 1280:
-        image = image.resize((1080, 1920), Image.Resampling.LANCZOS)
+    image = _normalize_to_target(image.convert("RGB"), target_size)
     image.save(out, format="JPEG", quality=95, optimize=True)
     if not out.exists() or out.stat().st_size < 20_000:
         raise RuntimeError("Hugging Face image-to-image devolvio una imagen invalida.")
