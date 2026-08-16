@@ -1,7 +1,7 @@
-Solicitud de publicación completa del 2026-08-16.
-Publicar en YouTube las cuatro duraciones largas pendientes del canal Dios Habla Hoy IA:
+Solicitud de publicación completa actualizada el 2026-08-16.
+Reiniciar el lote usando la versión visual más reciente y publicar únicamente las duraciones largas pendientes:
 - 10 minutos: historia bíblica
 - 15 minutos: oración
 - 20 minutos: reflexión bíblica
 - 30 minutos: oración nocturna
-Usar Voz de Luz en modo voz en off, sin sincronización labial, evitar duplicados y conservar cada subida exitosa.
+Usar Voz de Luz en off, sin sincronización labial, FLUX.1-schnell como generador visual principal, rotación diaria sin repetir imágenes, paisajes de Noruega (Lofoten, Geirangerfjord, Tromso, Senja, fiordos y aurora boreal), naturaleza, Arca de Noé y otras escenas bíblicas. Conservar cada subida exitosa y omitir duplicados del mismo día.
