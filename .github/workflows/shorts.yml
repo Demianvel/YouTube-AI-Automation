@@ -25,12 +25,8 @@ on:
         required: true
         default: true
         type: boolean
-  push:
-    paths:
-      - "triggers/dioshablahoyia-short.txt"
   schedule:
     # BrotaVida: 4 Shorts diarios. Dios Habla Hoy usa su watchdog de 10 Shorts/dia.
-    # DineroClaro y EnViKids: DESACTIVADOS por completo del pipeline de Shorts.
     - cron: "30 0,12,16,20 * * *"
 
 permissions:
@@ -38,7 +34,7 @@ permissions:
   issues: write
 
 concurrency:
-  group: youtube-ai-publisher-${{ (github.event_name == 'workflow_dispatch' || github.event_name == 'push') && github.run_id || github.event.schedule || 'unknown' }}
+  group: youtube-ai-publisher-${{ github.event_name == 'workflow_dispatch' && github.run_id || github.event.schedule || 'unknown' }}
   cancel-in-progress: false
 
 jobs:
@@ -95,9 +91,6 @@ jobs:
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             CHANNEL="${{ inputs.channel }}"
             CONTENT_MODE="${{ inputs.content_mode }}"
-          elif [ "${{ github.event_name }}" = "push" ]; then
-            CHANNEL="dioshablahoyia"
-            CONTENT_MODE="voice"
           elif [ "${{ github.event.schedule }}" = "30 0,12,16,20 * * *" ]; then
             CHANNEL="brotavida"
             CONTENT_MODE="asmr"
@@ -140,14 +133,10 @@ jobs:
             echo "SPIRITUAL_ALLOW_STILL_FALLBACK=true" >> "$GITHUB_ENV"
             echo "SPIRITUAL_VISUAL_VARIETY_LEVEL=high" >> "$GITHUB_ENV"
             echo "SPIRITUAL_EDITORIAL_VARIETY_LEVEL=high" >> "$GITHUB_ENV"
-            # Modo voz en off: narracion continua sobre seis escenas cinematograficas variadas.
+            echo "SPIRITUAL_REQUIRE_PRIMARY_VOICE=false" >> "$GITHUB_ENV"
             echo "GEMINI_VIDEO_ENABLED=false" >> "$GITHUB_ENV"
             echo "HF_VIDEO_STRICT=false" >> "$GITHUB_ENV"
             echo "HF_ZERO_RETRIES=1" >> "$GITHUB_ENV"
-            if [ "${{ github.event_name }}" = "push" ]; then
-              echo "DIOS_FAST_UPLOAD_SMOKE=true" >> "$GITHUB_ENV"
-              echo "SPIRITUAL_REQUIRE_PRIMARY_VOICE=false" >> "$GITHUB_ENV"
-            fi
           fi
           echo "Seleccionado: $CHANNEL / $CONTENT_MODE"
 
@@ -158,18 +147,13 @@ jobs:
         run: |
           if [ "$CHANNEL" = "brotavida" ] && [ -z "$PEXELS_API_KEY" ]; then
             echo "ready=false" >> "$GITHUB_OUTPUT"
-            echo "BrotaVida pausado: falta PEXELS_API_KEY para obtener metraje botanico real. No se genera ni publica contenido generico."
+            echo "BrotaVida pausado: falta PEXELS_API_KEY para obtener metraje botanico real."
             exit 0
-          fi
-          if [ "${{ github.event_name }}" = "push" ] && [ "$CHANNEL" = "dioshablahoyia" ] && [ -z "$YOUTUBE_TOKEN_DIOSHABLAHOYIA" ]; then
-            echo "Falta YOUTUBE_TOKEN_DIOSHABLAHOYIA: el smoke test debe probar una subida real."
-            exit 1
           fi
           if python scripts/check_ready.py --generation-only; then
             echo "ready=true" >> "$GITHUB_OUTPUT"
           else
             echo "ready=false" >> "$GITHUB_OUTPUT"
-            echo "Falta configuracion de generacion."
             exit 1
           fi
 
@@ -215,7 +199,7 @@ jobs:
 
       - name: BrotaVida paused safely
         if: env.CHANNEL == 'brotavida' && steps.readiness.outputs.ready != 'true'
-        run: echo "BrotaVida queda en pausa segura hasta configurar PEXELS_API_KEY; no se consume cuota de video IA."
+        run: echo "BrotaVida queda en pausa segura hasta configurar PEXELS_API_KEY."
 
       - name: Persist anti-duplicate history
         if: steps.readiness.outputs.ready == 'true' && success()
