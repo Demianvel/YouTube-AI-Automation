@@ -2,13 +2,14 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import re
+import unicodedata
 from pathlib import Path
 from urllib.parse import quote_plus
 
 
-# Curated from current Spanish YouTube keyword research (vidIQ, 2026-08-15).
-# These are editorial opportunities, never guarantees of reach or virality.
+# Editorial opportunities only; never guarantees of reach or virality.
 KEYWORD_OPPORTUNITIES = (
     {"keyword": "Dios", "volume": 83.13, "competition": 56.2, "score": 67.40, "ar_volume": 38756},
     {"keyword": "Biblia", "volume": 85.47, "competition": 42.4, "score": 74.32, "ar_volume": 23104},
@@ -24,21 +25,10 @@ KEYWORD_OPPORTUNITIES = (
 MARKET_SIGNAL_PATH = Path("state/dioshablahoyia_market_signals.json")
 
 REFERENCE_POOL = (
-    "Salmo 23",
-    "Salmo 27",
-    "Salmo 46",
-    "Salmo 91:1-2",
-    "Isaías 41:10",
-    "Mateo 5:1-12",
-    "Mateo 6:25-34",
-    "Mateo 11:28-30",
-    "Marcos 4:35-41",
-    "Lucas 15:1-7",
-    "Juan 3:16-17",
-    "Juan 14:27",
-    "Romanos 8:26-28",
-    "Filipenses 4:6-7",
-    "1 Corintios 13:4-8",
+    "Salmo 23", "Salmo 27", "Salmo 46", "Salmo 91:1-2", "Isaías 41:10",
+    "Mateo 5:1-12", "Mateo 6:25-34", "Mateo 11:28-30", "Marcos 4:35-41",
+    "Lucas 15:1-7", "Juan 3:16-17", "Juan 14:27", "Romanos 8:26-28",
+    "Filipenses 4:6-7", "1 Corintios 13:4-8",
 )
 
 _TOPIC_REFERENCES = (
@@ -55,16 +45,85 @@ _TOPIC_REFERENCES = (
 )
 
 RISKY_PACKAGING = (
-    "milagro garantizado",
-    "dios te hará rico",
-    "dios te hara rico",
-    "si no compartes",
-    "si ignoras esto",
-    "esto te pasará hoy",
-    "esto te pasara hoy",
-    "mensaje urgente de dios",
-    "profecía para hoy",
+    "milagro garantizado", "dios te hará rico", "dios te hara rico",
+    "si no compartes", "si ignoras esto", "esto te pasará hoy",
+    "esto te pasara hoy", "mensaje urgente de dios", "profecía para hoy",
     "profecia para hoy",
+)
+
+_SHORT_TITLE_TEMPLATES = (
+    "{topic} | Una enseñanza bíblica para hoy",
+    "Cuando el corazón necesita descanso | {reference}",
+    "Dios sigue presente en el proceso | {reference}",
+    "Una luz para atravesar este momento | {reference}",
+    "Jesús trae serenidad al corazón cansado",
+    "Lo que la Biblia enseña cuando nada parece cambiar",
+    "Volver a confiar paso a paso | {reference}",
+    "Una palabra de esperanza para el día de hoy",
+    "Fe para seguir caminando aun sin ver el resultado",
+    "El silencio no significa ausencia | Reflexión cristiana",
+    "Esta enseñanza puede ayudarte a recuperar la calma | {reference}",
+    "Dios obra también en los procesos que no entendemos",
+    "Una oración breve para ordenar el corazón",
+    "Jesús conoce la carga que hoy llevás | {reference}",
+    "La paz de Dios en medio de la incertidumbre",
+    "No estás solo en esta etapa | Mensaje de fe",
+    "Volver a empezar con esperanza y misericordia",
+    "Una enseñanza de Jesús para transformar este día",
+    "La Biblia y el valor de confiar un día a la vez",
+    "{keyword}: una reflexión serena basada en {reference}",
+    "Respirá y recordá esta verdad bíblica | {reference}",
+    "Una promesa de esperanza, sin miedo ni presión | {reference}",
+    "Cómo sostener la fe cuando el camino se hace difícil",
+    "{topic} | Fe, paz y esperanza",
+)
+
+_LONG_TITLE_TEMPLATES = (
+    "{topic} | Reflexión bíblica y oración",
+    "{reference}: una enseñanza para recuperar la paz y la esperanza",
+    "Cuando el corazón necesita a Dios | Reflexión sobre {reference}",
+    "{keyword}: Biblia, contexto y aplicación para la vida",
+    "Volver a confiar en Dios | Una reflexión profunda sobre {topic}",
+    "{topic}: historia, enseñanza y oración",
+    "Fe para el camino | Estudio y reflexión sobre {reference}",
+    "Una pausa para escuchar la Palabra | {topic}",
+    "Cómo llevar esta enseñanza bíblica a la vida cotidiana | {reference}",
+    "Dios, Jesús y la esperanza que permanece | {topic}",
+    "Una reflexión cristiana serena para fortalecer el corazón",
+    "{topic} | Un recorrido de fe, paz y amor",
+)
+
+_HOOK_TEMPLATES = (
+    "Si hoy necesitás paz, esta enseñanza de {reference} puede acompañarte.",
+    "Hay momentos en los que el corazón se cansa; la Biblia nos orienta en {reference}.",
+    "Antes de seguir, regalate un momento para respirar y recordar el mensaje de {reference}.",
+    "Cuando no entendemos el proceso, {reference} nos ayuda a volver a mirar con fe.",
+    "Esta reflexión no promete soluciones mágicas: ofrece una enseñanza bíblica para caminar con esperanza.",
+    "Tal vez hoy no necesites más ruido, sino una palabra serena basada en {reference}.",
+    "¿Cómo seguir confiando cuando nada cambia rápido? Empecemos por {reference}.",
+    "Jesús no niega nuestras cargas; nos enseña a atravesarlas de otra manera.",
+    "Una pausa breve puede ayudarnos a escuchar lo que la preocupación no deja ver.",
+    "La fe no elimina todas las preguntas, pero puede darnos un próximo paso.",
+    "En {reference} encontramos una verdad sencilla para este momento.",
+    "Respirá con calma: esta enseñanza bíblica puede ayudarte a ordenar el corazón.",
+)
+
+_THUMBNAIL_SHORT = (
+    "close emotional cinematic portrait of the recurring synthetic Jesus character at sunrise, calm eye contact, visual theme of {reference}, no text, 9:16",
+    "wide cinematic scene of the recurring synthetic Jesus character beside still water and warm light, peaceful visual theme of {reference}, no text, 9:16",
+    "medium shot of the recurring synthetic Jesus character with an open hand gesture, peaceful natural light, theme {reference}, no text, 9:16",
+    "full-body cinematic shot of the recurring synthetic Jesus character walking on a real mountain path at dawn, theme {reference}, no text, 9:16",
+    "open Bible in natural golden light with the recurring synthetic Jesus character softly visible in the background, theme {reference}, no text, 9:16",
+    "symbolic cross and luminous sky above a real valley, recurring synthetic Jesus character in side profile, theme {reference}, no text, 9:16",
+)
+
+_THUMBNAIL_LONG = (
+    "cinematic close portrait of the recurring synthetic Jesus character, strong calm eye contact, one clear emotional focal point, theme {reference}, no text, 16:9",
+    "wide premium cinematic biblical landscape with the recurring synthetic Jesus character as the focal subject, theme {reference}, no text, 16:9",
+    "medium cinematic prayer moment, recurring synthetic Jesus character in warm directional light, theme {reference}, no text, 16:9",
+    "open Bible and simple wooden cross in real sunrise light with Jesus in the middle distance, theme {reference}, no text, 16:9",
+    "full-body walking shot of Jesus beside living water and olive trees, premium live-action cinema, theme {reference}, no text, 16:9",
+    "reverent symbolic scene of hope with light breaking through storm clouds and Jesus in profile, theme {reference}, no text, 16:9",
 )
 
 
@@ -72,14 +131,17 @@ def _clean(value: object) -> str:
     return " ".join(str(value or "").split()).strip()
 
 
+def _normalize(value: object) -> str:
+    text = unicodedata.normalize("NFKD", _clean(value).lower())
+    return "".join(ch for ch in text if not unicodedata.combining(ch))
+
+
 def _seed(metadata: dict) -> int:
-    raw = "|".join(
-        (
-            _clean(metadata.get("topic")),
-            _clean(metadata.get("title")),
-            _clean(metadata.get("bible_reference")),
-        )
-    )
+    marker = os.getenv("GITHUB_RUN_ID", "") or os.getenv("GITHUB_RUN_NUMBER", "")
+    raw = "|".join((
+        _clean(metadata.get("topic")), _clean(metadata.get("title")),
+        _clean(metadata.get("bible_reference")), marker,
+    ))
     return int(hashlib.sha256(raw.encode("utf-8")).hexdigest()[:8], 16)
 
 
@@ -90,22 +152,17 @@ def _market_signals() -> dict:
         data = json.loads(MARKET_SIGNAL_PATH.read_text(encoding="utf-8"))
     except Exception:
         return {}
-    if not isinstance(data, dict):
-        return {}
-    return data
+    return data if isinstance(data, dict) else {}
 
 
 def _reference(metadata: dict) -> str:
     current = _clean(metadata.get("bible_reference"))
     if current:
         return current
-    haystack = " ".join(
-        (
-            _clean(metadata.get("topic")),
-            _clean(metadata.get("title")),
-            _clean(metadata.get("description")),
-        )
-    ).lower()
+    haystack = " ".join((
+        _clean(metadata.get("topic")), _clean(metadata.get("title")),
+        _clean(metadata.get("description")),
+    )).lower()
     for pattern, reference in _TOPIC_REFERENCES:
         if re.search(pattern, haystack, re.IGNORECASE):
             return reference
@@ -113,22 +170,15 @@ def _reference(metadata: dict) -> str:
 
 
 def _biblegateway_url(reference: str) -> str:
-    # BibleGateway is used as a human-verifiable reference link only. The
-    # automation intentionally does not scrape or republish its translation text.
     return f"https://www.biblegateway.com/passage/?search={quote_plus(reference)}&version=RVR1960"
 
 
 def _market_keyword_preferences(signals: dict, haystack: str) -> list[str]:
     mapping = {
-        "dios": "Dios",
-        "biblia": "Biblia",
-        "jesús": "Jesucristo",
-        "jesucristo": "Jesucristo",
-        "salmo 91": "Salmo 91",
-        "oración": "oración poderosa",
-        "noche": "oración de la noche",
-        "dormir": "oración para dormir",
-        "salmos": "salmos para dormir",
+        "dios": "Dios", "biblia": "Biblia", "jesús": "Jesucristo",
+        "jesucristo": "Jesucristo", "salmo 91": "Salmo 91",
+        "oración": "oración poderosa", "noche": "oración de la noche",
+        "dormir": "oración para dormir", "salmos": "salmos para dormir",
     }
     out: list[str] = []
     for row in signals.get("top_terms") or []:
@@ -136,7 +186,9 @@ def _market_keyword_preferences(signals: dict, haystack: str) -> list[str]:
         candidate = mapping.get(term)
         if not candidate:
             continue
-        if term in ("noche", "dormir", "salmos", "salmo 91") and not any(x in haystack for x in ("noche", "dorm", "salmo", "91", "refugio", "protecci")):
+        if term in ("noche", "dormir", "salmos", "salmo 91") and not any(
+            x in haystack for x in ("noche", "dorm", "salmo", "91", "refugio", "protecci")
+        ):
             continue
         if candidate not in out:
             out.append(candidate)
@@ -144,14 +196,12 @@ def _market_keyword_preferences(signals: dict, haystack: str) -> list[str]:
 
 
 def _select_keyword(metadata: dict, signals: dict) -> dict:
-    haystack = " ".join(
-        (
-            _clean(metadata.get("topic")),
-            _clean(metadata.get("title")),
-            _clean(metadata.get("bible_reference")),
-        )
-    ).lower()
-    preferences: list[str] = _market_keyword_preferences(signals, haystack)
+    haystack = " ".join((
+        _clean(metadata.get("topic")), _clean(metadata.get("title")),
+        _clean(metadata.get("bible_reference")),
+    )).lower()
+    market_preferences = _market_keyword_preferences(signals, haystack)
+    preferences: list[str] = list(market_preferences)
     if "91" in haystack or "refugio" in haystack or "protecci" in haystack:
         preferences += ["Salmo 91", "Dios", "Biblia"]
     if "dorm" in haystack or "noche" in haystack:
@@ -165,66 +215,78 @@ def _select_keyword(metadata: dict, signals: dict) -> dict:
     for name in preferences:
         if name in by_name:
             result = dict(by_name[name])
-            result["market_boosted"] = name in _market_keyword_preferences(signals, haystack)
+            result["market_boosted"] = name in market_preferences
             return result
     return dict(KEYWORD_OPPORTUNITIES[0])
 
 
-def _safe_title_variants(metadata: dict, keyword: str, reference: str, content_type: str) -> list[str]:
-    base = _clean(metadata.get("title"))
-    if content_type == "short":
-        candidates = [
-            f"Cuando necesitás paz: {reference}",
-            f"Una oración para hoy basada en {reference}",
-            f"{keyword}: una palabra bíblica para este momento",
-            base,
-        ]
-        limit = 90
-    else:
-        candidates = [
-            f"{reference}: una oración para recuperar la paz y la esperanza",
-            f"Cuando el corazón necesita a Dios | Reflexión y oración sobre {reference}",
-            f"{keyword}: reflexión bíblica y oración para fortalecer tu fe",
-            base,
-        ]
-        limit = 100
+def _compact_topic(metadata: dict) -> str:
+    topic = _clean(metadata.get("topic") or metadata.get("content_family") or "Fe, paz y esperanza")
+    topic = re.sub(r"\([^)]{25,}\)", "", topic).strip(" -:,.!")
+    return topic[:56].rstrip(" -:,.!") or "Fe, paz y esperanza"
 
-    out: list[str] = []
-    for candidate in candidates:
-        candidate = _clean(candidate)[:limit].rstrip(" -:,.!")
+
+def _safe_title_variants(
+    metadata: dict,
+    keyword: str,
+    reference: str,
+    content_type: str,
+    previous: list[dict],
+) -> list[str]:
+    templates = _SHORT_TITLE_TEMPLATES if content_type == "short" else _LONG_TITLE_TEMPLATES
+    limit = 90 if content_type == "short" else 100
+    topic = _compact_topic(metadata)
+    seed = _seed(metadata)
+    recent = {_normalize(item.get("title", "")) for item in previous[-50:] if item.get("title")}
+    candidates: list[str] = []
+
+    for step in range(len(templates)):
+        template = templates[(seed + step * 7) % len(templates)]
+        candidate = _clean(template.format(
+            topic=topic, reference=reference, keyword=keyword,
+        ))[:limit].rstrip(" -:,.!")
         lower = candidate.lower()
-        if not candidate or any(risky in lower for risky in RISKY_PACKAGING):
+        normalized = _normalize(candidate)
+        if not candidate or normalized in recent or any(risky in lower for risky in RISKY_PACKAGING):
             continue
-        if lower not in {x.lower() for x in out}:
-            out.append(candidate)
+        if normalized not in {_normalize(value) for value in candidates}:
+            candidates.append(candidate)
+        if len(candidates) >= 3:
+            return candidates
+
+    base = _clean(metadata.get("title"))[:limit].rstrip(" -:,.!")
+    if base and _normalize(base) not in recent and not any(risky in base.lower() for risky in RISKY_PACKAGING):
+        candidates.append(base)
+
+    fallback = f"{topic} | {reference}"[:limit].rstrip(" -:,.!")
+    if _normalize(fallback) not in {_normalize(value) for value in candidates}:
+        candidates.append(fallback)
+    return candidates[:3]
+
+
+def _hook_variants(metadata: dict, reference: str) -> list[str]:
+    seed = _seed(metadata)
+    out: list[str] = []
+    for step in range(len(_HOOK_TEMPLATES)):
+        hook = _HOOK_TEMPLATES[(seed + step * 5) % len(_HOOK_TEMPLATES)].format(reference=reference)
+        if hook not in out:
+            out.append(hook)
         if len(out) >= 3:
             break
     return out
 
 
-def _hook_variants(reference: str) -> list[str]:
-    return [
-        f"Si hoy necesitás paz, esta enseñanza de {reference} puede acompañarte.",
-        f"Hay momentos en los que el corazón se cansa. La Biblia nos orienta en {reference}.",
-        f"Antes de seguir, regalate un minuto para orar y recordar el mensaje de {reference}.",
-    ]
-
-
-def _thumbnail_concepts(reference: str, content_type: str) -> list[str]:
-    # Shorts cannot run YouTube native thumbnail A/B tests. These candidates are
-    # for pre-publish scoring/cover selection; long-form candidates can be used
-    # in YouTube Studio's native Test & Compare feature.
-    if content_type == "short":
-        return [
-            f"close emotional cinematic portrait of the recurring synthetic Jesus character at sunrise, calm eye contact, visual theme of {reference}, no text, 9:16",
-            f"wide cinematic scene of the recurring synthetic Jesus character beside still water and warm light, peaceful visual theme of {reference}, no text, 9:16",
-            f"medium shot of the recurring synthetic Jesus character with an open hand gesture, dramatic but peaceful natural light, theme {reference}, no text, 9:16",
-        ]
-    return [
-        f"cinematic close portrait of the recurring synthetic Jesus character, strong eye contact, one clear emotional focal point, theme {reference}, no text, 16:9",
-        f"wide premium cinematic biblical landscape with the recurring synthetic Jesus character as the single focal subject, theme {reference}, no text, 16:9",
-        f"medium cinematic prayer moment, recurring synthetic Jesus character in warm directional light, high contrast focal subject, theme {reference}, no text, 16:9",
-    ]
+def _thumbnail_concepts(metadata: dict, reference: str, content_type: str) -> list[str]:
+    pool = _THUMBNAIL_SHORT if content_type == "short" else _THUMBNAIL_LONG
+    seed = _seed(metadata)
+    out: list[str] = []
+    for step in range(len(pool)):
+        prompt = pool[(seed + step * 5) % len(pool)].format(reference=reference)
+        if prompt not in out:
+            out.append(prompt)
+        if len(out) >= 3:
+            break
+    return out
 
 
 def ground_and_optimize_spiritual_metadata(
@@ -237,15 +299,13 @@ def ground_and_optimize_spiritual_metadata(
     reference = _reference(metadata)
     metadata["bible_reference"] = reference
     metadata["script_source_policy"] = "verified_reference_plus_original_paraphrase_no_automatic_biblegateway_scraping"
-    metadata["source_references"] = [
-        {
-            "name": "BibleGateway",
-            "type": "bible_reference",
-            "reference": reference,
-            "url": _biblegateway_url(reference),
-            "usage": "reference_only_original_script_paraphrase",
-        }
-    ]
+    metadata["source_references"] = [{
+        "name": "BibleGateway",
+        "type": "bible_reference",
+        "reference": reference,
+        "url": _biblegateway_url(reference),
+        "usage": "reference_only_original_script_paraphrase",
+    }]
     metadata["source_grounded"] = True
     metadata["source_grounding_note"] = (
         "El guion debe ser original y fiel al sentido general de la referencia; no atribuir citas textuales "
@@ -256,7 +316,7 @@ def ground_and_optimize_spiritual_metadata(
     keyword = _select_keyword(metadata, signals)
     metadata["seo_primary_keyword"] = keyword["keyword"]
     metadata["seo_keyword_signal"] = keyword
-    metadata["seo_research_snapshot"] = "vidIQ Spanish/Argentina keyword research 2026-08-15"
+    metadata["seo_research_snapshot"] = "Spanish/Argentina channel keyword opportunity snapshot"
     metadata["market_signal_snapshot"] = {
         "generated_at": signals.get("generated_at"),
         "window_hours": signals.get("window_hours"),
@@ -265,27 +325,27 @@ def ground_and_optimize_spiritual_metadata(
         "method": signals.get("method"),
     }
 
-    titles = _safe_title_variants(metadata, keyword["keyword"], reference, content_type)
+    titles = _safe_title_variants(
+        metadata, keyword["keyword"], reference, content_type, previous,
+    )
     if titles:
         metadata["title"] = titles[0]
     metadata["title_variants"] = titles
-    metadata["hook_variants"] = _hook_variants(reference)
-    metadata["thumbnail_candidates"] = _thumbnail_concepts(reference, content_type)
+    metadata["hook_variants"] = _hook_variants(metadata, reference)
+    metadata["thumbnail_candidates"] = _thumbnail_concepts(metadata, reference, content_type)
+    metadata["recent_title_comparison_count"] = len(previous[-50:])
+    metadata["seo_title_history_guard_passed"] = bool(titles)
 
     metadata["algorithm_strategy"] = {
         "appeal": "clear human need + specific biblical reference + honest emotional promise",
         "engagement": "fast opening, narrative progression, no filler, calm continuous voice",
         "satisfaction": "resolve the opening with a useful biblical reflection or prayer instead of manipulative clickbait",
-        "learning_loop": "prefer themes/titles that improve retention, shares, comments and subscriber-gain rate in this channel's own analytics",
+        "learning_loop": "prefer themes and packaging that improve retention, shares, comments and subscriber-gain rate in this channel's own analytics",
     }
-    metadata["trend_pattern"] = "specific_need_plus_scripture_plus_emotional_payoff_truthful"
+    metadata["trend_pattern"] = "specific_need_plus_scripture_plus_emotional_payoff_truthful_high_variety"
     metadata["growth_kpis"] = [
-        "views_per_hour",
-        "average_view_percentage",
-        "watch_time",
-        "share_rate",
-        "comment_rate",
-        "subscriber_gain_rate",
+        "views_per_hour", "average_view_percentage", "watch_time",
+        "share_rate", "comment_rate", "subscriber_gain_rate",
     ]
     metadata["viral_guarantee"] = False
     metadata["no_deceptive_clickbait"] = True
@@ -293,12 +353,12 @@ def ground_and_optimize_spiritual_metadata(
 
     if content_type == "short":
         metadata["native_youtube_ab_test_available"] = False
-        metadata["ab_strategy"] = "prepublish_score_3_title_hook_cover_candidates_then_learn_from_channel_metrics"
+        metadata["ab_strategy"] = "prepublish_score_3_unique_title_hook_cover_candidates_then_learn_from_channel_metrics"
     else:
         metadata["native_youtube_ab_test_available"] = True
-        metadata["ab_strategy"] = "generate_3_title_and_thumbnail_candidates_for_youtube_studio_test_and_compare"
+        metadata["ab_strategy"] = "generate_3_unique_title_and_thumbnail_candidates_for_youtube_studio_test_and_compare"
 
-    description = _clean(metadata.get("description"))
+    description = str(metadata.get("description") or "").strip()
     source_line = f"Referencia para profundizar: {reference} — BibleGateway."
     if reference.lower() not in description.lower():
         description = f"{description}\n\n{source_line}".strip()
