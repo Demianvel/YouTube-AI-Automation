@@ -32,7 +32,7 @@ jobs:
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y -qq ffmpeg fonts-dejavu-core
-          pip install -q pillow requests huggingface_hub gradio_client
+          pip install -q "pillow>=11" requests "numpy>=1.26,<3" "huggingface_hub>=0.34.4,<2" "gradio_client>=1.11,<3"
 
       - name: Compile spiritual Python modules
         run: |
@@ -89,7 +89,7 @@ jobs:
           out = Path('/tmp/dios-local-fallback.jpg')
           provider = _local_reference(out, 20260815)
           assert out.exists() and out.stat().st_size > 20_000
-          assert provider.startswith('local_proven_photoreal_reference/')
+          assert provider.startswith('local_project_jesus_reference/'), provider
           print('Zero-credit photoreal fallback OK:', provider, out.stat().st_size)
           PY
 
