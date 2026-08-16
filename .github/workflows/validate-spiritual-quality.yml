@@ -6,6 +6,7 @@ on:
     paths:
       - "app/spiritual_tts.py"
       - "app/spiritual_quality.py"
+      - "app/spiritual_source_growth_engine.py"
       - "app/spiritual_content_guard.py"
       - "app/spiritual_image.py"
       - "app/spiritual_hf_video.py"
@@ -36,6 +37,7 @@ jobs:
           python -m py_compile \
             app/spiritual_tts.py \
             app/spiritual_quality.py \
+            app/spiritual_source_growth_engine.py \
             app/spiritual_content_guard.py \
             app/spiritual_image.py \
             app/spiritual_hf_video.py \
@@ -55,6 +57,7 @@ jobs:
           from app.spiritual_content_guard import enforce_spiritual_topic_guard, _youtube_tag_cost
           from app.spiritual_engagement import engagement_comment
           from app.spiritual_quality import enforce_spiritual_metadata
+          from app.spiritual_source_growth_engine import ground_and_optimize_spiritual_metadata
 
           sample = {
               "topic": "Jesús calma la tormenta y enseña a confiar en medio del miedo",
@@ -72,15 +75,26 @@ jobs:
           previous = [
               {"title": "Cuando necesitás paz: Marcos 4:35-41"},
               {"title": "Una luz para el momento que estás atravesando"},
+              {"title": "La paz de Dios en medio de la incertidumbre"},
           ]
 
           quality = enforce_spiritual_metadata(sample, previous)
-          guarded = enforce_spiritual_topic_guard(quality)
+          optimized = ground_and_optimize_spiritual_metadata(
+              quality, previous, content_type="short"
+          )
+          guarded = enforce_spiritual_topic_guard(optimized)
 
           signatures = guarded.get("visual_variety_signatures") or []
+          recent_titles = {item["title"] for item in previous}
           assert len(signatures) == 6, signatures
           assert len(set(signatures)) == 6, signatures
-          assert guarded["title"] not in {item["title"] for item in previous}, guarded["title"]
+          assert guarded["title"] not in recent_titles, guarded["title"]
+          assert len(guarded.get("title_variants") or []) == 3
+          assert all(title not in recent_titles for title in guarded["title_variants"])
+          assert len(set(guarded["title_variants"])) == len(guarded["title_variants"])
+          assert len(guarded.get("hook_variants") or []) == 3
+          assert len(set(guarded["hook_variants"])) == 3
+          assert guarded.get("seo_title_history_guard_passed") is True
           assert guarded.get("voice_profile") == "voz_de_luz_serena_original_v1"
           assert guarded.get("voice_brand") == "Voz de Luz"
           assert 3 <= len(guarded.get("hashtags") or []) <= 5
@@ -110,6 +124,7 @@ jobs:
 
           print({
               "title": guarded["title"],
+              "title_variants": guarded["title_variants"],
               "hashtags": guarded["hashtags"],
               "tag_cost": _youtube_tag_cost(guarded["tags"]),
               "unique_visuals": len(set(signatures)),
