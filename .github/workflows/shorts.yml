@@ -54,6 +54,9 @@ jobs:
       GEMINI_TTS_MODEL: gemini-3.1-flash-tts-preview
       GEMINI_TTS_VOICE: Algenib
       SPIRITUAL_MALE_GEMINI_VOICE: Algenib
+      SPIRITUAL_VOICE_PROFILE: voz_de_luz_serena_original_v1
+      SPIRITUAL_VOICE_BRAND: Voz de Luz
+      SPIRITUAL_VOICE_REFERENCE_MODE: two_reference_style_blend_no_speaker_clone
       VIDEO_PROVIDER: real_stock
       PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
       POLLINATIONS_API_KEY: ${{ secrets.POLLINATIONS_API_KEY }}
@@ -73,7 +76,7 @@ jobs:
       CHATTERBOX_CFG_WEIGHT: "0.38"
       CHATTERBOX_TEMPERATURE: "0.80"
       KOKORO_VOICE: em_alex
-      KOKORO_SPEED: "0.91"
+      KOKORO_SPEED: "0.93"
       MUSIC_PROVIDER: local
       YOUTUBE_TOKEN_BROTAVIDA: ${{ secrets.YOUTUBE_TOKEN_BROTAVIDA }}
       YOUTUBE_TOKEN_DIOSHABLAHOYIA: ${{ secrets.YOUTUBE_TOKEN_DIOSHABLAHOYIA }}
@@ -122,14 +125,18 @@ jobs:
             echo "GEMINI_TTS_VOICE=Algenib" >> "$GITHUB_ENV"
             echo "SPIRITUAL_MALE_GEMINI_VOICE=Algenib" >> "$GITHUB_ENV"
             echo "KOKORO_VOICE=em_alex" >> "$GITHUB_ENV"
-            echo "KOKORO_SPEED=0.91" >> "$GITHUB_ENV"
-            echo "SPIRITUAL_VOICE_PROFILE=algenib_deep_biblical_narrator_bm6_reference_v2" >> "$GITHUB_ENV"
+            echo "KOKORO_SPEED=0.93" >> "$GITHUB_ENV"
+            echo "SPIRITUAL_VOICE_PROFILE=voz_de_luz_serena_original_v1" >> "$GITHUB_ENV"
+            echo "SPIRITUAL_VOICE_BRAND=Voz de Luz" >> "$GITHUB_ENV"
+            echo "SPIRITUAL_VOICE_REFERENCE_MODE=two_reference_style_blend_no_speaker_clone" >> "$GITHUB_ENV"
             echo "SPIRITUAL_SHORT_SECONDS=60" >> "$GITHUB_ENV"
             echo "SPIRITUAL_SHORT_SCENE_SECONDS=10" >> "$GITHUB_ENV"
             echo "SPIRITUAL_SHORT_AI_CLIPS=3" >> "$GITHUB_ENV"
             echo "SPIRITUAL_CTA_OVERLAY=false" >> "$GITHUB_ENV"
             echo "SPIRITUAL_LIPSYNC_ENABLED=true" >> "$GITHUB_ENV"
             echo "SPIRITUAL_ALLOW_STILL_FALLBACK=true" >> "$GITHUB_ENV"
+            echo "SPIRITUAL_VISUAL_VARIETY_LEVEL=high" >> "$GITHUB_ENV"
+            echo "SPIRITUAL_EDITORIAL_VARIETY_LEVEL=high" >> "$GITHUB_ENV"
             # Gemini Omni actual produce clips nativos de unos 8-10 s. Para 60 s se usa
             # el motor espiritual hibrido, que concatena 6 escenas y aplica una sola voz continua.
             echo "GEMINI_VIDEO_ENABLED=false" >> "$GITHUB_ENV"
