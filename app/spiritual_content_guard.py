@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import hashlib
 import unicodedata
 
 
@@ -41,9 +40,6 @@ _DECEPTIVE_TERMS = (
     "dios me reveló", "si ignoras esto", "si ignorás esto",
 )
 
-# Six safe SEO families rotate with the actual subject. Each pack stays well
-# below YouTube's 500-character API cost, leaving room for one or two specific
-# tags derived from the biblical reference and topic of each upload.
 _TAG_PACKS = {
     "peace": (
         "Dios", "Jesús", "Biblia", "Paz de Dios", "Serenidad en Dios",
@@ -108,18 +104,17 @@ def _normalize(value: object) -> str:
 
 def _contains_any(text: str, terms: tuple[str, ...]) -> list[str]:
     normalized = _normalize(text)
-    hits: list[str] = []
-    for term in terms:
-        if _normalize(term) in normalized:
-            hits.append(term)
-    return hits
+    return [term for term in terms if _normalize(term) in normalized]
 
 
 def _youtube_tag_cost(tags: tuple[str, ...] | list[str]) -> int:
     if not tags:
         return 0
-    content = sum(len(tag) + (2 if " " in tag else 0) for tag in tags)
-    return content + len(tags) - 1
+    return sum(len(tag) + (2 if " " in tag else 0) for tag in tags) + len(tags) - 1
+
+
+def _is_long_form(metadata: dict) -> bool:
+    return bool(metadata.get("sections")) or int(metadata.get("target_minutes") or 0) >= 5
 
 
 def _editorial_text(metadata: dict) -> str:
@@ -130,12 +125,13 @@ def _editorial_text(metadata: dict) -> str:
     ]
     chunks.extend(metadata.get("tags") or [])
     chunks.extend(metadata.get("hashtags") or [])
-    for scene in metadata.get("scenes") or []:
-        chunks.extend([
-            scene.get("narration", ""), scene.get("visual_prompt", ""),
-            scene.get("stock_query", ""),
-        ])
-    return " ".join(str(x or "") for x in chunks)
+    for key in ("scenes", "sections"):
+        for item in metadata.get(key) or []:
+            chunks.extend([
+                item.get("narration", ""), item.get("visual_prompt", ""),
+                item.get("stock_query", ""),
+            ])
+    return " ".join(str(value or "") for value in chunks)
 
 
 def _assert_spiritual_scope(metadata: dict) -> None:
@@ -190,18 +186,26 @@ def _tag_family(metadata: dict) -> str:
 
 def _dynamic_tags(metadata: dict) -> list[str]:
     family = _tag_family(metadata)
-    tags = list(_TAG_PACKS[family])
-    candidates = []
+    long_form = _is_long_form(metadata)
+    tags: list[str] = []
+    for original in _TAG_PACKS[family]:
+        tag = original
+        if long_form and tag.startswith("Shorts"):
+            tag = tag.replace("Shorts", "Videos", 1)
+        if _normalize(tag) not in {_normalize(existing) for existing in tags}:
+            tags.append(tag)
+
     reference = " ".join(str(metadata.get("bible_reference") or "").split())[:55]
     topic = " ".join(str(metadata.get("content_family") or metadata.get("topic") or "").split())[:65]
-    if reference:
-        candidates.append(f"Reflexión sobre {reference}")
-    if topic:
-        candidates.append(topic)
-
+    candidates = [
+        f"Reflexión sobre {reference}" if reference else "",
+        topic,
+        "Video cristiano de larga duración" if long_form else "Short cristiano original",
+    ]
     normalized = {_normalize(tag) for tag in tags}
     for candidate in candidates:
-        if _normalize(candidate) in normalized:
+        candidate = candidate.strip()
+        if not candidate or _normalize(candidate) in normalized:
             continue
         trial = tags + [candidate]
         if _youtube_tag_cost(trial) <= 500:
@@ -215,41 +219,65 @@ def _dynamic_hashtags(metadata: dict) -> list[str]:
     result: list[str] = []
     for tag in supplied:
         clean = tag if tag.startswith("#") else f"#{tag}"
-        if clean.lower() not in {x.lower() for x in result}:
+        if clean.lower() not in {value.lower() for value in result}:
             result.append(clean)
         if len(result) >= 5:
             break
 
-    mandatory = ["#Dios", "#Shorts"]
-    if not any(tag.lower() in {"#jesus", "#jesucristo", "#cristo"} for tag in result):
-        mandatory.insert(1, "#Jesus")
-    if not any(tag.lower() in {"#biblia", "#palabradedios", "#reflexionbiblica"} for tag in result):
-        mandatory.insert(-1, "#Biblia")
-
+    format_tag = "#VideoCristiano" if _is_long_form(metadata) else "#Shorts"
+    mandatory = ["#Dios", "#Jesus", "#Biblia", format_tag]
     for tag in mandatory:
-        if tag.lower() not in {x.lower() for x in result}:
-            if len(result) >= 5:
-                result.pop()
-            result.append(tag)
+        if tag.lower() in {value.lower() for value in result}:
+            continue
+        if len(result) >= 5:
+            result.pop()
+        result.append(tag)
     return result[:5]
 
 
-def enforce_spiritual_topic_guard(metadata: dict) -> dict:
-    """Lock the channel to safe original spiritual content without flattening variety."""
-    metadata = dict(metadata)
-    scenes = [dict(scene) for scene in (metadata.get("scenes") or [])]
+def _ensure_description_disclosure(metadata: dict) -> None:
+    description = str(metadata.get("description") or "").strip()
+    disclosure = (
+        "Contenido cristiano original. Las representaciones visuales de Jesús y las escenas bíblicas "
+        "son creaciones artísticas digitales; no son grabaciones literales de hechos divinos."
+    )
+    if "creaciones artisticas digitales" not in _normalize(description):
+        description = (description + "\n\n" + disclosure).strip()
+    metadata["description"] = description[:4600]
 
-    for scene in scenes:
-        visual = " ".join(str(scene.get("visual_prompt") or "").split()).strip()
+
+def _apply_dynamic_packaging(metadata: dict) -> None:
+    tags = _dynamic_tags(metadata)
+    metadata["tags"] = tags
+    metadata["youtube_tag_character_cost"] = _youtube_tag_cost(tags)
+    metadata["youtube_tag_limit"] = 500
+    metadata["youtube_tag_family"] = _tag_family(metadata)
+    metadata["hashtags"] = _dynamic_hashtags(metadata)
+    metadata["voice_profile"] = "voz_de_luz_serena_original_v1"
+    metadata["voice_brand"] = "Voz de Luz"
+    _ensure_description_disclosure(metadata)
+
+
+def _prepare_visual_items(metadata: dict, key: str, limit: int) -> None:
+    items = [dict(item) for item in (metadata.get(key) or [])]
+    for item in items:
+        visual = " ".join(str(item.get("visual_prompt") or "").split()).strip()
         if not _contains_any(visual, _SPIRITUAL_ANCHORS):
             visual = (
-                "Original synthetic cinematic representation of Jesus in a peaceful biblical reflection about God. "
+                "Original synthetic cinematic representation of Jesus, God through biblical symbols, and the Bible. "
                 + visual
             ).strip()
-        scene["visual_prompt"] = visual[:1900]
-        scene["stock_query"] = "original synthetic Jesus God Bible cinematic scene no stock media"
+        item["visual_prompt"] = visual[:limit]
+        item["stock_query"] = "original synthetic Jesus God Bible cinematic scene no stock media"
+    metadata[key] = items
 
-    metadata["scenes"] = scenes
+
+def enforce_spiritual_topic_guard(metadata: dict) -> dict:
+    """Lock Shorts and long videos to safe original spiritual content without flattening variety."""
+    metadata = dict(metadata)
+    _prepare_visual_items(metadata, "scenes", 1900)
+    _prepare_visual_items(metadata, "sections", 4800)
+
     metadata["source_credits"] = []
     metadata["external_media_allowed"] = False
     metadata["wikipedia_allowed"] = False
@@ -257,42 +285,29 @@ def enforce_spiritual_topic_guard(metadata: dict) -> dict:
     metadata["third_party_stock_allowed"] = False
     metadata["original_generated_media_only"] = True
     metadata["editorial_scope"] = "Jesus_Dios_Biblia_oracion_fe_only"
-    metadata["youtube_safety_profile"] = "strict_spiritual_original_v3_dynamic"
+    metadata["youtube_safety_profile"] = "strict_spiritual_original_v4_dynamic_all_formats"
     metadata["youtube_policy_categories_checked"] = [
         "spam_deception", "sexual_content", "self_harm", "violent_graphic_content",
         "dangerous_content", "hate_harassment", "regulated_goods", "external_reused_media",
     ]
     metadata["contains_synthetic_media"] = True
-    metadata["voice_profile"] = "voz_de_luz_serena_original_v1"
-    metadata["voice_brand"] = "Voz de Luz"
-
-    description = str(metadata.get("description") or "").strip()
-    disclosure = (
-        "Contenido cristiano original. La representación visual de Jesús es artística y generada digitalmente; "
-        "no es una grabación literal de un hecho real."
-    )
-    if "representacion visual de jesus" not in _normalize(description):
-        description = (description + "\n\n" + disclosure).strip()
-    metadata["description"] = description[:4600]
-
-    tags = _dynamic_tags(metadata)
-    metadata["tags"] = tags
-    metadata["youtube_tag_character_cost"] = _youtube_tag_cost(tags)
-    metadata["youtube_tag_limit"] = 500
-    metadata["youtube_tag_family"] = _tag_family(metadata)
-    metadata["hashtags"] = _dynamic_hashtags(metadata)
+    _apply_dynamic_packaging(metadata)
 
     _assert_spiritual_scope(metadata)
     metadata["editorial_guard_passed"] = True
     metadata["editorial_guard_preserved_dynamic_metadata"] = True
+    metadata["editorial_guard_format"] = "long" if _is_long_form(metadata) else "short"
     return metadata
 
 
 def validate_spiritual_upload_guard(metadata: dict) -> dict:
-    """Final fail-closed check immediately before a spiritual upload."""
+    """Final fail-closed check immediately before any spiritual upload."""
+    # Long-form reaches this function without always passing through the Short
+    # pipeline's enforce step, so apply the same dynamic safe packaging here.
+    _apply_dynamic_packaging(metadata)
     _assert_spiritual_scope(metadata)
 
-    tags = tuple(str(x) for x in (metadata.get("tags") or []))
+    tags = tuple(str(value) for value in (metadata.get("tags") or []))
     tag_cost = _youtube_tag_cost(tags)
     if tag_cost > 500:
         raise RuntimeError(
@@ -309,7 +324,7 @@ def validate_spiritual_upload_guard(metadata: dict) -> dict:
     providers = metadata.get("generated_visual_provider") or metadata.get("visual_providers") or []
     if not isinstance(providers, (list, tuple)):
         providers = [providers]
-    provider_text = " ".join(str(x or "") for x in providers)
+    provider_text = " ".join(str(value or "") for value in providers)
     external = _contains_any(provider_text, _FORBIDDEN_EXTERNAL_SOURCES)
     if external:
         raise RuntimeError(
@@ -321,5 +336,6 @@ def validate_spiritual_upload_guard(metadata: dict) -> dict:
         raise RuntimeError("BLOQUEADO ANTES DE YOUTUBE: external_media_allowed no puede ser true en este canal.")
 
     metadata["youtube_safety_guard_passed"] = True
-    metadata["youtube_safety_guard_mode"] = "fail_closed_original_spiritual_only_v3_dynamic"
+    metadata["youtube_safety_guard_mode"] = "fail_closed_original_spiritual_only_v4_dynamic_all_formats"
+    metadata["youtube_safety_guard_format"] = "long" if _is_long_form(metadata) else "short"
     return metadata
