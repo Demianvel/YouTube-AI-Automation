@@ -11,14 +11,15 @@ from pathlib import Path
 from .audio import continuous_speech_text
 
 
-# Canonical Dios Habla Hoy channel voice.
-# The user reference Short bm6LxLsrMbE is treated as a STYLE reference only:
-# we do not clone or impersonate an identifiable speaker. Algenib is the fixed
-# Gemini male base voice used to reproduce the requested deep biblical tone.
+# Permanent original voice identity for Dios Habla Hoy.
+# It is inspired only by broad delivery qualities found in the two user-provided
+# references: intimate warmth + gentle authority. It never clones or impersonates
+# an identifiable speaker. Algenib remains the stable male base voice.
 MALE_GEMINI_VOICE_DEFAULT = "Algenib"
 MALE_KOKORO_VOICE_DEFAULT = "em_alex"
-SPIRITUAL_VOICE_PROFILE = "algenib_deep_biblical_narrator_bm6_reference_v2"
-REFERENCE_STYLE_VIDEO_ID = "bm6LxLsrMbE"
+SPIRITUAL_VOICE_PROFILE = "voz_de_luz_serena_original_v1"
+VOICE_BRAND_NAME = "Voz de Luz"
+REFERENCE_MODE = "two_reference_style_blend_no_speaker_clone"
 
 
 def safe_tts_chunks(text: str, max_words: int = 42, max_chars: int = 300) -> list[str]:
@@ -79,41 +80,46 @@ def _delivery_mode(text: str) -> str:
 def _director_notes(mode: str) -> str:
     if mode == "night_prayer":
         return (
-            "Deliver it as a peaceful night prayer with a deep, warm and reassuring baritone. "
-            "Use a slightly slower pace, gentle downward sentence endings, natural breath support and short organic pauses. "
-            "The listener should feel accompanied before sleep, never frightened or pressured."
+            "Deliver it as a peaceful night prayer at roughly 118 to 128 words per minute. "
+            "Use a deep but gentle baritone, soft downward endings and comfortable pauses of about 300 to 650 milliseconds. "
+            "The listener should feel safe, accompanied and ready to rest."
         )
     if mode == "prayer":
         return (
-            "Deliver it as a sincere guided prayer: intimate, reverent and compassionate, with calm conviction. "
-            "Keep the lower register warm and present, let gratitude and petitions breathe naturally, and avoid theatrical preaching."
+            "Deliver it as a sincere guided prayer at roughly 122 to 134 words per minute. "
+            "Sound intimate, reverent and compassionate, with calm conviction and natural breathing. "
+            "Allow petitions and gratitude to breathe without becoming slow or theatrical."
         )
     if mode == "biblical_story":
         return (
-            "Deliver it as a premium biblical storyteller with deep male resonance, controlled gravity and clear narrative progression. "
-            "Use subtle wonder, excellent diction and deliberate emphasis on names and Scripture references, without movie-trailer exaggeration."
+            "Deliver it as a premium biblical storyteller at roughly 136 to 148 words per minute. "
+            "Maintain clear narrative progression, excellent articulation and subtle wonder. "
+            "Keep the authority gentle and human, never like a trailer or an aggressive preacher."
         )
     return (
-        "Deliver it as a thoughtful biblical narrator: deep, warm, trustworthy and contemplative. "
-        "Maintain a calm one-to-one tone, clear Scripture emphasis and a measured fluid pace suitable for sustained listening."
+        "Deliver it as a thoughtful biblical reflection at roughly 128 to 140 words per minute. "
+        "Use a fluid conversational rhythm, clear Scripture emphasis and short organic pauses. "
+        "The voice should feel close, luminous, peaceful and trustworthy."
     )
 
 
 def _brand_master(path: Path) -> None:
-    """Apply one stable broadcast master to primary and fallback voices."""
+    """Apply the permanent Voz de Luz broadcast master to every provider."""
     if not path.exists():
         return
-    temp = path.with_name(path.stem + ".brand-master.wav")
+    temp = path.with_name(path.stem + ".voz-de-luz-master.wav")
+    # Tuned for a warm 90-105 Hz male center, smooth low mids, intelligible diction
+    # and reduced harshness. No cathedral echo or artificial cavern reverb.
     filters = (
-        "highpass=f=54,"
-        "lowpass=f=11800,"
-        "equalizer=f=125:t=q:w=0.85:g=1.45,"
-        "equalizer=f=190:t=q:w=0.95:g=0.65,"
-        "equalizer=f=330:t=q:w=1.10:g=-0.55,"
-        "equalizer=f=2350:t=q:w=1.00:g=0.85,"
-        "equalizer=f=6200:t=q:w=1.25:g=-0.70,"
-        "acompressor=threshold=-22dB:ratio=1.50:attack=15:release=170:makeup=1.18,"
-        "loudnorm=I=-16.5:TP=-1.5:LRA=5.2"
+        "highpass=f=50,"
+        "lowpass=f=10500,"
+        "equalizer=f=105:t=q:w=0.80:g=1.35,"
+        "equalizer=f=175:t=q:w=0.95:g=0.65,"
+        "equalizer=f=330:t=q:w=1.10:g=-0.45,"
+        "equalizer=f=2450:t=q:w=1.00:g=0.78,"
+        "equalizer=f=5200:t=q:w=1.15:g=-0.55,"
+        "acompressor=threshold=-23dB:ratio=1.42:attack=18:release=190:makeup=1.15,"
+        "loudnorm=I=-16.5:TP=-1.5:LRA=5.5"
     )
     try:
         subprocess.run([
@@ -125,7 +131,7 @@ def _brand_master(path: Path) -> None:
         else:
             temp.unlink(missing_ok=True)
     except Exception as exc:
-        print(f"No se pudo aplicar el master biblico de voz ({exc}); se conserva la voz original.")
+        print(f"No se pudo aplicar el master Voz de Luz ({exc}); se conserva la voz original.")
         temp.unlink(missing_ok=True)
 
 
@@ -143,18 +149,21 @@ def _gemini_spiritual_voice(path: Path, text: str) -> str:
     prompt = f"""
 Synthesize speech only. Do not read these directions aloud.
 
-### FIXED CHANNEL VOICE
-Use the Algenib ADULT MALE voice for the complete narration. Keep the same masculine vocal identity from beginning to end and across every Dios Habla Hoy Short and long-form video. The requested YouTube reference is a style target only; do not imitate or claim to reproduce any identifiable real speaker.
+### PERMANENT CHANNEL VOICE — VOZ DE LUZ
+Use the Algenib ADULT MALE voice for the entire narration. Create one stable, original vocal identity for Dios Habla Hoy called Voz de Luz. It may combine broad qualities from two style references—intimate warmth and gentle authority—but must not imitate, clone, identify or reproduce any real speaker.
 
-### SIGNATURE BIBLICAL AUDIO PROFILE
-Deep warm male baritone with a lightly textured/gravelly character, mature human tone, controlled low resonance and clear intelligibility. Natural neutral Latin-American Spanish pronunciation. The delivery must communicate peace, faith, hope, compassion, reverence and closeness. It should sound like a premium biblical narrator speaking personally to one listener, never robotic, never commercial, never shouted and never like a movie trailer.
+### VOCAL IDENTITY
+Original mature male baritone with a natural fundamental center around 90 to 105 Hz. Warm chest resonance, relaxed throat, lightly textured human timbre, clear consonants and open vowels. Neutral Latin-American Spanish with excellent diction and professional locution. The sound is serene, luminous, compassionate and close, as if speaking personally to one listener.
+
+### EMOTIONAL BALANCE
+Blend the tenderness and fluidity of a comforting reflection with the calm authority of a biblical narrator. Communicate peace, tranquility, faith, hope, love, safety and reverence. Keep strength without hardness and spirituality without theatrical solemnity.
 
 ### DELIVERY MODE
 {mode}
 {_director_notes(mode)}
 
-### PERMANENT DIRECTION
-Keep a measured but fluid rhythm. Use short organic pauses and natural breaths. Favor calm authority over dramatic intensity. Keep the chest resonance present without forcing artificial bass. Give subtle heartfelt emphasis to Dios, Jesús, Señor, Biblia, fe, amor, paz, esperanza and consuelo. Avoid whispering, fake solemnity, exaggerated preacher cadence, cathedral echo, sing-song rhythm, growling, harshness or synthetic pacing.
+### PERMANENT SPEECH RULES
+Use natural breaths and mostly short pauses between phrases, with an occasional longer pause only at a meaningful transition. Maintain smooth phrase linking, precise articulation and a pleasant conversational flow. Give subtle heartfelt emphasis to Dios, Jesús, Señor, Biblia, fe, amor, paz, esperanza and consuelo. Finish sentences with soft controlled downward cadences. Avoid whispering, shouting, growling, exaggerated bass, sing-song rhythm, robotic spacing, commercial-announcer energy, movie-trailer drama, fake preacher cadence, cathedral echo or long empty silences.
 
 ### TRANSCRIPT — SPEAK EXACTLY THIS TEXT
 {text}
@@ -189,7 +198,7 @@ def _kokoro_chunked_voice(path: Path, text: str) -> None:
     from kokoro import KPipeline
 
     voice = MALE_KOKORO_VOICE_DEFAULT
-    speed = float(os.getenv("KOKORO_SPEED", "0.91"))
+    speed = float(os.getenv("KOKORO_SPEED", "0.93"))
     pipeline = KPipeline(lang_code="e")
     rendered: list[np.ndarray] = []
 
@@ -212,7 +221,9 @@ def _kokoro_chunked_voice(path: Path, text: str) -> None:
         if piece_count == 0:
             raise RuntimeError(f"Kokoro no genero audio para el fragmento espiritual {index}/{len(chunks)}.")
 
-    pause = np.zeros(max(1, int(24000 * 0.016)), dtype=np.float32)
+    # Keep fallback phrasing connected; the reference blend uses brief organic gaps,
+    # not long dramatic pauses.
+    pause = np.zeros(max(1, int(24000 * 0.024)), dtype=np.float32)
     joined: list[np.ndarray] = []
     for index, audio in enumerate(rendered):
         if index:
@@ -228,7 +239,7 @@ def _kokoro_chunked_voice(path: Path, text: str) -> None:
 
 
 def make_spiritual_spanish_voice(path: Path, text: str) -> str:
-    """Generate the fixed Dios Habla Hoy biblical narrator with a safe fixed fallback."""
+    """Generate the permanent original Voz de Luz narrator with a safe male fallback."""
     provider = os.getenv("TTS_PROVIDER", "gemini_tts").lower().strip()
     mode = _delivery_mode(text)
     require_primary = os.getenv("SPIRITUAL_REQUIRE_PRIMARY_VOICE", "false").lower().strip() == "true"
@@ -238,15 +249,15 @@ def make_spiritual_spanish_voice(path: Path, text: str) -> str:
         except Exception as exc:
             if require_primary:
                 raise RuntimeError(
-                    f"La prueba exige la voz primaria {MALE_GEMINI_VOICE_DEFAULT}; Gemini TTS no estuvo disponible: {exc}"
+                    f"La ejecucion exige la voz primaria {VOICE_BRAND_NAME}/{MALE_GEMINI_VOICE_DEFAULT}; Gemini TTS no estuvo disponible: {exc}"
                 ) from exc
-            print(f"Gemini TTS no disponible ({exc}); usando respaldo masculino fijo Kokoro.")
+            print(f"Gemini TTS no disponible ({exc}); usando respaldo masculino fijo Kokoro con master Voz de Luz.")
             _kokoro_chunked_voice(path, text)
             used = f"kokoro:{MALE_KOKORO_VOICE_DEFAULT}:{SPIRITUAL_VOICE_PROFILE}:{mode}:fallback"
     else:
         if require_primary:
             raise RuntimeError(
-                f"La prueba exige TTS primario Gemini/{MALE_GEMINI_VOICE_DEFAULT}, pero TTS_PROVIDER={provider}."
+                f"La ejecucion exige TTS primario Gemini/{MALE_GEMINI_VOICE_DEFAULT}, pero TTS_PROVIDER={provider}."
             )
         _kokoro_chunked_voice(path, text)
         used = f"kokoro:{MALE_KOKORO_VOICE_DEFAULT}:{SPIRITUAL_VOICE_PROFILE}:{mode}:forced"
