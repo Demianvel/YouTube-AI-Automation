@@ -136,7 +136,7 @@ def build_reference_prompt(base_prompt: str, seed: int, target_size: tuple[int, 
         f"{base_prompt}. Use the supplied image only as a visual identity and wardrobe reference for the recurring synthetic Jesus character. "
         "Create a clearly NEW photograph-like scene; do not copy the original background, pose, crop, camera angle or lighting. "
         f"New composition: {camera}. New action: {action}. New environment: {environment}. Lighting: {lighting}. "
-        "Preserve a reverent adult synthetic Jesus identity with shoulder-length wavy dark-brown hair, groomed beard, warm eyes, natural skin texture, "
+        "Preserve a reverent adult synthetic Jesus identity with shoulder-length wavy dark-brown hair, groomed beard, warm hazel-brown eyes, natural skin texture, "
         "cream or ivory linen robe and optional muted beige or deep-red mantle. Keep realistic anatomy, natural hands and physically plausible fabric. "
         f"Premium live-action cinema, photorealistic optics, natural atmospheric depth, {orientation}, no text and no watermark. "
         f"Variation fingerprint {fingerprint}."
@@ -194,33 +194,16 @@ def _gradio_space_client(space: str, token: str | None):
     return Client(space, **kwargs)
 
 
-def _predict_zero(client, space: str, reference: Path, prompt: str, seed: int):
+def _predict_zero_reference(client, space: str, reference: Path, prompt: str, seed: int):
     from gradio_client import handle_file
 
     safe_seed = _safe_seed_for_space(seed)
     if "kontext" in space.lower():
-        return client.predict(
-            handle_file(str(reference)),
-            prompt,
-            safe_seed,
-            False,
-            2.5,
-            22,
-            api_name="/infer",
-        )
-    return client.predict(
-        handle_file(str(reference)),
-        prompt,
-        safe_seed,
-        False,
-        4.0,
-        20,
-        False,
-        api_name="/infer",
-    )
+        return client.predict(handle_file(str(reference)), prompt, safe_seed, False, 2.5, 22, api_name="/infer")
+    return client.predict(handle_file(str(reference)), prompt, safe_seed, False, 4.0, 20, False, api_name="/infer")
 
 
-def _generate_zerogpu(reference: Path, prompt: str, out: Path, seed: int, target_size: tuple[int, int]) -> str:
+def _generate_reference_zerogpu(reference: Path, prompt: str, out: Path, seed: int, target_size: tuple[int, int]) -> str:
     space = os.getenv("HF_REFERENCE_ZERO_SPACE", "black-forest-labs/FLUX.1-Kontext-Dev").strip() or "black-forest-labs/FLUX.1-Kontext-Dev"
     token = os.getenv("HF_TOKEN", "").strip() or None
     attempts = [("public", None)]
@@ -231,14 +214,54 @@ def _generate_zerogpu(reference: Path, prompt: str, out: Path, seed: int, target
     for mode, client_token in attempts:
         try:
             client = _gradio_space_client(space, client_token)
-            result = _predict_zero(client, space, reference, prompt, seed)
+            result = _predict_zero_reference(client, space, reference, prompt, seed)
             source = _zero_space_result_path(result)
             with Image.open(source) as generated:
                 _save_generated(generated, out, target_size)
-            return f"Hugging Face ZeroGPU Space / {space} / {mode} / reference:{reference.name}"
+            return f"Hugging Face ZeroGPU reference editor / {space} / {mode} / reference:{reference.name}"
         except Exception as exc:
             errors.append(f"{mode}: {exc}")
+    raise RuntimeError("; ".join(errors))
 
+
+def _flux_zero_size(target_size: tuple[int, int]) -> tuple[int, int]:
+    width, height = target_size
+    if height > width:
+        return 768, 1344
+    return 1344, 768
+
+
+def _generate_text_zerogpu(reference: Path, prompt: str, out: Path, seed: int, target_size: tuple[int, int]) -> str:
+    space = os.getenv("HF_TEXT_ZERO_SPACE", "black-forest-labs/FLUX.1-schnell").strip() or "black-forest-labs/FLUX.1-schnell"
+    token = os.getenv("HF_TOKEN", "").strip() or None
+    width, height = _flux_zero_size(target_size)
+    attempts = [("public", None)]
+    if token:
+        attempts.append(("authenticated", token))
+    errors: list[str] = []
+
+    text_prompt = (
+        prompt.replace("Use the supplied image only as a visual identity and wardrobe reference for the recurring synthetic Jesus character. ", "")
+        + " Generate a fresh original frame, not a copy of any existing photograph."
+    )
+    for mode, client_token in attempts:
+        try:
+            client = _gradio_space_client(space, client_token)
+            result = client.predict(
+                text_prompt,
+                _safe_seed_for_space(seed),
+                False,
+                width,
+                height,
+                4,
+                api_name="/infer",
+            )
+            source = _zero_space_result_path(result)
+            with Image.open(source) as generated:
+                _save_generated(generated, out, target_size)
+            return f"Hugging Face ZeroGPU text-to-image / {space} / {mode} / style-reference:{reference.name}"
+        except Exception as exc:
+            errors.append(f"{mode}: {exc}")
     raise RuntimeError("; ".join(errors))
 
 
@@ -253,12 +276,7 @@ def _generate_inference_provider(reference: Path, prompt: str, out: Path, seed: 
     provider = os.getenv("HF_REFERENCE_IMAGE_PROVIDER", "auto").strip() or "auto"
     model = os.getenv("HF_REFERENCE_IMAGE_MODEL", "black-forest-labs/FLUX.1-Kontext-dev").strip()
     client = InferenceClient(provider=provider, api_key=token, timeout=240)
-    image = client.image_to_image(
-        reference.read_bytes(),
-        prompt=prompt,
-        model=model,
-        negative_prompt=NEGATIVE_PROMPT,
-    )
+    image = client.image_to_image(reference.read_bytes(), prompt=prompt, model=model, negative_prompt=NEGATIVE_PROMPT)
     if image is None:
         raise RuntimeError("Hugging Face image-to-image no devolvio una imagen.")
     _save_generated(image, out, target_size)
@@ -279,14 +297,12 @@ def generate_reference_guided_image(
     zero_first = os.getenv("HF_REFERENCE_ZERO_SPACE_FIRST", "true").lower().strip() == "true"
     errors: list[str] = []
 
-    attempts = (
-        (("ZeroGPU", lambda: _generate_zerogpu(reference, prompt, out, seed, target_size)),
-         ("InferenceProvider", lambda: _generate_inference_provider(reference, prompt, out, seed, target_size)))
-        if zero_first
-        else
-        (("InferenceProvider", lambda: _generate_inference_provider(reference, prompt, out, seed, target_size)),
-         ("ZeroGPU", lambda: _generate_zerogpu(reference, prompt, out, seed, target_size)))
+    zero_attempts = (
+        ("ReferenceZeroGPU", lambda: _generate_reference_zerogpu(reference, prompt, out, seed, target_size)),
+        ("FluxSchnellZeroGPU", lambda: _generate_text_zerogpu(reference, prompt, out, seed, target_size)),
     )
+    provider_attempt = ("InferenceProvider", lambda: _generate_inference_provider(reference, prompt, out, seed, target_size))
+    attempts = (*zero_attempts, provider_attempt) if zero_first else (provider_attempt, *zero_attempts)
 
     for label, action in attempts:
         try:
@@ -294,6 +310,6 @@ def generate_reference_guided_image(
             return provider, reference.name
         except Exception as exc:
             errors.append(f"{label}: {exc}")
-            print(f"Hugging Face {label} reference edit no disponible: {exc}")
+            print(f"Hugging Face {label} no disponible: {exc}")
 
     raise RuntimeError("; ".join(errors))
