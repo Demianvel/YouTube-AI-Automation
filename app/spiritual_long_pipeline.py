@@ -18,6 +18,7 @@ from .audio import fit_voice_to_duration, make_natural_spanish_voice, make_pleas
 from .config import OUTPUT_DIR, ROOT, load_channel
 from .hf_video import _provider_video, _safe_seed, _space_video
 from .spiritual_lipsync import apply_musetalk_lipsync, available as lipsync_available
+from .spiritual_reference_generation import generate_reference_guided_image
 from .youtube import upload_long_video
 
 W, H, FPS = 1920, 1080, 30
@@ -150,7 +151,7 @@ def _generate_metadata(channel: dict, minutes: int) -> dict:
     data["duration_seconds"] = minutes * 60
     data["target_minutes"] = minutes
     data["contains_synthetic_media"] = True
-    data["character_reference_profile"] = "dioshablahoyia_photoreal_human_v2"
+    data["character_reference_profile"] = "dioshablahoyia_photoreal_human_v4_reference_guided"
     data["reference_seed"] = refs
     data["photoreal_human_required"] = True
     data["no_cartoon_no_3d_animation"] = True
@@ -171,9 +172,21 @@ def _character_style() -> str:
     )
 
 
-def _download_image(prompt: str, out: Path, seed: int) -> None:
+def _download_image(prompt: str, out: Path, seed: int) -> str:
+    full_prompt = f"{prompt}. {_character_style()}"
+    try:
+        provider, _ = generate_reference_guided_image(
+            full_prompt,
+            out,
+            seed,
+            target_size=(W, H),
+        )
+        return provider
+    except Exception as exc:
+        print(f"Hugging Face reference-guided long image no disponible ({exc}); usando respaldo Flux/Pollinations.")
+
     key = os.getenv("POLLINATIONS_API_KEY", "").strip()
-    url = POLLINATIONS_BASE + quote(f"{prompt}, {_character_style()}", safe="")
+    url = POLLINATIONS_BASE + quote(full_prompt, safe="")
     params = {
         "model": os.getenv("POLLINATIONS_IMAGE_MODEL", "flux"),
         "width": W,
@@ -190,6 +203,7 @@ def _download_image(prompt: str, out: Path, seed: int) -> None:
     if len(response.content) < 20_000:
         raise RuntimeError("No se genero una imagen espiritual fotorrealista valida.")
     out.write_bytes(response.content)
+    return "Pollinations Flux photoreal image"
 
 
 def _landscape_loop_video(source: Path, out: Path, duration: int, index: int) -> None:
@@ -265,9 +279,9 @@ def _visual_for_section(meta: dict, section: dict, index: int, workdir: Path, ai
 
     image = workdir / f"spiritual_image_{index + 1}.jpg"
     visual = workdir / f"spiritual_visual_{index + 1}.mp4"
-    _download_image(prompt, image, _seed(meta, index))
+    image_provider = _download_image(prompt, image, _seed(meta, index))
     _image_motion(image, visual, duration, index)
-    return visual, "Pollinations photoreal image + cinematic motion fallback"
+    return visual, f"{image_provider} + cinematic motion fallback"
 
 
 def _visual_segment(visual: Path, out: Path, duration: int) -> None:
@@ -367,9 +381,9 @@ def _assemble(meta: dict, channel: dict, workdir: Path, minutes: int) -> Path:
     meta["tts_providers"] = sorted(set(tts_used))
     meta["voice_delivery"] = "single_continuous_track_across_all_scene_cuts"
     meta["text_to_video_key_scenes_requested"] = ai_slots
-    meta["render_quality"] = "1920x1080_30fps_spiritual_live_action_long"
+    meta["render_quality"] = "1920x1080_30fps_spiritual_reference_guided_long"
     meta["music_source"] = "original_instrumental_generated_locally"
-    meta["spiritual_quality_profile"] = "premium_long_live_action_photoreal_v4"
+    meta["spiritual_quality_profile"] = "premium_long_reference_guided_photoreal_v5"
     meta["photoreal_human_required"] = True
     meta["no_cartoon_no_3d_animation"] = True
     return final
