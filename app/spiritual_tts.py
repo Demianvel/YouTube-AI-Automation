@@ -188,8 +188,6 @@ def _kokoro_chunked_voice(path: Path, text: str) -> None:
     import soundfile as sf
     from kokoro import KPipeline
 
-    # One fixed male emergency fallback. It receives the same channel master so
-    # provider outages do not change gender, loudness or overall presentation.
     voice = MALE_KOKORO_VOICE_DEFAULT
     speed = float(os.getenv("KOKORO_SPEED", "0.91"))
     pipeline = KPipeline(lang_code="e")
@@ -233,14 +231,23 @@ def make_spiritual_spanish_voice(path: Path, text: str) -> str:
     """Generate the fixed Dios Habla Hoy biblical narrator with a safe fixed fallback."""
     provider = os.getenv("TTS_PROVIDER", "gemini_tts").lower().strip()
     mode = _delivery_mode(text)
+    require_primary = os.getenv("SPIRITUAL_REQUIRE_PRIMARY_VOICE", "false").lower().strip() == "true"
     if provider in {"gemini", "gemini_tts", "gemini-tts"}:
         try:
             used = _gemini_spiritual_voice(path, text)
         except Exception as exc:
+            if require_primary:
+                raise RuntimeError(
+                    f"La prueba exige la voz primaria {MALE_GEMINI_VOICE_DEFAULT}; Gemini TTS no estuvo disponible: {exc}"
+                ) from exc
             print(f"Gemini TTS no disponible ({exc}); usando respaldo masculino fijo Kokoro.")
             _kokoro_chunked_voice(path, text)
             used = f"kokoro:{MALE_KOKORO_VOICE_DEFAULT}:{SPIRITUAL_VOICE_PROFILE}:{mode}:fallback"
     else:
+        if require_primary:
+            raise RuntimeError(
+                f"La prueba exige TTS primario Gemini/{MALE_GEMINI_VOICE_DEFAULT}, pero TTS_PROVIDER={provider}."
+            )
         _kokoro_chunked_voice(path, text)
         used = f"kokoro:{MALE_KOKORO_VOICE_DEFAULT}:{SPIRITUAL_VOICE_PROFILE}:{mode}:forced"
 
