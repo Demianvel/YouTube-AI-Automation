@@ -137,6 +137,7 @@ jobs:
             echo "HF_ZERO_RETRIES=1" >> "$GITHUB_ENV"
             if [ "${{ github.event_name }}" = "push" ]; then
               echo "DIOS_FAST_UPLOAD_SMOKE=true" >> "$GITHUB_ENV"
+              echo "SPIRITUAL_REQUIRE_PRIMARY_VOICE=true" >> "$GITHUB_ENV"
             fi
           fi
           echo "Seleccionado: $CHANNEL / $CONTENT_MODE"
