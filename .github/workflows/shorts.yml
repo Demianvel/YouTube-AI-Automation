@@ -139,7 +139,11 @@ jobs:
             echo "SPIRITUAL_VOICEOVER_MODE=true" >> "$GITHUB_ENV"
             echo "SPIRITUAL_SHORT_SECONDS=60" >> "$GITHUB_ENV"
             echo "SPIRITUAL_SHORT_SCENE_SECONDS=10" >> "$GITHUB_ENV"
-            echo "SPIRITUAL_SHORT_AI_CLIPS=3" >> "$GITHUB_ENV"
+            if [ "${{ github.event_name }}" = "push" ]; then
+              echo "SPIRITUAL_SHORT_AI_CLIPS=0" >> "$GITHUB_ENV"
+            else
+              echo "SPIRITUAL_SHORT_AI_CLIPS=3" >> "$GITHUB_ENV"
+            fi
             echo "SPIRITUAL_CTA_OVERLAY=false" >> "$GITHUB_ENV"
             echo "SPIRITUAL_LIPSYNC_ENABLED=false" >> "$GITHUB_ENV"
             echo "SPIRITUAL_ALLOW_STILL_FALLBACK=true" >> "$GITHUB_ENV"
