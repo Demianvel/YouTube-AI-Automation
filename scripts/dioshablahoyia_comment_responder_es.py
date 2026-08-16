@@ -1,11 +1,11 @@
 from __future__ import annotations
 
-import hashlib
+import argparse
 import sys
 from pathlib import Path
 
-# Importa el respondedor existente desde este mismo directorio sin duplicar
-# la logica de OAuth, filtros anti-spam ni control de respuestas repetidas.
+# Reutiliza el respondedor principal para OAuth, filtros anti-spam,
+# control anti-duplicados y variedad contextual. Solo fijamos el idioma.
 SCRIPT_DIR = Path(__file__).resolve().parent
 if str(SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPT_DIR))
@@ -13,26 +13,38 @@ if str(SCRIPT_DIR) not in sys.path:
 import dioshablahoyia_comment_responder as responder
 
 
-def _reply_text_spanish_only(comment_id: str, text: str) -> tuple[str, str]:
-    """Genera siempre una respuesta espiritual en español.
-
-    El idioma del comentario entrante no cambia el idioma de salida. YouTube
-    puede ofrecer traduccion al espectador cuando la necesite.
-    """
-    category = responder._category(text)
-    bank = responder._REPLY_BANK_ES[category]
-    marker = hashlib.sha256(
-        f"{comment_id}|{responder._normalize(text)}|{category}|es".encode("utf-8")
-    ).hexdigest()
-    reply = bank[int(marker[:8], 16) % len(bank)]
-    return reply, "es"
-
-
-# Bloqueo duro: ninguna respuesta automatica puede seleccionar el banco ingles.
+# Regla permanente del canal: responder siempre en español, sin importar
+# el idioma del comentario entrante. No tocamos la estructura interna de
+# los bancos de frases para evitar roturas cuando evolucionen.
 responder._language = lambda _text: "es"
-responder._REPLY_BANK_EN = responder._REPLY_BANK_ES
-responder._reply_text = _reply_text_spanish_only
+
+
+def self_test() -> None:
+    samples = (
+        "God bless you and thank you for this beautiful message",
+        "Amen, please pray for my family",
+        "Gracias por este mensaje de fe",
+        "Que Dios bendiga a todos",
+    )
+    for index, text in enumerate(samples):
+        reply, language, category = responder._reply_text(f"self-test-{index}", text)
+        if language != "es":
+            raise RuntimeError(f"El respondedor intentó usar idioma {language!r} para: {text!r}")
+        if not reply.strip():
+            raise RuntimeError("Se generó una respuesta vacía.")
+        if category not in responder._REPLY_PARTS_ES:
+            raise RuntimeError(f"Categoría desconocida: {category}")
+    print("Spanish-only responder self-test: OK")
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--self-test", action="store_true")
+    args = parser.parse_args()
+    self_test()
+    if not args.self_test:
+        responder.run()
 
 
 if __name__ == "__main__":
-    responder.run()
+    main()
