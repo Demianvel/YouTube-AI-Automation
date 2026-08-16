@@ -5,6 +5,8 @@ on:
   push:
     paths:
       - ".github/workflows/dioshablahoyia-hf-smoke.yml"
+      - "app/spiritual_reference_generation.py"
+      - "assets/dioshablahoyia/reference/**"
 
 permissions:
   contents: read
