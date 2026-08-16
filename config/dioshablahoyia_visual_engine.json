@@ -1,0 +1,94 @@
+{
+  "version": "2026.08.16",
+  "enabled": true,
+  "daily_rotation": true,
+  "avoid_recent_theme_days": 5,
+  "minimum_unique_scenes_short": 6,
+  "minimum_unique_scenes_long": 10,
+  "image_models": [
+    "black-forest-labs/FLUX.1-schnell",
+    "stabilityai/stable-diffusion-xl-base-1.0"
+  ],
+  "optional_video_models": [
+    "Wan-AI/Wan2.1-T2V-1.3B",
+    "Lightricks/LTX-Video"
+  ],
+  "video_models_require_gpu": true,
+  "families": {
+    "norway": {
+      "weight": 4,
+      "minimum_daily_scenes": 1,
+      "scenes": [
+        "Lofoten Islands at blue hour, steep snowy mountains rising from a calm Norwegian sea, warm fishing village lights",
+        "Geirangerfjord from a high cinematic viewpoint, emerald water, immense cliffs and the Seven Sisters waterfalls",
+        "Tromso winter night beneath a vivid green and violet aurora borealis reflected on a silent fjord",
+        "Senja island rugged coastline, dramatic peaks, moving clouds and cold northern sunlight",
+        "Norwegian mountain valley with a crystal river, birch forest and soft golden sunrise",
+        "Preikestolen cliff above Lysefjord at dawn, vast scale, peaceful atmosphere and realistic mist",
+        "snow-covered red cabin beside a Norwegian fjord under stars and northern lights",
+        "Norwegian waterfall descending through dark rock and lush moss after rain",
+        "Atlantic Ocean Road in Norway beneath luminous clouds, distant sea and cinematic natural light",
+        "quiet Arctic beach in northern Norway with turquoise water, snow mountains and aurora"
+      ]
+    },
+    "biblical_stories": {
+      "weight": 4,
+      "scenes": [
+        "Noah's Ark as a massive historically inspired wooden vessel on flood waters, animals approaching in pairs, reverent epic scale",
+        "Noah and his family seeing a rainbow above the resting ark after the storm, peaceful animals and renewed earth",
+        "Moses overlooking the parted Red Sea with towering realistic walls of water, non-violent and reverent",
+        "David as a young shepherd protecting sheep in a sunlit biblical valley, sling at his side, calm courage",
+        "Jesus calming a storm from a small wooden boat on the Sea of Galilee, disciples safe, dramatic clouds opening to light",
+        "Jesus teaching beside the Sea of Galilee with listeners seated respectfully on a hillside",
+        "the Good Samaritan helping an injured traveler on an ancient road, compassionate and non-graphic",
+        "Bethlehem at night beneath a bright star, humble stable, warm lantern light and peaceful atmosphere",
+        "empty tomb at sunrise with folded linen and warm light entering, reverent and non-graphic",
+        "Jesus walking with two travelers on the road to Emmaus at golden sunset"
+      ]
+    },
+    "jesus_and_prayer": {
+      "weight": 5,
+      "scenes": [
+        "recurring synthetic Jesus praying alone beside an olive tree before sunrise, natural posture and peaceful expression",
+        "recurring synthetic Jesus walking beside still water with mountains in the distance",
+        "recurring synthetic Jesus opening Scripture in warm window light",
+        "recurring synthetic Jesus comforting a tired anonymous traveler on a mountain path",
+        "recurring synthetic Jesus looking over a valley while sunlight breaks through clouds",
+        "recurring synthetic Jesus teaching with a restrained open-hand gesture in an olive grove",
+        "recurring synthetic Jesus beside a quiet campfire under stars, contemplative and serene",
+        "recurring synthetic Jesus walking through wildflowers at dawn, robe moving naturally in the breeze"
+      ]
+    },
+    "creation_and_nature": {
+      "weight": 5,
+      "minimum_daily_scenes": 2,
+      "scenes": [
+        "vast alpine lake reflecting snow peaks at sunrise, natural mist and pristine water",
+        "powerful waterfall in a green canyon with sun rays through spray",
+        "ancient forest after rain, soft mist, moss and light filtering through tall trees",
+        "ocean cliffs at sunset with waves, seabirds and warm light",
+        "desert dunes beneath a star-filled sky and subtle moonlight",
+        "field of wheat moving in a gentle wind under golden evening light",
+        "clear river winding through a green valley with distant mountains",
+        "glacier lagoon with floating ice beneath pink dawn clouds",
+        "lavender field and distant hills at sunrise",
+        "peaceful tropical waterfall surrounded by natural vegetation and clear water"
+      ]
+    },
+    "symbols_of_faith": {
+      "weight": 3,
+      "scenes": [
+        "open Bible on natural wood illuminated by sunrise through a window, pages moving gently",
+        "simple wooden cross on a hill above a real valley at peaceful dawn",
+        "white dove flying naturally through a shaft of sunlight above living water",
+        "oil lamp beside olive branches and an open Scripture at night",
+        "narrow stone path becoming illuminated ahead as a symbol of hope",
+        "shepherd staff beside calm sheep near a clear stream",
+        "hands holding an open Bible outdoors beneath soft natural light",
+        "storm clouds opening to sunlight reflected across a calm sea"
+      ]
+    }
+  },
+  "negative_prompt": "text, subtitles, logo, watermark, deformed hands, extra fingers, duplicate people, plastic CGI skin, doll face, cartoon, anime, painting, illustration, videogame, celebrity resemblance, horror, violence, gore, political symbols, modern brands",
+  "disclosure": "Synthetic visuals are disclosed through YouTube's altered-content setting while titles and descriptions remain focused on the devotional content."
+}
