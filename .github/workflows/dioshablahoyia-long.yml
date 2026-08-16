@@ -23,8 +23,6 @@ on:
       - "triggers/dioshablahoyia-long.txt"
   schedule:
     # Argentina UTC-3: 12:00, 15:00, 18:00 y 21:00.
-    # 12:00 = 10 min historia biblica; 15:00 = 15 min oracion;
-    # 18:00 = 20 min reflexion biblica; 21:00 = 30 min oracion nocturna.
     - cron: "0 15 * * *"
     - cron: "0 18 * * *"
     - cron: "0 21 * * *"
@@ -49,7 +47,7 @@ jobs:
       PUBLISHER_WORKER: Publicador Reino 4x10
       GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
       GEMINI_TEXT_MODEL: gemini-3.6-flash
-      GEMINI_VIDEO_ENABLED: "true"
+      GEMINI_VIDEO_ENABLED: "false"
       GEMINI_VIDEO_MODEL: gemini-omni-flash-preview
       GEMINI_TTS_MODEL: gemini-3.1-flash-tts-preview
       GEMINI_TTS_VOICE: Algenib
@@ -57,25 +55,28 @@ jobs:
       SPIRITUAL_VOICE_PROFILE: voz_de_luz_serena_original_v1
       SPIRITUAL_VOICE_BRAND: Voz de Luz
       SPIRITUAL_VOICE_REFERENCE_MODE: two_reference_style_blend_no_speaker_clone
+      SPIRITUAL_VOICEOVER_MODE: "true"
+      SPIRITUAL_REQUIRE_PRIMARY_VOICE: "false"
       POLLINATIONS_API_KEY: ${{ secrets.POLLINATIONS_API_KEY }}
       POLLINATIONS_IMAGE_MODEL: flux
-      HF_VIDEO_ENABLED: "true"
+      HF_VIDEO_ENABLED: "false"
       HF_ZERO_VIDEO_SPACE: Lightricks/LTX-2-3
-      HF_ZERO_RETRIES: "1"
+      HF_ZERO_RETRIES: "0"
       HF_TOKEN: ${{ secrets.HF_TOKEN }}
       HF_VIDEO_PROVIDER: auto
       HF_VIDEO_MODEL: Wan-AI/Wan2.2-TI2V-5B
       HF_IMAGE_PROVIDER: auto
       HF_IMAGE_MODEL: black-forest-labs/FLUX.1-schnell
-      SPIRITUAL_REQUIRE_LIVE_ACTION: "true"
+      SPIRITUAL_REQUIRE_LIVE_ACTION: "false"
       SPIRITUAL_ALLOW_STILL_FALLBACK: "true"
-      SPIRITUAL_LONG_AI_CLIPS: "3"
-      SPIRITUAL_LONG_LIPSYNC_ENABLED: "true"
-      SPIRITUAL_LIPSYNC_ENABLED: "true"
+      SPIRITUAL_LONG_AI_CLIPS: "0"
+      SPIRITUAL_LONG_LIPSYNC_ENABLED: "false"
+      SPIRITUAL_LIPSYNC_ENABLED: "false"
       SPIRITUAL_CTA_OVERLAY: "true"
       SPIRITUAL_VISUAL_VARIETY_LEVEL: high
       SPIRITUAL_EDITORIAL_VARIETY_LEVEL: high
       TTS_PROVIDER: gemini_tts
+      TTS_FALLBACK_KOKORO: "true"
       KOKORO_VOICE: em_alex
       SPIRITUAL_MALE_KOKORO_VOICE: em_alex
       KOKORO_SPEED: "0.93"
@@ -117,7 +118,38 @@ jobs:
           echo "SPIRITUAL_NARRATION_STYLE=$STYLE" >> "$GITHUB_ENV"
           echo "Long-form settings: ${MINUTES}min, style=${STYLE}, publish=${PUBLISH}"
 
+      - name: Skip a duration already published today
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json, os
+          from datetime import datetime
+          from pathlib import Path
+          from zoneinfo import ZoneInfo
+
+          tz = ZoneInfo("America/Argentina/Buenos_Aires")
+          today = datetime.now(tz).date()
+          minutes = int(os.environ["MINUTES"])
+          history = Path("state/dioshablahoyia_long_history.jsonl")
+          exists = False
+          if history.exists():
+              for raw in history.read_text(encoding="utf-8").splitlines():
+                  try:
+                      row = json.loads(raw)
+                      created = datetime.fromisoformat(str(row.get("created_at", "")).replace("Z", "+00:00"))
+                      created = created.astimezone(tz).date()
+                  except Exception:
+                      continue
+                  if created == today and int(row.get("minutes", 0)) == minutes and row.get("status") == "uploaded":
+                      exists = True
+                      break
+          with open(os.environ["GITHUB_ENV"], "a", encoding="utf-8") as env:
+              env.write(f"SKIP_LONG={'true' if exists else 'false'}\n")
+          print(f"Already uploaded today for {minutes} minutes: {exists}")
+          PY
+
       - name: Install media and Python dependencies
+        if: env.SKIP_LONG != 'true'
         run: |
           sudo apt-get update
           sudo apt-get install -y ffmpeg espeak-ng libsndfile1 fonts-dejavu-core git
@@ -126,19 +158,15 @@ jobs:
           pip install -r requirements.txt
 
       - name: Verify required configuration
+        if: env.SKIP_LONG != 'true'
         shell: bash
         run: |
-          if [ -z "$GEMINI_API_KEY" ]; then
-            echo "GEMINI_API_KEY ausente: se usara el guionista biblico local resiliente y voz masculina fija de respaldo."
-          fi
-          if [ -z "$HF_TOKEN" ]; then
-            echo "HF_TOKEN ausente: se usaran referencias fotorrealistas locales de emergencia."
-          fi
           if [ "$PUBLISH" = "true" ]; then
             test -n "$YOUTUBE_TOKEN_DIOSHABLAHOYIA" || { echo "Falta YOUTUBE_TOKEN_DIOSHABLAHOYIA"; exit 1; }
           fi
 
       - name: Generate and optionally publish long video
+        if: env.SKIP_LONG != 'true'
         shell: bash
         run: |
           EXTRA=""
@@ -148,7 +176,7 @@ jobs:
           python -m app.spiritual_long_resilient_runner --minutes "$MINUTES" $EXTRA
 
       - name: Persist spiritual anti-repeat history
-        if: success()
+        if: env.SKIP_LONG != 'true' && success()
         shell: bash
         run: |
           HISTORY="state/dioshablahoyia_long_history.jsonl"
@@ -164,9 +192,9 @@ jobs:
             mkdir -p state
             touch "$HISTORY"
             if ! grep -Fqx "$NEW_RECORD" "$HISTORY"; then
-              printf '%s\n' "$NEW_RECORD" >> state/dioshablahoyia_long_history.jsonl
+              printf '%s\n' "$NEW_RECORD" >> "$HISTORY"
             fi
-            git add state/dioshablahoyia_long_history.jsonl
+            git add "$HISTORY"
             if git diff --cached --quiet; then
               exit 0
             fi
@@ -176,6 +204,10 @@ jobs:
             fi
           done
           exit 1
+
+      - name: Confirm daily duplicate skip
+        if: env.SKIP_LONG == 'true'
+        run: echo "Esta duracion ya fue publicada hoy; se omite para evitar duplicados."
 
       - name: Upload result artifact
         if: always()
