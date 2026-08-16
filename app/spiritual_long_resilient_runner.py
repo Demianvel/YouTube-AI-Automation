@@ -61,7 +61,9 @@ FORMATO EDITORIAL: alterna de manera natural entre historia biblica, reflexion y
 def _apply_style_metadata(meta: dict, minutes: int) -> dict:
     style = _narration_style()
     meta["narration_style"] = style
-    meta["fixed_voice_identity"] = "Gacrux biblical narrator"
+    meta["fixed_voice_identity"] = "Algenib deep biblical narrator"
+    meta["voice_style_reference_video_id"] = "bm6LxLsrMbE"
+    meta["voice_reference_mode"] = "style_only_no_speaker_clone"
     if style in {"prayer", "night_prayer"}:
         night = style == "night_prayer"
         topic = " ".join(str(meta.get("topic") or "Paz, fe y esperanza").split())
