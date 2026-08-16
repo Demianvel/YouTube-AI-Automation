@@ -12,6 +12,7 @@ on:
       - "app/spiritual_long_resilient_runner.py"
       - "app/spiritual_engagement.py"
       - "scripts/dioshablahoyia_comment_responder.py"
+      - "config/topic_families.json"
       - ".github/workflows/shorts.yml"
       - ".github/workflows/dioshablahoyia-long.yml"
       - ".github/workflows/validate-spiritual-quality.yml"
@@ -48,6 +49,9 @@ jobs:
           GITHUB_RUN_NUMBER: "321"
         run: |
           python - <<'PY'
+          import json
+          from pathlib import Path
+
           from app.spiritual_content_guard import enforce_spiritual_topic_guard, _youtube_tag_cost
           from app.spiritual_engagement import engagement_comment
           from app.spiritual_quality import enforce_spiritual_metadata
@@ -92,11 +96,24 @@ jobs:
           assert len(comments) >= 20, len(comments)
           assert all("milagro garantizado" not in comment.lower() for comment in comments)
 
+          families = json.loads(Path("config/topic_families.json").read_text(encoding="utf-8"))
+          spiritual_topics = families.get("dioshablahoyia") or []
+          assert len(spiritual_topics) >= 80, len(spiritual_topics)
+          normalized_topics = {" ".join(topic.lower().split()) for topic in spiritual_topics}
+          assert len(normalized_topics) == len(spiritual_topics), "Hay temas espirituales duplicados"
+          assert all(any(anchor in topic.lower() for anchor in (
+              "dios", "jesus", "oracion", "biblia", "salmo", "mateo", "marcos", "lucas", "juan",
+              "romanos", "isaias", "fe", "esperanza", "amor", "perdon", "misericordia", "daniel",
+              "jonas", "elias", "ruth", "ester", "pablo", "pedro", "moises", "nehemias", "galatas",
+              "efesios", "corintios", "hebreos", "santiago", "genesis", "exodo", "apocalipsis",
+          )) for topic in spiritual_topics), "Tema fuera del alcance cristiano"
+
           print({
               "title": guarded["title"],
               "hashtags": guarded["hashtags"],
               "tag_cost": _youtube_tag_cost(guarded["tags"]),
               "unique_visuals": len(set(signatures)),
               "unique_engagement_samples": len(comments),
+              "spiritual_topics": len(spiritual_topics),
           })
           PY
