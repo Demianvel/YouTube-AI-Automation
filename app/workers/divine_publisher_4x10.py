@@ -18,7 +18,8 @@ SHORT_TIMES = [
     time(15, 0), time(16, 30), time(18, 0), time(19, 30), time(21, 0),
 ]
 
-LONG_VIDEO_TIMES = [time(8, 0), time(12, 0), time(16, 0), time(20, 0)]
+# Four long videos after noon in Argentina: story, prayer, reflection, night prayer.
+LONG_VIDEO_TIMES = [time(12, 0), time(15, 0), time(18, 0), time(21, 0)]
 LONG_VIDEO_MINUTES = [10, 15, 20, 30]
 
 
@@ -38,6 +39,7 @@ def publication_plan() -> dict:
         "short_times_argentina": [slot.strftime("%H:%M") for slot in SHORT_TIMES],
         "long_times_argentina": [slot.strftime("%H:%M") for slot in LONG_VIDEO_TIMES],
         "long_video_minutes": LONG_VIDEO_MINUTES,
+        "long_format_rotation": ["biblical_story", "prayer", "biblical_reflection", "night_prayer"],
         "anti_duplicate": True,
         "serialize_recovery_runs": True,
     }
