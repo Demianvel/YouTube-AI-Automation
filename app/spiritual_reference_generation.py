@@ -109,9 +109,6 @@ def choose_reference(seed: int) -> Path:
     recent = set(_recent_reference_names(limit_records=max(20, avoid_count * 4))[-avoid_count:])
     preferred = [ref for ref in refs if ref.name not in recent]
     pool = preferred or refs
-
-    # Prefer the user's supplied bank whenever it still contains a reference that
-    # has not been used recently. Defaults remain emergency identity references.
     user_pool = [ref for ref in pool if "_user_" in ref.name]
     if user_pool:
         pool = user_pool
@@ -164,24 +161,57 @@ def _normalize_to_target(image: Image.Image, target_size: tuple[int, int]) -> Im
     return image
 
 
-def generate_reference_guided_image(
-    full_prompt: str,
-    out: Path,
-    seed: int,
-    target_size: tuple[int, int] = (1080, 1920),
-) -> tuple[str, str]:
-    if os.getenv("HF_REFERENCE_IMAGE_ENABLED", "true").lower().strip() != "true":
-        raise RuntimeError("HF reference image generation esta deshabilitado.")
+def _save_generated(image: Image.Image, out: Path, target_size: tuple[int, int]) -> None:
+    image = _normalize_to_target(image.convert("RGB"), target_size)
+    image.save(out, format="JPEG", quality=95, optimize=True)
+    if not out.exists() or out.stat().st_size < 20_000:
+        raise RuntimeError("El generador de Hugging Face devolvio una imagen invalida.")
 
+
+def _zero_space_result_path(result) -> Path:
+    value = result[0] if isinstance(result, (list, tuple)) else result
+    if isinstance(value, dict):
+        value = value.get("path") or value.get("name")
+    if not value:
+        raise RuntimeError(f"ZeroGPU devolvio un resultado inesperado: {result!r}")
+    path = Path(str(value))
+    if not path.exists():
+        raise RuntimeError(f"ZeroGPU no materializo la imagen devuelta: {value}")
+    return path
+
+
+def _generate_zerogpu(reference: Path, prompt: str, out: Path, seed: int, target_size: tuple[int, int]) -> str:
+    from gradio_client import Client, handle_file
+
+    space = os.getenv("HF_REFERENCE_ZERO_SPACE", "Qwen/Qwen-Image-Edit").strip() or "Qwen/Qwen-Image-Edit"
+    token = os.getenv("HF_TOKEN", "").strip() or None
+    client = Client(space, hf_token=token, verbose=False)
+    result = client.predict(
+        handle_file(str(reference)),
+        prompt,
+        _safe_seed_for_space(seed),
+        False,
+        4.0,
+        30,
+        False,
+        api_name="/infer",
+    )
+    source = _zero_space_result_path(result)
+    with Image.open(source) as generated:
+        _save_generated(generated, out, target_size)
+    return f"Hugging Face ZeroGPU Space / {space} / reference:{reference.name}"
+
+
+def _safe_seed_for_space(seed: int) -> int:
+    return max(0, min(2147483647, int(seed) & 0x7FFFFFFF))
+
+
+def _generate_inference_provider(reference: Path, prompt: str, out: Path, seed: int, target_size: tuple[int, int]) -> str:
     token = os.getenv("HF_TOKEN", "").strip()
     if not token:
         raise RuntimeError("HF_TOKEN no esta disponible para image-to-image.")
-
-    reference = choose_reference(seed)
     provider = os.getenv("HF_REFERENCE_IMAGE_PROVIDER", "auto").strip() or "auto"
     model = os.getenv("HF_REFERENCE_IMAGE_MODEL", "black-forest-labs/FLUX.1-Kontext-dev").strip()
-    prompt = build_reference_prompt(full_prompt, seed, target_size=target_size)
-
     client = InferenceClient(provider=provider, api_key=token, timeout=240)
     image = client.image_to_image(
         reference.read_bytes(),
@@ -191,13 +221,39 @@ def generate_reference_guided_image(
     )
     if image is None:
         raise RuntimeError("Hugging Face image-to-image no devolvio una imagen.")
+    _save_generated(image, out, target_size)
+    return f"Hugging Face reference-guided image / {model} / reference:{reference.name}"
 
-    image = _normalize_to_target(image.convert("RGB"), target_size)
-    image.save(out, format="JPEG", quality=95, optimize=True)
-    if not out.exists() or out.stat().st_size < 20_000:
-        raise RuntimeError("Hugging Face image-to-image devolvio una imagen invalida.")
 
-    return (
-        f"Hugging Face reference-guided image / {model} / reference:{reference.name}",
-        reference.name,
+def generate_reference_guided_image(
+    full_prompt: str,
+    out: Path,
+    seed: int,
+    target_size: tuple[int, int] = (1080, 1920),
+) -> tuple[str, str]:
+    if os.getenv("HF_REFERENCE_IMAGE_ENABLED", "true").lower().strip() != "true":
+        raise RuntimeError("HF reference image generation esta deshabilitado.")
+
+    reference = choose_reference(seed)
+    prompt = build_reference_prompt(full_prompt, seed, target_size=target_size)
+    zero_first = os.getenv("HF_REFERENCE_ZERO_SPACE_FIRST", "true").lower().strip() == "true"
+    errors: list[str] = []
+
+    attempts = (
+        (("ZeroGPU", lambda: _generate_zerogpu(reference, prompt, out, seed, target_size)),
+         ("InferenceProvider", lambda: _generate_inference_provider(reference, prompt, out, seed, target_size)))
+        if zero_first
+        else
+        (("InferenceProvider", lambda: _generate_inference_provider(reference, prompt, out, seed, target_size)),
+         ("ZeroGPU", lambda: _generate_zerogpu(reference, prompt, out, seed, target_size)))
     )
+
+    for label, action in attempts:
+        try:
+            provider = action()
+            return provider, reference.name
+        except Exception as exc:
+            errors.append(f"{label}: {exc}")
+            print(f"Hugging Face {label} reference edit no disponible: {exc}")
+
+    raise RuntimeError("; ".join(errors))
