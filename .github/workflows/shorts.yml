@@ -57,6 +57,8 @@ jobs:
       SPIRITUAL_VOICE_PROFILE: voz_de_luz_serena_original_v1
       SPIRITUAL_VOICE_BRAND: Voz de Luz
       SPIRITUAL_VOICE_REFERENCE_MODE: two_reference_style_blend_no_speaker_clone
+      SPIRITUAL_VOICEOVER_MODE: "true"
+      SPIRITUAL_LIPSYNC_ENABLED: "false"
       VIDEO_PROVIDER: real_stock
       PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
       POLLINATIONS_API_KEY: ${{ secrets.POLLINATIONS_API_KEY }}
@@ -129,16 +131,16 @@ jobs:
             echo "SPIRITUAL_VOICE_PROFILE=voz_de_luz_serena_original_v1" >> "$GITHUB_ENV"
             echo "SPIRITUAL_VOICE_BRAND=Voz de Luz" >> "$GITHUB_ENV"
             echo "SPIRITUAL_VOICE_REFERENCE_MODE=two_reference_style_blend_no_speaker_clone" >> "$GITHUB_ENV"
+            echo "SPIRITUAL_VOICEOVER_MODE=true" >> "$GITHUB_ENV"
             echo "SPIRITUAL_SHORT_SECONDS=60" >> "$GITHUB_ENV"
             echo "SPIRITUAL_SHORT_SCENE_SECONDS=10" >> "$GITHUB_ENV"
             echo "SPIRITUAL_SHORT_AI_CLIPS=3" >> "$GITHUB_ENV"
             echo "SPIRITUAL_CTA_OVERLAY=false" >> "$GITHUB_ENV"
-            echo "SPIRITUAL_LIPSYNC_ENABLED=true" >> "$GITHUB_ENV"
+            echo "SPIRITUAL_LIPSYNC_ENABLED=false" >> "$GITHUB_ENV"
             echo "SPIRITUAL_ALLOW_STILL_FALLBACK=true" >> "$GITHUB_ENV"
             echo "SPIRITUAL_VISUAL_VARIETY_LEVEL=high" >> "$GITHUB_ENV"
             echo "SPIRITUAL_EDITORIAL_VARIETY_LEVEL=high" >> "$GITHUB_ENV"
-            # Gemini Omni actual produce clips nativos de unos 8-10 s. Para 60 s se usa
-            # el motor espiritual hibrido, que concatena 6 escenas y aplica una sola voz continua.
+            # Modo voz en off: narracion continua sobre seis escenas cinematograficas variadas.
             echo "GEMINI_VIDEO_ENABLED=false" >> "$GITHUB_ENV"
             echo "HF_VIDEO_STRICT=false" >> "$GITHUB_ENV"
             echo "HF_ZERO_RETRIES=1" >> "$GITHUB_ENV"
@@ -154,8 +156,6 @@ jobs:
         if: env.CHANNEL != ''
         shell: bash
         run: |
-          # BrotaVida publishes real botanical footage only. Without Pexels there is
-          # no valid real-stock source, so skip cleanly before consuming HF quota.
           if [ "$CHANNEL" = "brotavida" ] && [ -z "$PEXELS_API_KEY" ]; then
             echo "ready=false" >> "$GITHUB_OUTPUT"
             echo "BrotaVida pausado: falta PEXELS_API_KEY para obtener metraje botanico real. No se genera ni publica contenido generico."
