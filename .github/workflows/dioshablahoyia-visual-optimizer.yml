@@ -1,0 +1,89 @@
+name: Dios Habla Hoy daily visual planner
+
+on:
+  workflow_dispatch:
+  schedule:
+    # 06:35 Argentina (UTC-3)
+    - cron: "35 9 * * *"
+  push:
+    paths:
+      - "app/spiritual_visual_library.py"
+      - "scripts/dioshablahoyia_visual_optimizer.py"
+      - "config/dioshablahoyia_visual_engine.json"
+      - ".github/workflows/dioshablahoyia-visual-optimizer.yml"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: dioshablahoyia-daily-visual-plan
+  cancel-in-progress: true
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Validate and create daily visual plan
+        run: |
+          python -m py_compile \
+            app/spiritual_visual_library.py \
+            app/spiritual_long_local_metadata.py \
+            app/spiritual_long_resilient_runner.py \
+            app/pipeline.py \
+            scripts/dioshablahoyia_visual_optimizer.py
+          python scripts/dioshablahoyia_visual_optimizer.py
+          python - <<'PY'
+          import json
+          from app.spiritual_visual_library import enrich_metadata_visuals, image_model_candidates
+
+          short = {
+              "topic": "Paz y esperanza",
+              "title": "Prueba visual",
+              "bible_reference": "Salmo 23",
+              "scenes": [{"visual_prompt": f"scene {i}"} for i in range(6)],
+          }
+          result = enrich_metadata_visuals(short, content_type="short")
+          manifest = result["visual_rotation_manifest"]
+          assert len(manifest) == 6
+          assert len({item["theme_id"] for item in manifest}) >= 5
+          assert any(item["family"] == "norway" for item in manifest)
+          assert "black-forest-labs/FLUX.1-schnell" in image_model_candidates()
+
+          long = {
+              "topic": "El arca de Noé",
+              "title": "Historia bíblica",
+              "bible_reference": "Génesis 6-9",
+              "sections": [{"visual_prompt": f"section {i}"} for i in range(10)],
+          }
+          result = enrich_metadata_visuals(long, content_type="long")
+          assert len(result["visual_rotation_manifest"]) == 10
+          assert result["visual_rotation_manifest"][0]["family"] == "biblical_stories"
+          print(json.dumps({"short": manifest, "models": image_model_candidates()}, ensure_ascii=False))
+          PY
+
+      - name: Persist daily plan
+        shell: bash
+        run: |
+          git config user.name "youtube-ai-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add state/dioshablahoyia_visual_plan.json
+          if git diff --cached --quiet; then
+            exit 0
+          fi
+          git commit -m "chore: update daily Dios visual plan"
+          for attempt in 1 2 3 4 5; do
+            if git push origin HEAD:main; then
+              exit 0
+            fi
+            git pull --rebase origin main
+          done
+          exit 1
