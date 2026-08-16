@@ -52,8 +52,8 @@ jobs:
       GEMINI_VIDEO_ENABLED: "true"
       GEMINI_VIDEO_MODEL: gemini-omni-flash-preview
       GEMINI_TTS_MODEL: gemini-3.1-flash-tts-preview
-      GEMINI_TTS_VOICE: Gacrux
-      SPIRITUAL_MALE_GEMINI_VOICE: Gacrux
+      GEMINI_TTS_VOICE: Algenib
+      SPIRITUAL_MALE_GEMINI_VOICE: Algenib
       POLLINATIONS_API_KEY: ${{ secrets.POLLINATIONS_API_KEY }}
       POLLINATIONS_IMAGE_MODEL: flux
       HF_VIDEO_ENABLED: "true"
@@ -69,12 +69,12 @@ jobs:
       SPIRITUAL_LONG_AI_CLIPS: "3"
       SPIRITUAL_LONG_LIPSYNC_ENABLED: "true"
       SPIRITUAL_LIPSYNC_ENABLED: "true"
-      SPIRITUAL_VOICE_PROFILE: biblical_narrator_gacrux_v1
+      SPIRITUAL_VOICE_PROFILE: algenib_deep_biblical_narrator_bm6_reference_v2
       SPIRITUAL_CTA_OVERLAY: "true"
       TTS_PROVIDER: gemini_tts
       KOKORO_VOICE: em_alex
       SPIRITUAL_MALE_KOKORO_VOICE: em_alex
-      KOKORO_SPEED: "0.93"
+      KOKORO_SPEED: "0.91"
       YOUTUBE_TOKEN_DIOSHABLAHOYIA: ${{ secrets.YOUTUBE_TOKEN_DIOSHABLAHOYIA }}
 
     steps:
