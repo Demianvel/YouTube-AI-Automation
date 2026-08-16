@@ -10,6 +10,11 @@ on:
         description: Maximo de respuestas en esta ejecucion
         required: false
         default: "12"
+  push:
+    paths:
+      - "scripts/dioshablahoyia_comment_responder.py"
+      - "scripts/dioshablahoyia_comment_responder_es.py"
+      - ".github/workflows/dioshablahoyia-comment-responder.yml"
 
 permissions:
   contents: read
@@ -23,6 +28,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
+      PYTHONUNBUFFERED: "1"
       YOUTUBE_TOKEN_DIOSHABLAHOYIA: ${{ secrets.YOUTUBE_TOKEN_DIOSHABLAHOYIA }}
       COMMENT_REPLY_MAX: ${{ github.event_name == 'workflow_dispatch' && inputs.max_replies || '12' }}
       COMMENT_THREAD_SCAN_MAX: "100"
@@ -37,8 +43,37 @@ jobs:
 
       - name: Install YouTube API dependencies
         run: |
-          python -m pip install --upgrade pip
-          pip install google-api-python-client google-auth
+          python -m pip install --disable-pip-version-check \
+            "google-api-python-client>=2.180,<3" \
+            "google-auth>=2.40,<3"
+
+      - name: Validate Spanish-only responder
+        run: |
+          python -m py_compile \
+            scripts/dioshablahoyia_comment_responder.py \
+            scripts/dioshablahoyia_comment_responder_es.py
+          python scripts/dioshablahoyia_comment_responder_es.py --self-test
+
+      - name: Verify YouTube OAuth secret
+        shell: bash
+        run: |
+          if [ -z "$YOUTUBE_TOKEN_DIOSHABLAHOYIA" ]; then
+            echo "Falta YOUTUBE_TOKEN_DIOSHABLAHOYIA."
+            exit 1
+          fi
 
       - name: Detectar y responder comentarios solo en español
-        run: python scripts/dioshablahoyia_comment_responder_es.py
+        shell: bash
+        run: |
+          status=1
+          for attempt in 1 2 3; do
+            echo "Intento $attempt/3 del respondedor 24x7"
+            if python scripts/dioshablahoyia_comment_responder_es.py; then
+              exit 0
+            fi
+            status=$?
+            if [ "$attempt" -lt 3 ]; then
+              sleep $((attempt * 20))
+            fi
+          done
+          exit "$status"
