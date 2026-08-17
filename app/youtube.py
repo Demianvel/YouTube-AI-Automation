@@ -22,6 +22,7 @@ YOUTUBE_SCOPES = [
 COMMENT_SCOPE = "https://www.googleapis.com/auth/youtube.force-ssl"
 RETRIABLE = {500, 502, 503, 504}
 MAX_SHORT_SECONDS = 180.0
+LEGAL_VISUAL_CREDITS_MARKER = "\n\nCréditos visuales de material libre (Wikimedia Commons):"
 
 
 def _token_info(token_json: str) -> dict:
@@ -181,10 +182,20 @@ def _enforce_spiritual_visual_guard(channel: dict, metadata: dict) -> None:
     metadata.update(stats)
 
 
+def _editorial_metadata_without_legal_credits(metadata: dict) -> dict:
+    """Keep licensing attribution out of editorial-topic checks without removing it from YouTube."""
+    clean = dict(metadata)
+    description = str(clean.get("description") or "")
+    credits = clean.get("free_visual_credits") or []
+    if credits and LEGAL_VISUAL_CREDITS_MARKER in description:
+        clean["description"] = description.split(LEGAL_VISUAL_CREDITS_MARKER, 1)[0].rstrip()
+    return clean
+
+
 def _enforce_spiritual_editorial_guard(channel: dict, metadata: dict) -> None:
     if not _is_spiritual_channel(channel):
         return
-    validate_spiritual_upload_guard(metadata)
+    validate_spiritual_upload_guard(_editorial_metadata_without_legal_credits(metadata))
 
 
 def _description(metadata: dict) -> str:
