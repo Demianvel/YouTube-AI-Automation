@@ -1,1 +1,1 @@
-2026-08-16T22:44:00-03:00 | trigger Dios Short with fresh visual pack + free FLUX ZeroGPU + anti-repeat history + Voz de Luz
+2026-08-16T22:50:00-03:00 | rerun Dios Short after removing forced local-reference override; FLUX ZeroGPU fresh images + Voz de Luz quota retry
