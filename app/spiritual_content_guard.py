@@ -300,6 +300,29 @@ def enforce_spiritual_topic_guard(metadata: dict) -> dict:
     return metadata
 
 
+def _allowed_free_visual_provider(value: object) -> bool:
+    """Allow only the narrow, machine-generated Commons fallback with a verified permissive license."""
+    text = str(value or "").strip()
+    normalized = _normalize(text)
+    if not normalized.startswith("wikimedia fresh free raster"):
+        return False
+    if "source=https://commons.wikimedia.org/" not in text.lower():
+        return False
+
+    license_value = ""
+    for part in text.split(" | "):
+        if part.lower().startswith("license="):
+            license_value = _normalize(part.split("=", 1)[1])
+            break
+    if not license_value:
+        return False
+    if license_value.startswith("cc0") or license_value.startswith("public domain"):
+        return True
+    if license_value.startswith("cc by") and "by-sa" not in license_value and "sharealike" not in license_value:
+        return True
+    return False
+
+
 def validate_spiritual_upload_guard(metadata: dict) -> dict:
     """Final fail-closed check immediately before any spiritual upload."""
     # Long-form reaches this function without always passing through the Short
@@ -318,24 +341,40 @@ def validate_spiritual_upload_guard(metadata: dict) -> dict:
     credits = metadata.get("source_credits") or []
     if credits:
         raise RuntimeError(
-            "BLOQUEADO ANTES DE YOUTUBE: Dios Habla Hoy IA no permite multimedia externa ni creditos de terceros."
+            "BLOQUEADO ANTES DE YOUTUBE: source_credits genericos siguen prohibidos; solo se acepta el fallback libre validado."
         )
 
     providers = metadata.get("generated_visual_provider") or metadata.get("visual_providers") or []
     if not isinstance(providers, (list, tuple)):
         providers = [providers]
-    provider_text = " ".join(str(value or "") for value in providers)
-    external = _contains_any(provider_text, _FORBIDDEN_EXTERNAL_SOURCES)
-    if external:
+
+    allowed_free_count = 0
+    blocked_external: list[str] = []
+    for provider in providers:
+        if _allowed_free_visual_provider(provider):
+            allowed_free_count += 1
+            continue
+        external = _contains_any(str(provider or ""), _FORBIDDEN_EXTERNAL_SOURCES)
+        for term in external:
+            if term not in blocked_external:
+                blocked_external.append(term)
+
+    if blocked_external:
         raise RuntimeError(
-            "BLOQUEADO ANTES DE YOUTUBE: el renderer intento usar una fuente visual externa prohibida: "
-            + ", ".join(external)
+            "BLOQUEADO ANTES DE YOUTUBE: el renderer intento usar una fuente visual externa no autorizada: "
+            + ", ".join(blocked_external)
         )
 
     if metadata.get("external_media_allowed") is True:
         raise RuntimeError("BLOQUEADO ANTES DE YOUTUBE: external_media_allowed no puede ser true en este canal.")
 
+    if allowed_free_count:
+        metadata["approved_free_external_visuals"] = allowed_free_count
+        metadata["wikimedia_commons_allowed"] = True
+        metadata["original_generated_media_only"] = False
+        metadata["free_external_license_guard_passed"] = True
+
     metadata["youtube_safety_guard_passed"] = True
-    metadata["youtube_safety_guard_mode"] = "fail_closed_original_spiritual_only_v4_dynamic_all_formats"
+    metadata["youtube_safety_guard_mode"] = "fail_closed_spiritual_plus_validated_free_visual_fallback_v5"
     metadata["youtube_safety_guard_format"] = "long" if _is_long_form(metadata) else "short"
     return metadata
