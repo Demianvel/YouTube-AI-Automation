@@ -19,6 +19,7 @@ from app.spiritual_fresh_reference_bank import (
     choose_reference_for_prompt,
     is_jesus_prompt,
     is_noah_prompt,
+    subject_prompt,
 )
 from app.visual_variety_v2 import attach_visual_pack_v2
 
@@ -104,18 +105,50 @@ def _hf_quota_error(exc: Exception) -> bool:
     return any(marker in text for marker in ("zerogpu quota", "quota", "402", "429", "seconds requested", "too_many_requests"))
 
 
+def _open_hf_circuit_if_quota(exc: Exception) -> None:
+    if _hf_quota_error(exc) and os.getenv("HF_REMOTE_CIRCUIT_BREAKER", "true").lower() == "true":
+        reference_generation._REMOTE_CIRCUIT_OPEN = True
+        print("HF ZeroGPU sin cuota: circuito abierto para no repetir esperas durante este Short.")
+
+
 def _fresh_bank_reference_guided(
     full_prompt: str,
     out: Path,
     seed: int,
     target_size: tuple[int, int] = (1080, 1920),
 ) -> tuple[str, str]:
-    """Use the new GitHub reference bank for people/stories and pure FLUX for landscapes."""
+    """New GitHub references for Jesus/Noah; clean FLUX text generation for scenery."""
     if getattr(reference_generation, "_REMOTE_CIRCUIT_OPEN", False):
         raise RuntimeError("HF free-image circuit abierto para esta ejecucion; fallback inmediato.")
 
-    if is_jesus_prompt(full_prompt) or is_noah_prompt(full_prompt):
-        chosen = choose_reference_for_prompt(full_prompt, seed)
+    subject = subject_prompt(full_prompt)
+
+    # Noah's Ark has its own reference bank and must never be confused with the
+    # substring 'ark' inside the word 'watermark'.
+    if is_noah_prompt(subject):
+        chosen = choose_reference_for_prompt(subject, seed)
+        noah_prompt = (
+            "Use the supplied image only as a visual style and story reference for Noah's Ark. "
+            "Create a clearly NEW photorealistic cinematic biblical scene with a different camera position, "
+            "background arrangement, animal placement, lighting and composition. Do not copy pixels or recreate the source frame. "
+            f"Scene request: {subject}. Vertical 9:16, realistic materials and animals, no text, no logo, no watermark."
+        )
+        try:
+            provider = reference_generation._generate_reference_zerogpu(
+                chosen, noah_prompt, out, seed, target_size
+            )
+            return provider.replace("reference:", "story-reference:"), chosen.name
+        except Exception as exc:
+            _open_hf_circuit_if_quota(exc)
+            if getattr(reference_generation, "_REMOTE_CIRCUIT_OPEN", False):
+                raise
+            provider = reference_generation._generate_text_zerogpu(
+                chosen, subject + ", fresh photoreal cinematic Noah's Ark scene, vertical 9:16, no text, no watermark", out, seed, target_size
+            )
+            return provider.replace("style-reference:", "story-style:"), chosen.name
+
+    if is_jesus_prompt(subject):
+        chosen = choose_reference_for_prompt(subject, seed)
         previous_choose = reference_generation.choose_reference
         reference_generation.choose_reference = lambda _seed: chosen
         try:
@@ -126,18 +159,22 @@ def _fresh_bank_reference_guided(
         finally:
             reference_generation.choose_reference = previous_choose
 
-    # Landscape, nature and symbolic cutaways should not be forced into a Jesus
-    # portrait. Generate them directly with FLUX Schnell ZeroGPU.
+    # Landscapes, Bible still lifes and symbolic cutaways are intentionally
+    # generated without the generic Jesus identity boilerplate. This keeps the
+    # Short visually varied instead of turning every scene into the same portrait.
     reference = choose_new_jesus_reference(seed)
+    scenic_prompt = (
+        subject
+        + ", completely new premium photorealistic cinematic spiritual cutaway, realistic optics and natural light, "
+          "vertical 9:16, no text, no captions, no logo, no watermark, no celebrity resemblance"
+    )
     try:
         provider = reference_generation._generate_text_zerogpu(
-            reference, full_prompt, out, seed, target_size
+            reference, scenic_prompt, out, seed, target_size
         )
-        return provider.replace("style-reference:", "fresh-bank-style:"), reference.name
+        return provider.replace("style-reference:", "fresh-scenic-generation:"), reference.name
     except Exception as exc:
-        if _hf_quota_error(exc) and os.getenv("HF_REMOTE_CIRCUIT_BREAKER", "true").lower() == "true":
-            reference_generation._REMOTE_CIRCUIT_OPEN = True
-            print("HF ZeroGPU sin cuota: circuito abierto para no repetir esperas durante este Short.")
+        _open_hf_circuit_if_quota(exc)
         raise
 
 
