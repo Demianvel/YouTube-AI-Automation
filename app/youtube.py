@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import os
 import random
+import re
 import subprocess
 import time
 from pathlib import Path
@@ -23,6 +24,12 @@ COMMENT_SCOPE = "https://www.googleapis.com/auth/youtube.force-ssl"
 RETRIABLE = {500, 502, 503, 504}
 MAX_SHORT_SECONDS = 180.0
 LEGAL_VISUAL_CREDITS_MARKER = "\n\nCréditos visuales de material libre (Wikimedia Commons):"
+SPIRITUAL_TECHNICAL_MARKERS = (
+    "Créditos visuales de material libre",
+    "Creditos visuales de material libre",
+    "Fuentes visuales reales utilizadas y editadas para este video",
+    "Wikimedia Commons",
+)
 
 
 def _token_info(token_json: str) -> dict:
@@ -182,13 +189,34 @@ def _enforce_spiritual_visual_guard(channel: dict, metadata: dict) -> None:
     metadata.update(stats)
 
 
+def _strip_spiritual_technical_blocks(description: str) -> str:
+    """Remove implementation/licensing chatter from the public Dios Habla Hoy description."""
+    text = str(description or "")
+    for marker in SPIRITUAL_TECHNICAL_MARKERS[:3]:
+        pattern = re.compile(rf"\n*{re.escape(marker)}\s*:?.*$", re.IGNORECASE | re.DOTALL)
+        text = pattern.sub("", text)
+
+    cleaned_lines: list[str] = []
+    for raw in text.splitlines():
+        lower = raw.lower()
+        if "commons.wikimedia.org" in lower:
+            continue
+        if "wikimedia commons" in lower:
+            continue
+        if re.search(r"\bcc\s+by(?:\s|-|\d)", lower):
+            continue
+        if "pexels.com" in lower or "pollinations" in lower or "hugging face" in lower:
+            continue
+        cleaned_lines.append(raw.rstrip())
+
+    text = "\n".join(cleaned_lines)
+    text = re.sub(r"\n{3,}", "\n\n", text).strip()
+    return text
+
+
 def _editorial_metadata_without_legal_credits(metadata: dict) -> dict:
-    """Keep licensing attribution out of editorial-topic checks without removing it from YouTube."""
     clean = dict(metadata)
-    description = str(clean.get("description") or "")
-    credits = clean.get("free_visual_credits") or []
-    if credits and LEGAL_VISUAL_CREDITS_MARKER in description:
-        clean["description"] = description.split(LEGAL_VISUAL_CREDITS_MARKER, 1)[0].rstrip()
+    clean["description"] = _strip_spiritual_technical_blocks(str(clean.get("description") or ""))
     return clean
 
 
@@ -198,38 +226,52 @@ def _enforce_spiritual_editorial_guard(channel: dict, metadata: dict) -> None:
     validate_spiritual_upload_guard(_editorial_metadata_without_legal_credits(metadata))
 
 
-def _description(metadata: dict) -> str:
+def _description(metadata: dict, *, spiritual: bool = False) -> str:
     parts: list[str] = []
     base = (metadata.get("description") or "").strip()
+    if spiritual:
+        base = _strip_spiritual_technical_blocks(base)
     if base:
         parts.append(base)
+
     hashtags = " ".join(metadata.get("hashtags", [])[:5]).strip()
     if hashtags:
         parts.append(hashtags)
-    credits = metadata.get("source_credits") or []
-    if credits:
-        lines = ["Fuentes visuales reales utilizadas y editadas para este video:"]
-        for item in credits[:20]:
-            provider = (item.get("provider") or "Fuente visual").strip()
-            creator = (item.get("creator") or "colaborador").strip()
-            license_name = (item.get("license") or "").strip()
-            source_url = (item.get("source_url") or item.get("creator_url") or "").strip()
-            label = f"- {provider} — {creator}"
-            if license_name:
-                label += f" — {license_name}"
-            if source_url:
-                label += f": {source_url}"
-            lines.append(label)
-        parts.append("\n".join(lines))
-    return "\n\n".join(parts)[:4900].strip()
+
+    # Dios Habla Hoy uses only generated, Pexels-permitted, CC0 or Public Domain
+    # fallback visuals, so technical provider/source blocks must never appear in
+    # the public description. Other channels (if ever reintroduced) retain the
+    # generic source-credit behavior below.
+    if not spiritual:
+        credits = metadata.get("source_credits") or []
+        if credits:
+            lines = ["Fuentes visuales reales utilizadas y editadas para este video:"]
+            for item in credits[:20]:
+                provider = (item.get("provider") or "Fuente visual").strip()
+                creator = (item.get("creator") or "colaborador").strip()
+                license_name = (item.get("license") or "").strip()
+                source_url = (item.get("source_url") or item.get("creator_url") or "").strip()
+                label = f"- {provider} — {creator}"
+                if license_name:
+                    label += f" — {license_name}"
+                if source_url:
+                    label += f": {source_url}"
+                lines.append(label)
+            parts.append("\n".join(lines))
+
+    result = "\n\n".join(parts)[:4900].strip()
+    if spiritual:
+        result = _strip_spiritual_technical_blocks(result)
+    return result
 
 
 def _upload(channel: dict, metadata: dict, video_path: Path) -> str:
     youtube = _youtube_for_channel(channel)
+    spiritual = _is_spiritual_channel(channel)
     body = {
         "snippet": {
             "title": metadata["title"],
-            "description": _description(metadata),
+            "description": _description(metadata, spiritual=spiritual),
             "tags": metadata.get("tags", [])[:18],
             "categoryId": channel["category_id"],
             "defaultLanguage": channel.get("language", "es-419"),
