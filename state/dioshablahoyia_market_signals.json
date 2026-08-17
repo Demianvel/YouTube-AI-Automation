@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-08-16T09:46:25.158647+00:00",
+  "generated_at": "2026-08-17T10:00:51.803214+00:00",
   "window_hours": 72,
   "region": "AR",
   "language": "es",
@@ -13,54 +13,54 @@
   "videos_analyzed": 37,
   "top_terms": [
     {
-      "term": "jesús",
-      "samples": 12,
-      "signal_score": 5.8405
-    },
-    {
       "term": "salmo 91",
-      "samples": 9,
-      "signal_score": 5.7639
-    },
-    {
-      "term": "esperanza",
-      "samples": 2,
-      "signal_score": 5.3734
-    },
-    {
-      "term": "amor",
       "samples": 7,
-      "signal_score": 5.236
+      "signal_score": 7.1799
+    },
+    {
+      "term": "salmos",
+      "samples": 1,
+      "signal_score": 6.425
+    },
+    {
+      "term": "mañana",
+      "samples": 2,
+      "signal_score": 6.2513
     },
     {
       "term": "fe",
-      "samples": 13,
-      "signal_score": 5.0163
+      "samples": 12,
+      "signal_score": 5.6724
+    },
+    {
+      "term": "jesús",
+      "samples": 11,
+      "signal_score": 5.6528
+    },
+    {
+      "term": "amor",
+      "samples": 2,
+      "signal_score": 5.6413
     },
     {
       "term": "dios",
-      "samples": 11,
-      "signal_score": 4.825
+      "samples": 18,
+      "signal_score": 5.2501
     },
     {
       "term": "biblia",
-      "samples": 7,
-      "signal_score": 4.4686
-    },
-    {
-      "term": "paz",
-      "samples": 3,
-      "signal_score": 3.6606
+      "samples": 4,
+      "signal_score": 4.9215
     },
     {
       "term": "oración",
-      "samples": 15,
-      "signal_score": 3.2335
+      "samples": 16,
+      "signal_score": 4.5257
     },
     {
       "term": "noche",
-      "samples": 2,
-      "signal_score": 2.6262
+      "samples": 7,
+      "signal_score": 4.254
     }
   ],
   "method": "public_youtube_recent_video_vph_and_engagement_aggregate",
