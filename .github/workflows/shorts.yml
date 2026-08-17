@@ -1,55 +1,53 @@
-name: Generate and publish Shorts
+name: Dios Habla Hoy IA - 10 Shorts diarios
 
 on:
   workflow_dispatch:
     inputs:
       channel:
-        description: Canal activo a ejecutar
+        description: Canal bloqueado
         required: true
+        default: dioshablahoyia
         type: choice
         options:
-          - brotavida
           - dioshablahoyia
       content_mode:
-        description: Formato de audio
+        description: Formato bloqueado
         required: true
-        default: auto
+        default: voice
         type: choice
         options:
-          - auto
-          - asmr
-          - music
           - voice
       dry_run:
         description: Generar sin subir a YouTube
         required: true
-        default: true
+        default: false
         type: boolean
   push:
     paths:
       - "triggers/dioshablahoyia-short-now.txt"
   schedule:
-    # BrotaVida: 4 Shorts diarios. Dios Habla Hoy usa su watchdog de 10 Shorts/dia.
-    - cron: "30 0,12,16,20 * * *"
+    - cron: "30 10,13,16,19,22 * * *"
+    - cron: "0 0,12,15,18,21 * * *"
 
 permissions:
   contents: write
   issues: write
 
 concurrency:
-  group: youtube-ai-publisher-${{ github.event_name == 'schedule' && github.event.schedule || github.run_id }}
+  group: dioshablahoyia-short-publisher
   cancel-in-progress: false
 
 jobs:
   publish:
     runs-on: ubuntu-latest
-    timeout-minutes: 180
+    timeout-minutes: 35
     env:
       PYTHONPATH: .
+      TZ: America/Argentina/Buenos_Aires
+      CHANNEL: dioshablahoyia
+      CONTENT_MODE: voice
       GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
       GEMINI_TEXT_MODEL: gemini-3.6-flash
-      GEMINI_VIDEO_ENABLED: "true"
-      GEMINI_VIDEO_MODEL: gemini-omni-flash-preview
       GEMINI_TTS_MODEL: gemini-3.1-flash-tts-preview
       GEMINI_TTS_VOICE: Algenib
       SPIRITUAL_MALE_GEMINI_VOICE: Algenib
@@ -58,184 +56,74 @@ jobs:
       SPIRITUAL_VOICE_REFERENCE_MODE: fresh_github_reference_bank_no_speaker_clone
       SPIRITUAL_VOICEOVER_MODE: "true"
       SPIRITUAL_LIPSYNC_ENABLED: "false"
-      VIDEO_PROVIDER: real_stock
-      PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
-      POLLINATIONS_API_KEY: ${{ secrets.POLLINATIONS_API_KEY }}
-      POLLINATIONS_IMAGE_MODEL: flux
-      HF_VIDEO_ENABLED: "true"
-      HF_REQUIRE_TEXT_TO_VIDEO: "true"
-      HF_ZERO_VIDEO_SPACE: Lightricks/LTX-2-3
-      HF_ZERO_RETRIES: "2"
-      HF_TOKEN: ${{ secrets.HF_TOKEN }}
-      HF_VIDEO_PROVIDER: auto
-      HF_VIDEO_MODEL: Wan-AI/Wan2.2-TI2V-5B
-      HF_IMAGE_PROVIDER: auto
-      HF_IMAGE_MODEL: black-forest-labs/FLUX.1-schnell
-      HF_REFERENCE_IMAGE_ENABLED: "true"
-      HF_REFERENCE_IMAGE_PROVIDER: auto
-      HF_REFERENCE_IMAGE_MODEL: black-forest-labs/FLUX.1-Kontext-dev
-      HF_REFERENCE_ZERO_SPACE: black-forest-labs/FLUX.1-Kontext-Dev
-      HF_REFERENCE_ZERO_SPACE_FIRST: "true"
-      HF_REFERENCE_EDITOR_ENABLED: "true"
-      HF_TEXT_ZERO_ENABLED: "true"
-      HF_TEXT_ZERO_SPACE: black-forest-labs/FLUX.1-schnell
-      HF_REMOTE_CIRCUIT_BREAKER: "true"
-      SPIRITUAL_REFERENCE_AVOID_RECENT: "60"
+      SPIRITUAL_REQUIRE_PRIMARY_VOICE: "true"
+      SPIRITUAL_SHORT_SECONDS: "60"
+      SPIRITUAL_SHORT_SCENE_SECONDS: "10"
+      SPIRITUAL_SHORT_AI_CLIPS: "0"
+      SPIRITUAL_ALLOW_STILL_FALLBACK: "true"
+      SPIRITUAL_FAST_RENDER: "true"
+      SPIRITUAL_VISUAL_VARIETY_LEVEL: maximum
+      SPIRITUAL_EDITORIAL_VARIETY_LEVEL: high
+      SPIRITUAL_CTA_OVERLAY: "false"
       SPIRITUAL_REQUIRE_FRESH_VISUAL: "true"
-      TTS_PROVIDER: chatterbox_latam
-      TTS_FALLBACK_KOKORO: "true"
-      CHATTERBOX_EXAGGERATION: "0.62"
-      CHATTERBOX_CFG_WEIGHT: "0.38"
-      CHATTERBOX_TEMPERATURE: "0.80"
+      TTS_PROVIDER: gemini_tts
+      TTS_FALLBACK_KOKORO: "false"
       KOKORO_VOICE: em_alex
       KOKORO_SPEED: "0.91"
+      GEMINI_VIDEO_ENABLED: "false"
+      HF_VIDEO_ENABLED: "false"
+      HF_REQUIRE_TEXT_TO_VIDEO: "false"
+      HF_VIDEO_STRICT: "false"
+      HF_REFERENCE_IMAGE_ENABLED: "true"
+      HF_REFERENCE_EDITOR_ENABLED: "true"
+      HF_REFERENCE_ZERO_SPACE: black-forest-labs/FLUX.1-Kontext-Dev
+      HF_TEXT_ZERO_ENABLED: "true"
+      HF_TEXT_ZERO_SPACE: black-forest-labs/FLUX.1-schnell
+      HF_REFERENCE_ZERO_SPACE_FIRST: "true"
+      HF_ZERO_AUTH_RETRY: "true"
+      HF_REMOTE_CIRCUIT_BREAKER: "true"
+      HF_INFERENCE_PROVIDER_ENABLED: "false"
+      HF_ZERO_TOKEN: ${{ secrets.HF_TOKEN }}
+      HF_TOKEN: ""
+      SPIRITUAL_REFERENCE_AVOID_RECENT: "100"
+      DIOS_FAST_LOCAL_VISUAL_MODE: "false"
+      PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
       MUSIC_PROVIDER: local
-      YOUTUBE_TOKEN_BROTAVIDA: ${{ secrets.YOUTUBE_TOKEN_BROTAVIDA }}
       YOUTUBE_TOKEN_DIOSHABLAHOYIA: ${{ secrets.YOUTUBE_TOKEN_DIOSHABLAHOYIA }}
 
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-
-      - name: Select channel and content format
-        id: select
-        shell: bash
-        run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            CHANNEL="${{ inputs.channel }}"
-            CONTENT_MODE="${{ inputs.content_mode }}"
-          elif [ "${{ github.event_name }}" = "push" ]; then
-            CHANNEL="dioshablahoyia"
-            CONTENT_MODE="voice"
-          elif [ "${{ github.event.schedule }}" = "30 0,12,16,20 * * *" ]; then
-            CHANNEL="brotavida"
-            CONTENT_MODE="asmr"
-          else
-            CHANNEL=""
-            CONTENT_MODE="auto"
-          fi
-
-          if [ "$CHANNEL" = "dioshablahoyia" ]; then
-            CONTENT_MODE="voice"
-          elif [ "$CHANNEL" = "brotavida" ]; then
-            CONTENT_MODE="asmr"
-          fi
-
-          echo "channel=$CHANNEL" >> "$GITHUB_OUTPUT"
-          echo "content_mode=$CONTENT_MODE" >> "$GITHUB_OUTPUT"
-          echo "CHANNEL=$CHANNEL" >> "$GITHUB_ENV"
-          echo "CONTENT_MODE=$CONTENT_MODE" >> "$GITHUB_ENV"
-
-          if [ "$CHANNEL" = "brotavida" ]; then
-            echo "TTS_PROVIDER=none" >> "$GITHUB_ENV"
-            echo "BROTA_TIMELAPSE_ONLY=true" >> "$GITHUB_ENV"
-            echo "BROTA_AUDIO_MODE=asmr" >> "$GITHUB_ENV"
-          elif [ "$CHANNEL" = "dioshablahoyia" ]; then
-            echo "TTS_PROVIDER=gemini_tts" >> "$GITHUB_ENV"
-            echo "GEMINI_TTS_MODEL=gemini-3.1-flash-tts-preview" >> "$GITHUB_ENV"
-            echo "GEMINI_TTS_VOICE=Algenib" >> "$GITHUB_ENV"
-            echo "SPIRITUAL_MALE_GEMINI_VOICE=Algenib" >> "$GITHUB_ENV"
-            echo "KOKORO_VOICE=em_alex" >> "$GITHUB_ENV"
-            echo "KOKORO_SPEED=0.91" >> "$GITHUB_ENV"
-            echo "SPIRITUAL_VOICE_PROFILE=voz_de_luz_serena_original_v1" >> "$GITHUB_ENV"
-            echo "SPIRITUAL_VOICE_BRAND=Voz de Luz" >> "$GITHUB_ENV"
-            echo "SPIRITUAL_VOICE_REFERENCE_MODE=fresh_github_reference_bank_no_speaker_clone" >> "$GITHUB_ENV"
-            echo "SPIRITUAL_VOICEOVER_MODE=true" >> "$GITHUB_ENV"
-            echo "SPIRITUAL_SHORT_SECONDS=60" >> "$GITHUB_ENV"
-            echo "SPIRITUAL_SHORT_SCENE_SECONDS=10" >> "$GITHUB_ENV"
-            echo "SPIRITUAL_SHORT_AI_CLIPS=0" >> "$GITHUB_ENV"
-            echo "SPIRITUAL_CTA_OVERLAY=false" >> "$GITHUB_ENV"
-            echo "SPIRITUAL_LIPSYNC_ENABLED=false" >> "$GITHUB_ENV"
-            echo "SPIRITUAL_ALLOW_STILL_FALLBACK=true" >> "$GITHUB_ENV"
-            echo "SPIRITUAL_VISUAL_VARIETY_LEVEL=maximum" >> "$GITHUB_ENV"
-            echo "SPIRITUAL_EDITORIAL_VARIETY_LEVEL=high" >> "$GITHUB_ENV"
-            echo "SPIRITUAL_REQUIRE_PRIMARY_VOICE=true" >> "$GITHUB_ENV"
-            echo "SPIRITUAL_REQUIRE_FRESH_VISUAL=true" >> "$GITHUB_ENV"
-            echo "GEMINI_VIDEO_ENABLED=false" >> "$GITHUB_ENV"
-            echo "HF_VIDEO_ENABLED=false" >> "$GITHUB_ENV"
-            echo "HF_REQUIRE_TEXT_TO_VIDEO=false" >> "$GITHUB_ENV"
-            echo "HF_VIDEO_STRICT=false" >> "$GITHUB_ENV"
-            echo "HF_ZERO_RETRIES=0" >> "$GITHUB_ENV"
-            echo "HF_REFERENCE_IMAGE_ENABLED=true" >> "$GITHUB_ENV"
-            echo "HF_REFERENCE_EDITOR_ENABLED=true" >> "$GITHUB_ENV"
-            echo "HF_REFERENCE_ZERO_SPACE=black-forest-labs/FLUX.1-Kontext-Dev" >> "$GITHUB_ENV"
-            echo "HF_REFERENCE_ZERO_SPACE_FIRST=true" >> "$GITHUB_ENV"
-            echo "HF_TEXT_ZERO_ENABLED=true" >> "$GITHUB_ENV"
-            echo "HF_TEXT_ZERO_SPACE=black-forest-labs/FLUX.1-schnell" >> "$GITHUB_ENV"
-            echo "HF_REMOTE_CIRCUIT_BREAKER=true" >> "$GITHUB_ENV"
-            echo "SPIRITUAL_REFERENCE_AVOID_RECENT=60" >> "$GITHUB_ENV"
-            echo "HF_ZERO_TOKEN=$HF_TOKEN" >> "$GITHUB_ENV"
-            echo "HF_INFERENCE_PROVIDER_ENABLED=false" >> "$GITHUB_ENV"
-            echo "HF_TOKEN=" >> "$GITHUB_ENV"
-            echo "DIOS_FAST_LOCAL_VISUAL_MODE=false" >> "$GITHUB_ENV"
-            echo "Modo Dios renovado: Hugging Face ZeroGPU primero; referencias locales antiguas bloqueadas; respaldo libre solo si es nuevo."
-          fi
-          echo "Seleccionado: $CHANNEL / $CONTENT_MODE"
-
-      - name: Check generation credentials and scheduled OAuth
-        id: readiness
-        if: env.CHANNEL != ''
-        shell: bash
-        run: |
-          if [ "$CHANNEL" = "brotavida" ] && [ -z "$PEXELS_API_KEY" ]; then
-            echo "ready=false" >> "$GITHUB_OUTPUT"
-            echo "BrotaVida pausado: falta PEXELS_API_KEY para obtener metraje botanico real."
-            exit 0
-          fi
-          if python scripts/check_ready.py --generation-only; then
-            echo "ready=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "ready=false" >> "$GITHUB_OUTPUT"
-            exit 1
-          fi
-
-      - name: Determine upload mode
-        id: upload
-        if: steps.readiness.outputs.ready == 'true'
-        shell: bash
-        run: |
-          READY=false
-          if [ "$CHANNEL" = "brotavida" ] && [ -n "$YOUTUBE_TOKEN_BROTAVIDA" ]; then
-            READY=true
-          elif [ "$CHANNEL" = "dioshablahoyia" ] && [ -n "$YOUTUBE_TOKEN_DIOSHABLAHOYIA" ]; then
-            READY=true
-          fi
-          echo "ready=$READY" >> "$GITHUB_OUTPUT"
-
       - uses: actions/setup-python@v5
-        if: steps.readiness.outputs.ready == 'true'
         with:
           python-version: "3.11"
-          cache: pip
-
-      - name: Install base media dependencies
-        if: steps.readiness.outputs.ready == 'true'
+      - name: Install lightweight Dios runtime
         run: |
-          sudo apt-get update
-          sudo apt-get install -y ffmpeg espeak-ng libsndfile1 fonts-dejavu-core git
-          python -m pip install --upgrade pip
-          pip install torch==2.6.0 --index-url https://download.pytorch.org/whl/cpu
-          pip install -r requirements.txt
-
-      - name: Generate Short and optionally upload
-        if: steps.readiness.outputs.ready == 'true'
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg espeak-ng libsndfile1 fonts-dejavu-core git >/dev/null
+          python -m pip install -q --upgrade pip
+          pip install -q "google-genai>=2.3.0" "google-api-python-client>=2.170.0" "google-auth>=2.40.0" "google-auth-oauthlib>=1.2.2" "Pillow>=11.0.0" "requests>=2.32.0" "numpy<3,>=1.26" "soundfile>=0.13.1" "huggingface_hub<2,>=0.34.4" "gradio_client<3,>=1.11.0"
+      - name: Verify fixed voice and fresh bank
+        run: |
+          python scripts/check_ready.py --generation-only
+          test -n "$YOUTUBE_TOKEN_DIOSHABLAHOYIA"
+          test -n "$HF_ZERO_TOKEN"
+          test -f assets/dioshablahoyia/reference/jesus_reference_user_new_01.jpg
+          test -f assets/dioshablahoyia/reference/jesus_reference_user_new_02.jpg
+          test -f assets/dioshablahoyia/reference/jesus_reference_user_new_03.jpg
+          test -f assets/dioshablahoyia/visual_reference/noah_ark_user_new_01.jpg
+          python -m py_compile scripts/publish_dios_fast.py app/pipeline.py app/spiritual_reference_generation.py app/spiritual_image.py
+      - name: Generate fresh Short
         shell: bash
         run: |
-          EXTRA=""
-          if [ "${{ steps.upload.outputs.ready }}" != "true" ]; then
-            EXTRA="--dry-run"
-          elif [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.dry_run }}" = "true" ]; then
-            EXTRA="--dry-run"
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.dry_run }}" = "true" ]; then
+            python -m app.pipeline --channel dioshablahoyia --content-mode voice --dry-run
+          else
+            python scripts/publish_dios_fast.py
           fi
-          python -m app.pipeline --channel "$CHANNEL" --content-mode "$CONTENT_MODE" $EXTRA
-
-      - name: BrotaVida paused safely
-        if: env.CHANNEL == 'brotavida' && steps.readiness.outputs.ready != 'true'
-        run: echo "BrotaVida queda en pausa segura hasta configurar PEXELS_API_KEY."
-
       - name: Persist anti-duplicate history
-        if: steps.readiness.outputs.ready == 'true' && success()
+        if: success() && !(github.event_name == 'workflow_dispatch' && inputs.dry_run)
         shell: bash
         run: |
           git config user.name "youtube-ai-bot"
@@ -246,31 +134,22 @@ jobs:
             git reset --hard origin/main
             mkdir -p state
             touch state/history.jsonl
-            if ! grep -Fqx "$NEW_RECORD" state/history.jsonl; then
-              printf '%s\n' "$NEW_RECORD" >> state/history.jsonl
-            fi
+            grep -Fqx "$NEW_RECORD" state/history.jsonl || printf '%s\n' "$NEW_RECORD" >> state/history.jsonl
             git add state/history.jsonl
-            if git diff --cached --quiet; then
-              exit 0
-            fi
-            git commit -m "chore: update Shorts history"
-            if git push origin HEAD:main; then
-              exit 0
-            fi
+            if git diff --cached --quiet; then exit 0; fi
+            git commit -m "chore: update Dios Shorts history"
+            if git push origin HEAD:main; then exit 0; fi
           done
           exit 1
-
-      - name: Upload generated artifact for inspection
-        if: steps.readiness.outputs.ready == 'true' && always()
+      - name: Upload generated artifact
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: short-${{ env.CHANNEL }}-${{ env.CONTENT_MODE }}-${{ github.run_id }}
+          name: dioshablahoyia-short-${{ github.run_id }}
           path: output/
-          retention-days: 3
-
-      - name: Open issue on pipeline failure
+          retention-days: 2
+      - name: Open issue on strict publishing failure
         if: failure()
         env:
           GH_TOKEN: ${{ github.token }}
-        run: |
-          gh issue create --title "Automation failure: $CHANNEL" --body "El workflow de Shorts fallo. Revisar Actions run $GITHUB_RUN_ID."
+        run: gh issue create --title "Dios Habla Hoy - fallo un Short programado" --body "No se publico con una voz alternativa ni con visual repetido. Revisar Actions run $GITHUB_RUN_ID."
