@@ -1,0 +1,67 @@
+name: Dios Habla Hoy IA - Descripcion solo editorial
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "app/youtube.py"
+      - "app/spiritual_free_media.py"
+      - ".github/workflows/dioshablahoyia-description-guard.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      PYTHONPATH: .
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install minimal validation dependencies
+        run: pip install -q google-api-python-client google-auth requests Pillow
+      - name: Compile description and free-media modules
+        run: python -m py_compile app/youtube.py app/spiritual_free_media.py
+      - name: Verify Dios public description strips technical credits
+        run: |
+          python - <<'PY'
+          from app.youtube import _description
+          from app.spiritual_free_media import _license_is_usable
+
+          metadata = {
+              "description": (
+                  "Dios te acompaña aun cuando el camino parece difícil.\n"
+                  "La Biblia nos recuerda que podemos confiar en su amor.\n\n"
+                  "Créditos visuales de material libre (Wikimedia Commons):\n"
+                  "• Thatcher Clay — CC BY 2.0 — https://commons.wikimedia.org/wiki/File:Norway.jpg\n"
+                  "• Jack Versloot — CC BY 2.0 — https://commons.wikimedia.org/wiki/File:Peaceful.jpg"
+              ),
+              "hashtags": ["#Dios", "#Jesus", "#Biblia", "#Fe"],
+              "source_credits": [
+                  {
+                      "provider": "Wikimedia Commons",
+                      "creator": "Someone",
+                      "license": "CC BY 2.0",
+                      "source_url": "https://commons.wikimedia.org/example",
+                  }
+              ],
+          }
+          public = _description(metadata, spiritual=True)
+          banned = ("Wikimedia", "commons.wikimedia.org", "CC BY", "Thatcher Clay", "Jack Versloot", "Fuentes visuales")
+          for token in banned:
+              assert token.lower() not in public.lower(), (token, public)
+          assert "Dios te acompaña" in public
+          assert "La Biblia" in public
+          assert "#Dios" in public and "#Biblia" in public
+          assert _license_is_usable("CC0 1.0") is True
+          assert _license_is_usable("Public domain") is True
+          assert _license_is_usable("CC BY 2.0") is False
+          assert _license_is_usable("CC BY 4.0") is False
+          print("DESCRIPTION_GUARD_OK")
+          print(public)
+          PY
