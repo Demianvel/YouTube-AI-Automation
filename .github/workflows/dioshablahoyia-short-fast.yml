@@ -33,6 +33,7 @@ jobs:
       SPIRITUAL_VOICE_REFERENCE_MODE: two_reference_style_blend_no_speaker_clone
       SPIRITUAL_VOICEOVER_MODE: "true"
       SPIRITUAL_LIPSYNC_ENABLED: "false"
+      SPIRITUAL_REQUIRE_PRIMARY_VOICE: "true"
       SPIRITUAL_SHORT_SECONDS: "60"
       SPIRITUAL_SHORT_SCENE_SECONDS: "10"
       SPIRITUAL_SHORT_AI_CLIPS: "0"
@@ -42,6 +43,8 @@ jobs:
       SPIRITUAL_CTA_OVERLAY: "false"
       TTS_PROVIDER: gemini_tts
       TTS_FALLBACK_KOKORO: "false"
+      KOKORO_VOICE: em_alex
+      KOKORO_SPEED: "0.91"
       GEMINI_VIDEO_ENABLED: "false"
       HF_VIDEO_ENABLED: "false"
       HF_REQUIRE_TEXT_TO_VIDEO: "false"
@@ -83,8 +86,8 @@ jobs:
           python scripts/check_ready.py --generation-only
           test -n "$YOUTUBE_TOKEN_DIOSHABLAHOYIA"
 
-      - name: Generate and upload Short
-        run: python -m app.pipeline --channel dioshablahoyia --content-mode voice
+      - name: Generate and upload Short with Voz de Luz
+        run: python scripts/publish_dios_fast.py
 
       - name: Persist anti-duplicate history
         if: success()
