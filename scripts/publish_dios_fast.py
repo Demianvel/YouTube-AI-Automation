@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import re
 import subprocess
 import time
@@ -9,6 +10,7 @@ from app import pipeline
 from app import spiritual_image
 from app import spiritual_tts
 from app.generator_resilient import _local_metadata
+from app.spiritual_free_media import download_fresh_free_image
 
 
 def _fast_local_metadata(channel: dict, previous: list[dict], retries: int = 5) -> dict:
@@ -51,7 +53,35 @@ def _fast_animate(source: Path, out: Path, duration: int, index: int) -> None:
     )
 
 
+_ORIGINAL_DOWNLOAD = spiritual_image._download
 _ORIGINAL_GEMINI_VOICE = spiritual_tts._gemini_spiritual_voice
+
+
+def _fresh_download(prompt: str, out: Path, seed: int) -> str:
+    """Use FLUX first; never keep the repeated local-reference fallback in strict fast mode."""
+    original_provider = ""
+    original_error: Exception | None = None
+    try:
+        original_provider = _ORIGINAL_DOWNLOAD(prompt, out, seed)
+        if not original_provider.startswith("local_project_jesus_reference"):
+            return original_provider
+        print("El generador termino en referencia local repetible; reemplazando por una imagen gratuita NUEVA.")
+    except Exception as exc:
+        original_error = exc
+        print(f"Generador visual principal no disponible ({exc}); buscando imagen gratuita NUEVA.")
+
+    try:
+        provider = download_fresh_free_image(prompt, out, seed)
+        return provider + ":fresh_nonrepeat_fallback"
+    except Exception as fresh_exc:
+        strict = os.getenv("SPIRITUAL_REQUIRE_FRESH_VISUAL", "true").lower().strip() == "true"
+        if strict:
+            raise RuntimeError(
+                f"Se rechazo publicar una escena repetida. FLUX/local={original_provider or original_error}; fresh-free={fresh_exc}"
+            ) from fresh_exc
+        if original_provider:
+            return original_provider
+        raise
 
 
 def _quota_resilient_gemini_voice(path: Path, text: str) -> str:
@@ -75,8 +105,7 @@ def _quota_resilient_gemini_voice(path: Path, text: str) -> str:
 
 
 pipeline.generate_metadata = _fast_local_metadata
-# IMPORTANT: do NOT replace spiritual_image._download. It now uses the fresh
-# visual chain: FLUX ZeroGPU -> optional free/licensed fallback -> local last resort.
+spiritual_image._download = _fresh_download
 spiritual_image._animate = _fast_animate
 spiritual_tts._gemini_spiritual_voice = _quota_resilient_gemini_voice
 
