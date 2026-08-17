@@ -50,8 +50,18 @@ jobs:
           echo "long_missing=$LONG_MISSING" >> "$GITHUB_OUTPUT"
           echo "long_minutes=$LONG_MINUTES" >> "$GITHUB_OUTPUT"
 
+      - name: Check whether strict daily catch-up is active
+        id: batch
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          ACTIVE="$(gh run list -R "$GITHUB_REPOSITORY" --workflow dioshablahoyia-catchup-shorts.yml --limit 20 --json status --jq '[.[] | select(.status == "queued" or .status == "in_progress" or .status == "waiting" or .status == "pending")] | length' 2>/dev/null || echo 0)"
+          echo "active=$ACTIVE" >> "$GITHUB_OUTPUT"
+          echo "Catch-up estricto activo: $ACTIVE"
+
       - name: Catch up one missing Dios Short
-        if: steps.plan.outputs.short_missing != '0'
+        if: steps.plan.outputs.short_missing != '0' && steps.batch.outputs.active == '0'
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash
@@ -70,7 +80,7 @@ jobs:
           fi
 
       - name: Catch up one missing long Dios video
-        if: steps.plan.outputs.long_missing != '0'
+        if: steps.plan.outputs.long_missing != '0' && steps.batch.outputs.active == '0'
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash
@@ -86,6 +96,10 @@ jobs:
               -f minutes="${{ steps.plan.outputs.long_minutes }}" \
               -f publish=true
           fi
+
+      - name: Strict catch-up owns recovery right now
+        if: steps.batch.outputs.active != '0'
+        run: echo "El lote estricto esta completando el objetivo diario; watchdog no dispara trabajos paralelos."
 
       - name: Report serious daily deficit
         if: failure()
