@@ -15,6 +15,7 @@ from .performance import enrich_history_with_youtube_stats
 from .premium_audio import apply_audio as premium_apply_audio
 from .hf_primary_router import generate_short
 from .spiritual_content_guard import enforce_spiritual_topic_guard
+from .spiritual_free_media import append_free_media_credits
 from .spiritual_growth import enrich_short_growth
 from .spiritual_quality import enforce_spiritual_metadata
 from .spiritual_source_growth_engine import ground_and_optimize_spiritual_metadata
@@ -137,6 +138,8 @@ def run(channel_slug: str, dry_run: bool = False, content_mode: str = "auto") ->
     _write_metadata(workdir, metadata)
 
     video_path = generate_short(channel, metadata, workdir)
+    if channel_slug == "dioshablahoyia":
+        metadata = append_free_media_credits(metadata)
     _write_metadata(workdir, metadata)
 
     video_id = None
@@ -164,6 +167,7 @@ def run(channel_slug: str, dry_run: bool = False, content_mode: str = "auto") ->
         "visual_pack": metadata.get("visual_pack"),
         "visual_prompt_hashes": metadata.get("visual_prompt_hashes"),
         "generated_visual_provider": metadata.get("generated_visual_provider"),
+        "free_visual_credits": metadata.get("free_visual_credits"),
         "character_reference_profile": metadata.get("character_reference_profile"),
         "text_to_video_engine": metadata.get("text_to_video_engine"),
         "worker_publisher": metadata.get("worker_publisher"),
