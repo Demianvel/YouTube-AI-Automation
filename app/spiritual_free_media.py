@@ -28,24 +28,28 @@ def _clean(value: Any) -> str:
 
 
 def _query_from_prompt(prompt: str) -> str:
+    return _queries_from_prompt(prompt)[0]
+
+
+def _queries_from_prompt(prompt: str) -> list[str]:
     text = " ".join(str(prompt or "").lower().split())
     if any(k in text for k in ("tromso", "lofoten", "senja", "norway", "norwegian", "fjord", "aurora")):
-        return "Norway fjord aurora mountains nature"
+        return ["Norway fjord", "Norway mountains", "Lofoten Norway", "Norwegian landscape", "aurora Norway"]
     if any(k in text for k in ("bible", "scripture", "cross", "dove", "tomb", "shepherd", "prayer")):
-        return "Bible prayer cross church sunlight peaceful"
+        return ["Bible", "Christian cross", "church sunlight", "prayer Bible", "shepherd landscape"]
     if any(k in text for k in ("jerusalem", "judean", "galilee", "olive grove", "bethlehem")):
-        return "Jerusalem old city desert olive grove biblical landscape"
+        return ["Jerusalem old city", "Judean desert", "Sea of Galilee", "olive grove Israel", "Bethlehem landscape"]
     if any(k in text for k in ("noah", "samaritan", "moses", "david", "ancient road")):
-        return "ancient desert road mountains historical landscape"
+        return ["ancient desert road", "desert landscape Israel", "ancient stone road", "biblical landscape"]
     if any(k in text for k in ("waterfall", "river", "lake", "forest", "mountain", "ocean", "desert", "valley")):
-        return "mountain river waterfall forest sunrise peaceful nature"
+        return ["mountain river", "waterfall forest", "alpine lake", "green valley", "mountain sunrise"]
     if any(k in text for k in ("rainbow", "storm clouds", "sun rays", "sunrise", "horizon")):
-        return "sun rays clouds rainbow mountains sunrise nature"
-    return "peaceful mountains sunrise nature cinematic"
+        return ["sun rays clouds", "rainbow mountains", "sunrise mountains", "storm clouds landscape"]
+    return ["peaceful mountains", "sunrise landscape", "river valley", "nature mountains"]
 
 
 def _seed(prompt: str, seed: int) -> int:
-    raw = f"fresh-free-media-v2|{prompt}|{seed}|{os.getenv('GITHUB_RUN_ID','')}"
+    raw = f"fresh-free-media-v3|{prompt}|{seed}|{os.getenv('GITHUB_RUN_ID','')}"
     return int(hashlib.sha256(raw.encode("utf-8")).hexdigest()[:16], 16)
 
 
@@ -107,11 +111,21 @@ def _pexels_image(prompt: str, out: Path, seed: int) -> str:
         raise RuntimeError("Pexels no devolvio una URL de imagen utilizable.")
     _normalize_image(_download(str(url)), out, seed)
     photographer = str(chosen.get("photographer") or "Pexels contributor")
-    return f"Pexels fresh free photo / id:{chosen.get('id')} / {photographer} / query:{query}"
+    return f"Pexels fresh free photo | id={chosen.get('id')} | artist={photographer} | query={query}"
 
 
-def _commons_public_domain_image(prompt: str, out: Path, seed: int) -> str:
-    query = _query_from_prompt(prompt)
+def _license_is_usable(license_name: str) -> bool:
+    value = license_name.lower().strip()
+    if value.startswith("cc0") or value.startswith("public domain"):
+        return True
+    # CC BY permits commercial use with attribution. Explicitly exclude ShareAlike
+    # variants because normal YouTube licensing is not a good fit for CC BY-SA.
+    if value.startswith("cc by") and "by-sa" not in value and "sharealike" not in value:
+        return True
+    return False
+
+
+def _commons_candidates(query: str) -> list[dict[str, str]]:
     params = {
         "action": "query",
         "generator": "search",
@@ -134,42 +148,88 @@ def _commons_public_domain_image(prompt: str, out: Path, seed: int) -> str:
         if mime not in ALLOWED_RASTER_MIMES:
             continue
         metadata = info.get("extmetadata") or {}
-        license_name = _clean(metadata.get("LicenseShortName")).lower()
-        if not (license_name.startswith("cc0") or license_name.startswith("public domain")):
+        license_name = _clean(metadata.get("LicenseShortName"))
+        if not _license_is_usable(license_name):
             continue
         url = str(info.get("url") or "")
+        source = str(info.get("descriptionurl") or "")
         marker = f"commons:{url}"
         if not url or marker in _USED_REMOTE_IDS:
             continue
         candidates.append({
             "url": url,
+            "source": source,
             "marker": marker,
-            "license": _clean(metadata.get("LicenseShortName")) or "Public domain/CC0",
+            "license": license_name or "Public Domain/CC0",
             "artist": _clean(metadata.get("Artist")) or "Wikimedia Commons contributor",
             "mime": mime,
+            "query": query,
         })
+    return candidates
+
+
+def _commons_free_image(prompt: str, out: Path, seed: int) -> str:
+    all_candidates: list[dict[str, str]] = []
+    for query in _queries_from_prompt(prompt):
+        try:
+            found = _commons_candidates(query)
+        except Exception:
+            found = []
+        all_candidates.extend(found)
+        if len(all_candidates) >= 12:
+            break
+
+    unique: dict[str, dict[str, str]] = {item["marker"]: item for item in all_candidates}
+    candidates = list(unique.values())
     if not candidates:
-        raise RuntimeError(f"Wikimedia Commons no encontro JPEG/PNG/WebP CC0 o dominio publico para '{query}'.")
+        raise RuntimeError("Wikimedia Commons no encontro raster CC0/dominio publico/CC BY nuevo para esta escena.")
 
     rng = random.Random(_seed(prompt, seed) ^ 0xC0A110)
     rng.shuffle(candidates)
     decode_errors: list[str] = []
-    for chosen in candidates[:12]:
+    for chosen in candidates[:20]:
         try:
-            raw = _download(chosen["url"])
-            _normalize_image(raw, out, seed)
+            _normalize_image(_download(chosen["url"]), out, seed)
             _USED_REMOTE_IDS.add(chosen["marker"])
             return (
-                f"Wikimedia fresh public-domain raster / {chosen['license']} / "
-                f"{chosen['artist']} / query:{query}"
+                "Wikimedia fresh free raster"
+                f" | license={chosen['license']}"
+                f" | artist={chosen['artist']}"
+                f" | source={chosen['source']}"
+                f" | query={chosen['query']}"
             )
         except Exception as exc:
             decode_errors.append(str(exc))
+    raise RuntimeError("Wikimedia encontro material libre, pero no pudo decodificarlo: " + " | ".join(decode_errors[-3:]))
+
+
+def append_free_media_credits(metadata: dict) -> dict:
+    providers = metadata.get("generated_visual_provider") or []
+    if isinstance(providers, str):
+        providers = [providers]
+    credits: list[str] = []
+    for provider in providers:
+        text = str(provider)
+        if not text.startswith("Wikimedia fresh free raster"):
             continue
-    raise RuntimeError(
-        f"Wikimedia encontro candidatos para '{query}', pero ninguno de los raster pudo decodificarse: "
-        + " | ".join(decode_errors[-3:])
-    )
+        fields: dict[str, str] = {}
+        for part in text.split(" | ")[1:]:
+            if "=" in part:
+                key, value = part.split("=", 1)
+                fields[key.strip()] = value.strip()
+        artist = fields.get("artist") or "Wikimedia Commons contributor"
+        license_name = fields.get("license") or "CC BY/Public Domain"
+        source = fields.get("source") or "Wikimedia Commons"
+        line = f"{artist} — {license_name} — {source}"
+        if line not in credits:
+            credits.append(line)
+    if not credits:
+        return metadata
+    block = "\n\nCréditos visuales de material libre (Wikimedia Commons):\n" + "\n".join(f"• {line}" for line in credits)
+    description = str(metadata.get("description") or "").rstrip()
+    metadata["description"] = (description + block)[:4900]
+    metadata["free_visual_credits"] = credits
+    return metadata
 
 
 def download_fresh_free_image(prompt: str, out: Path, seed: int) -> str:
@@ -180,7 +240,7 @@ def download_fresh_free_image(prompt: str, out: Path, seed: int) -> str:
     except Exception as exc:
         errors.append(f"Pexels: {exc}")
     try:
-        return _commons_public_domain_image(prompt, out, seed)
+        return _commons_free_image(prompt, out, seed)
     except Exception as exc:
         errors.append(f"Wikimedia: {exc}")
     raise RuntimeError("; ".join(errors))
