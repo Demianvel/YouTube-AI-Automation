@@ -1,0 +1,25 @@
+name: Dios Habla Hoy IA - Encadenar largos tras Shorts
+
+on:
+  workflow_run:
+    workflows:
+      - "Dios Habla Hoy IA - Completar 10 Shorts diarios"
+    types: [completed]
+
+permissions:
+  actions: write
+  contents: read
+
+jobs:
+  start-longs:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Launch missing 4 long videos after Short catch-up finishes
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          echo "Short catch-up conclusion: ${{ github.event.workflow_run.conclusion }}"
+          gh workflow run dioshablahoyia-publish-all.yml -R "$GITHUB_REPOSITORY" --ref main
+          echo "Lote de largos solicitado: solo publicara duraciones faltantes de hoy."
