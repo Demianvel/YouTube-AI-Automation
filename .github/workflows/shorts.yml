@@ -55,7 +55,7 @@ jobs:
       SPIRITUAL_MALE_GEMINI_VOICE: Algenib
       SPIRITUAL_VOICE_PROFILE: voz_de_luz_serena_original_v1
       SPIRITUAL_VOICE_BRAND: Voz de Luz
-      SPIRITUAL_VOICE_REFERENCE_MODE: two_reference_style_blend_no_speaker_clone
+      SPIRITUAL_VOICE_REFERENCE_MODE: fresh_github_reference_bank_no_speaker_clone
       SPIRITUAL_VOICEOVER_MODE: "true"
       SPIRITUAL_LIPSYNC_ENABLED: "false"
       VIDEO_PROVIDER: real_stock
@@ -76,14 +76,19 @@ jobs:
       HF_REFERENCE_IMAGE_MODEL: black-forest-labs/FLUX.1-Kontext-dev
       HF_REFERENCE_ZERO_SPACE: black-forest-labs/FLUX.1-Kontext-Dev
       HF_REFERENCE_ZERO_SPACE_FIRST: "true"
-      SPIRITUAL_REFERENCE_AVOID_RECENT: "8"
+      HF_REFERENCE_EDITOR_ENABLED: "true"
+      HF_TEXT_ZERO_ENABLED: "true"
+      HF_TEXT_ZERO_SPACE: black-forest-labs/FLUX.1-schnell
+      HF_REMOTE_CIRCUIT_BREAKER: "true"
+      SPIRITUAL_REFERENCE_AVOID_RECENT: "60"
+      SPIRITUAL_REQUIRE_FRESH_VISUAL: "true"
       TTS_PROVIDER: chatterbox_latam
       TTS_FALLBACK_KOKORO: "true"
       CHATTERBOX_EXAGGERATION: "0.62"
       CHATTERBOX_CFG_WEIGHT: "0.38"
       CHATTERBOX_TEMPERATURE: "0.80"
       KOKORO_VOICE: em_alex
-      KOKORO_SPEED: "0.93"
+      KOKORO_SPEED: "0.91"
       MUSIC_PROVIDER: local
       YOUTUBE_TOKEN_BROTAVIDA: ${{ secrets.YOUTUBE_TOKEN_BROTAVIDA }}
       YOUTUBE_TOKEN_DIOSHABLAHOYIA: ${{ secrets.YOUTUBE_TOKEN_DIOSHABLAHOYIA }}
@@ -132,10 +137,10 @@ jobs:
             echo "GEMINI_TTS_VOICE=Algenib" >> "$GITHUB_ENV"
             echo "SPIRITUAL_MALE_GEMINI_VOICE=Algenib" >> "$GITHUB_ENV"
             echo "KOKORO_VOICE=em_alex" >> "$GITHUB_ENV"
-            echo "KOKORO_SPEED=0.93" >> "$GITHUB_ENV"
+            echo "KOKORO_SPEED=0.91" >> "$GITHUB_ENV"
             echo "SPIRITUAL_VOICE_PROFILE=voz_de_luz_serena_original_v1" >> "$GITHUB_ENV"
             echo "SPIRITUAL_VOICE_BRAND=Voz de Luz" >> "$GITHUB_ENV"
-            echo "SPIRITUAL_VOICE_REFERENCE_MODE=two_reference_style_blend_no_speaker_clone" >> "$GITHUB_ENV"
+            echo "SPIRITUAL_VOICE_REFERENCE_MODE=fresh_github_reference_bank_no_speaker_clone" >> "$GITHUB_ENV"
             echo "SPIRITUAL_VOICEOVER_MODE=true" >> "$GITHUB_ENV"
             echo "SPIRITUAL_SHORT_SECONDS=60" >> "$GITHUB_ENV"
             echo "SPIRITUAL_SHORT_SCENE_SECONDS=10" >> "$GITHUB_ENV"
@@ -143,18 +148,28 @@ jobs:
             echo "SPIRITUAL_CTA_OVERLAY=false" >> "$GITHUB_ENV"
             echo "SPIRITUAL_LIPSYNC_ENABLED=false" >> "$GITHUB_ENV"
             echo "SPIRITUAL_ALLOW_STILL_FALLBACK=true" >> "$GITHUB_ENV"
-            echo "SPIRITUAL_VISUAL_VARIETY_LEVEL=high" >> "$GITHUB_ENV"
+            echo "SPIRITUAL_VISUAL_VARIETY_LEVEL=maximum" >> "$GITHUB_ENV"
             echo "SPIRITUAL_EDITORIAL_VARIETY_LEVEL=high" >> "$GITHUB_ENV"
-            echo "SPIRITUAL_REQUIRE_PRIMARY_VOICE=false" >> "$GITHUB_ENV"
+            echo "SPIRITUAL_REQUIRE_PRIMARY_VOICE=true" >> "$GITHUB_ENV"
+            echo "SPIRITUAL_REQUIRE_FRESH_VISUAL=true" >> "$GITHUB_ENV"
             echo "GEMINI_VIDEO_ENABLED=false" >> "$GITHUB_ENV"
             echo "HF_VIDEO_ENABLED=false" >> "$GITHUB_ENV"
             echo "HF_REQUIRE_TEXT_TO_VIDEO=false" >> "$GITHUB_ENV"
             echo "HF_VIDEO_STRICT=false" >> "$GITHUB_ENV"
             echo "HF_ZERO_RETRIES=0" >> "$GITHUB_ENV"
-            echo "HF_REFERENCE_IMAGE_ENABLED=false" >> "$GITHUB_ENV"
+            echo "HF_REFERENCE_IMAGE_ENABLED=true" >> "$GITHUB_ENV"
+            echo "HF_REFERENCE_EDITOR_ENABLED=true" >> "$GITHUB_ENV"
+            echo "HF_REFERENCE_ZERO_SPACE=black-forest-labs/FLUX.1-Kontext-Dev" >> "$GITHUB_ENV"
+            echo "HF_REFERENCE_ZERO_SPACE_FIRST=true" >> "$GITHUB_ENV"
+            echo "HF_TEXT_ZERO_ENABLED=true" >> "$GITHUB_ENV"
+            echo "HF_TEXT_ZERO_SPACE=black-forest-labs/FLUX.1-schnell" >> "$GITHUB_ENV"
+            echo "HF_REMOTE_CIRCUIT_BREAKER=true" >> "$GITHUB_ENV"
+            echo "SPIRITUAL_REFERENCE_AVOID_RECENT=60" >> "$GITHUB_ENV"
+            echo "HF_ZERO_TOKEN=$HF_TOKEN" >> "$GITHUB_ENV"
+            echo "HF_INFERENCE_PROVIDER_ENABLED=false" >> "$GITHUB_ENV"
             echo "HF_TOKEN=" >> "$GITHUB_ENV"
-            echo "DIOS_FAST_LOCAL_VISUAL_MODE=true" >> "$GITHUB_ENV"
-            echo "Modo rapido Dios: HF remoto omitido por cuota agotada; se usa renderer local cinematografico sin esperas de red."
+            echo "DIOS_FAST_LOCAL_VISUAL_MODE=false" >> "$GITHUB_ENV"
+            echo "Modo Dios renovado: Hugging Face ZeroGPU primero; referencias locales antiguas bloqueadas; respaldo libre solo si es nuevo."
           fi
           echo "Seleccionado: $CHANNEL / $CONTENT_MODE"
 
