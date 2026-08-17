@@ -1,8 +1,9 @@
-name: Publish all Dios Habla Hoy videos
+name: Dios Habla Hoy IA - Completar 4 videos largos diarios
 
 on:
   workflow_dispatch:
   push:
+    branches: [main]
     paths:
       - "triggers/dioshablahoyia-publish-all.txt"
 
@@ -21,12 +22,8 @@ jobs:
     env:
       PYTHONPATH: .
       TZ: America/Argentina/Buenos_Aires
-      RENDER_WORKER: Motor Celestial Cinema
-      MOTION_DIRECTOR_WORKER: Director Paz Viva
-      PUBLISHER_WORKER: Publicador Reino 4x10
       GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
       GEMINI_TEXT_MODEL: gemini-3.6-flash
-      GEMINI_VIDEO_ENABLED: "false"
       GEMINI_TTS_MODEL: gemini-3.1-flash-tts-preview
       GEMINI_TTS_VOICE: Algenib
       SPIRITUAL_MALE_GEMINI_VOICE: Algenib
@@ -40,16 +37,14 @@ jobs:
       SPIRITUAL_REQUIRE_FRESH_VISUAL: "true"
       SPIRITUAL_ALLOW_STILL_FALLBACK: "true"
       SPIRITUAL_LONG_AI_CLIPS: "0"
-      SPIRITUAL_CTA_OVERLAY: "true"
       SPIRITUAL_VISUAL_VARIETY_LEVEL: maximum
       SPIRITUAL_EDITORIAL_VARIETY_LEVEL: high
       TTS_PROVIDER: gemini_tts
       TTS_FALLBACK_KOKORO: "false"
       KOKORO_VOICE: em_alex
-      SPIRITUAL_MALE_KOKORO_VOICE: em_alex
       KOKORO_SPEED: "0.91"
+      GEMINI_VIDEO_ENABLED: "false"
       HF_VIDEO_ENABLED: "false"
-      HF_ZERO_RETRIES: "0"
       HF_REFERENCE_IMAGE_ENABLED: "true"
       HF_REFERENCE_EDITOR_ENABLED: "true"
       HF_REFERENCE_ZERO_SPACE: black-forest-labs/FLUX.1-Kontext-Dev
@@ -69,13 +64,16 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-
-      - name: Verify strict Dios publishing access
-        shell: bash
+      - name: Install lightweight long runtime
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg espeak-ng libsndfile1 fonts-dejavu-core git >/dev/null
+          python -m pip install -q --upgrade pip
+          pip install -q "google-genai>=2.3.0" "google-api-python-client>=2.170.0" "google-auth>=2.40.0" "google-auth-oauthlib>=1.2.2" "Pillow>=11.0.0" "requests>=2.32.0" "numpy<3,>=1.26" "soundfile>=0.13.1" "huggingface_hub<2,>=0.34.4" "gradio_client<3,>=1.11.0"
+      - name: Validate strict long publisher
         run: |
           test -n "$YOUTUBE_TOKEN_DIOSHABLAHOYIA"
           test -n "$HF_ZERO_TOKEN"
@@ -83,101 +81,41 @@ jobs:
           test -f assets/dioshablahoyia/reference/jesus_reference_user_new_02.jpg
           test -f assets/dioshablahoyia/reference/jesus_reference_user_new_03.jpg
           test -f assets/dioshablahoyia/visual_reference/noah_ark_user_new_01.jpg
-
-      - name: Install lightweight long-form runtime once
-        run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y -qq ffmpeg espeak-ng libsndfile1 fonts-dejavu-core git >/dev/null
-          python -m pip install -q --upgrade pip
-          pip install -q \
-            "google-genai>=2.3.0" \
-            "google-api-python-client>=2.170.0" \
-            "google-auth>=2.40.0" \
-            "google-auth-oauthlib>=1.2.2" \
-            "Pillow>=11.0.0" \
-            "requests>=2.32.0" \
-            "numpy<3,>=1.26" \
-            "soundfile>=0.13.1" \
-            "huggingface_hub<2,>=0.34.4" \
-            "gradio_client<3,>=1.11.0"
-          python -m py_compile app/spiritual_long_fresh_visual.py scripts/publish_dios_long_fresh.py app/spiritual_long_resilient_runner.py app/spiritual_long_pipeline.py
-
-      - name: Publish missing 10, 15, 20 and 30 minute videos
+          python -m py_compile scripts/dioshablahoyia_catchup_longs.py scripts/publish_dios_long_fresh.py app/spiritual_long_fresh_visual.py
+      - name: Generate and upload only missing long videos
+        run: python scripts/dioshablahoyia_catchup_longs.py
+      - name: Persist recovered long history
+        if: success()
         shell: bash
         run: |
-          set +e
-          FAILED=0
-          mkdir -p output/publish-all
-          HISTORY="state/dioshablahoyia_long_history.jsonl"
-
-          already_uploaded_today() {
-            local minutes="$1"
-            MINUTES_CHECK="$minutes" python -c 'import json,os,sys; from datetime import datetime; from pathlib import Path; from zoneinfo import ZoneInfo; m=int(os.environ["MINUTES_CHECK"]); tz=ZoneInfo("America/Argentina/Buenos_Aires"); today=datetime.now(tz).date(); p=Path("state/dioshablahoyia_long_history.jsonl"); rows=p.read_text(encoding="utf-8").splitlines() if p.exists() else []; ok=False
-for raw in rows:
-  try:
-    r=json.loads(raw); d=datetime.fromisoformat(str(r.get("created_at","")).replace("Z","+00:00")).astimezone(tz).date()
-  except Exception: continue
-  if d==today and int(r.get("minutes",0))==m and r.get("status")=="uploaded": ok=True; break
-sys.exit(0 if ok else 1)'
-          }
-
-          persist_latest_record() {
-            local minutes="$1"
-            local saved="/tmp/dios-long-${minutes}.json"
-            tail -n 1 "$HISTORY" > "$saved"
-            for attempt in 1 2 3 4 5; do
-              git fetch origin main
-              git reset --hard origin/main
-              mkdir -p state
-              touch "$HISTORY"
-              local record
-              record="$(cat "$saved")"
-              if [ -n "$record" ] && ! grep -Fqx "$record" "$HISTORY"; then printf '%s\n' "$record" >> "$HISTORY"; fi
-              git add "$HISTORY"
-              if git diff --cached --quiet; then return 0; fi
-              git commit -m "chore: record ${minutes}-minute Dios long upload"
-              if git push origin HEAD:main; then return 0; fi
-            done
-            return 1
-          }
-
-          for spec in "10|biblical_story" "15|prayer" "20|biblical_reflection" "30|night_prayer"; do
-            MINUTES="${spec%%|*}"
-            STYLE="${spec##*|}"
-            if already_uploaded_today "$MINUTES"; then
-              echo "${MINUTES} minutos ya fue publicado hoy; se omite."
-              continue
-            fi
-            export SPIRITUAL_NARRATION_STYLE="$STYLE"
-            echo "Publicando ${MINUTES} min / ${STYLE} / Voz de Luz Algenib / visual NUEVO obligatorio"
-            OK=0
-            for attempt in 1 2 3; do
-              if python scripts/publish_dios_long_fresh.py --minutes "$MINUTES" --publish; then OK=1; break; fi
-              if [ "$attempt" -lt 3 ]; then sleep 90; fi
-            done
-            if [ "$OK" -eq 1 ]; then
-              mkdir -p "output/publish-all/${MINUTES}min"
-              cp -a output/dioshablahoyia-long/. "output/publish-all/${MINUTES}min/" 2>/dev/null || true
-              if ! persist_latest_record "$MINUTES"; then FAILED=1; fi
-            else
-              echo "No se pudo publicar ${MINUTES} min respetando voz/visual estricto."
-              FAILED=1
-              git fetch origin main
-              git reset --hard origin/main
-            fi
+          RECORDS="/tmp/dios-catchup/new-long-records.jsonl"
+          test -f "$RECORDS" || exit 0
+          git config user.name "youtube-ai-bot"
+          git config user.email "actions@users.noreply.github.com"
+          for attempt in 1 2 3 4 5; do
+            git fetch origin main
+            git reset --hard origin/main
+            mkdir -p state
+            touch state/dioshablahoyia_long_history.jsonl
+            while IFS= read -r record; do
+              test -n "$record" || continue
+              grep -Fqx "$record" state/dioshablahoyia_long_history.jsonl || printf '%s\n' "$record" >> state/dioshablahoyia_long_history.jsonl
+            done < "$RECORDS"
+            git add state/dioshablahoyia_long_history.jsonl
+            if git diff --cached --quiet; then exit 0; fi
+            git commit -m "chore: catch up Dios Habla Hoy long videos"
+            if git push origin HEAD:main; then exit 0; fi
           done
-          exit "$FAILED"
-
+          exit 1
       - name: Upload batch artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: dioshablahoyia-publish-all-${{ github.run_id }}
-          path: output/publish-all/
+          path: output/
           retention-days: 3
-
-      - name: Open issue if any duration failed
+      - name: Report strict long catch-up failure
         if: failure()
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh issue create --title "Dios Habla Hoy - falta algun video largo del objetivo 4 por dia" --body "El lote estricto tuvo al menos un fallo. No se sustituyo Voz de Luz ni se reutilizaron visuales antiguos. Revisar Actions run $GITHUB_RUN_ID."
+        run: gh issue create --title "Dios Habla Hoy - faltan videos largos del objetivo 4 por dia" --body "No se sustituyo Voz de Luz ni se reutilizaron visuales antiguos. Revisar Actions run $GITHUB_RUN_ID."
