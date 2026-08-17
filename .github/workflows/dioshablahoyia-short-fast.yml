@@ -38,7 +38,8 @@ jobs:
       SPIRITUAL_SHORT_SCENE_SECONDS: "10"
       SPIRITUAL_SHORT_AI_CLIPS: "0"
       SPIRITUAL_ALLOW_STILL_FALLBACK: "true"
-      SPIRITUAL_VISUAL_VARIETY_LEVEL: high
+      SPIRITUAL_FAST_RENDER: "true"
+      SPIRITUAL_VISUAL_VARIETY_LEVEL: maximum
       SPIRITUAL_EDITORIAL_VARIETY_LEVEL: high
       SPIRITUAL_CTA_OVERLAY: "false"
       TTS_PROVIDER: gemini_tts
@@ -49,9 +50,22 @@ jobs:
       HF_VIDEO_ENABLED: "false"
       HF_REQUIRE_TEXT_TO_VIDEO: "false"
       HF_VIDEO_STRICT: "false"
-      HF_REFERENCE_IMAGE_ENABLED: "false"
+
+      # Fresh-image route: free Hugging Face ZeroGPU only. The regular paid
+      # Inference Provider is intentionally disabled in this fast workflow.
+      HF_REFERENCE_IMAGE_ENABLED: "true"
+      HF_REFERENCE_EDITOR_ENABLED: "false"
+      HF_TEXT_ZERO_ENABLED: "true"
+      HF_TEXT_ZERO_SPACE: black-forest-labs/FLUX.1-schnell
+      HF_REFERENCE_ZERO_SPACE_FIRST: "true"
+      HF_ZERO_AUTH_RETRY: "true"
+      HF_REMOTE_CIRCUIT_BREAKER: "true"
+      HF_INFERENCE_PROVIDER_ENABLED: "false"
+      HF_ZERO_TOKEN: ${{ secrets.HF_TOKEN }}
       HF_TOKEN: ""
-      DIOS_FAST_LOCAL_VISUAL_MODE: "true"
+      SPIRITUAL_REFERENCE_AVOID_RECENT: "12"
+      DIOS_FAST_LOCAL_VISUAL_MODE: "false"
+
       MUSIC_PROVIDER: local
       YOUTUBE_TOKEN_DIOSHABLAHOYIA: ${{ secrets.YOUTUBE_TOKEN_DIOSHABLAHOYIA }}
 
@@ -81,12 +95,14 @@ jobs:
             "huggingface_hub<2,>=0.34.4" \
             "gradio_client<3,>=1.11.0"
 
-      - name: Check ready
+      - name: Check ready and compile fresh visual engine
         run: |
           python scripts/check_ready.py --generation-only
           test -n "$YOUTUBE_TOKEN_DIOSHABLAHOYIA"
+          test -n "$HF_ZERO_TOKEN"
+          python -m py_compile app/visual_variety.py app/spiritual_reference_generation.py app/spiritual_image.py app/pipeline.py
 
-      - name: Generate and upload Short with Voz de Luz
+      - name: Generate and upload Short with fresh visuals and Voz de Luz
         run: python scripts/publish_dios_fast.py
 
       - name: Persist anti-duplicate history
