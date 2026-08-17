@@ -30,7 +30,7 @@ jobs:
       SPIRITUAL_MALE_GEMINI_VOICE: Algenib
       SPIRITUAL_VOICE_PROFILE: voz_de_luz_serena_original_v1
       SPIRITUAL_VOICE_BRAND: Voz de Luz
-      SPIRITUAL_VOICE_REFERENCE_MODE: two_reference_style_blend_no_speaker_clone
+      SPIRITUAL_VOICE_REFERENCE_MODE: fresh_github_reference_bank_no_speaker_clone
       SPIRITUAL_VOICEOVER_MODE: "true"
       SPIRITUAL_LIPSYNC_ENABLED: "false"
       SPIRITUAL_REQUIRE_PRIMARY_VOICE: "true"
@@ -52,10 +52,12 @@ jobs:
       HF_REQUIRE_TEXT_TO_VIDEO: "false"
       HF_VIDEO_STRICT: "false"
 
-      # Fresh-image route: free Hugging Face ZeroGPU only. The regular paid
-      # Inference Provider is intentionally disabled in this fast workflow.
+      # Hugging Face is always the primary visual route. Kontext uses the new
+      # GitHub reference bank for Jesus/Noah; FLUX Schnell handles fresh scenic
+      # cutaways. Paid Inference Providers remain disabled in this free mode.
       HF_REFERENCE_IMAGE_ENABLED: "true"
-      HF_REFERENCE_EDITOR_ENABLED: "false"
+      HF_REFERENCE_EDITOR_ENABLED: "true"
+      HF_REFERENCE_ZERO_SPACE: black-forest-labs/FLUX.1-Kontext-Dev
       HF_TEXT_ZERO_ENABLED: "true"
       HF_TEXT_ZERO_SPACE: black-forest-labs/FLUX.1-schnell
       HF_REFERENCE_ZERO_SPACE_FIRST: "true"
@@ -64,11 +66,11 @@ jobs:
       HF_INFERENCE_PROVIDER_ENABLED: "false"
       HF_ZERO_TOKEN: ${{ secrets.HF_TOKEN }}
       HF_TOKEN: ""
-      SPIRITUAL_REFERENCE_AVOID_RECENT: "12"
+      SPIRITUAL_REFERENCE_AVOID_RECENT: "60"
       DIOS_FAST_LOCAL_VISUAL_MODE: "false"
 
-      # Free non-generative backup. If Pexels is configured it is used first;
-      # otherwise the code falls back to CC0/public-domain Wikimedia images.
+      # Emergency free backup is allowed only when HF has no free GPU quota.
+      # The publisher rejects URLs already present in channel history.
       PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
 
       MUSIC_PROVIDER: local
@@ -105,8 +107,14 @@ jobs:
           python scripts/check_ready.py --generation-only
           test -n "$YOUTUBE_TOKEN_DIOSHABLAHOYIA"
           test -n "$HF_ZERO_TOKEN"
+          test -f assets/dioshablahoyia/reference/jesus_reference_user_new_01.jpg
+          test -f assets/dioshablahoyia/reference/jesus_reference_user_new_02.jpg
+          test -f assets/dioshablahoyia/reference/jesus_reference_user_new_03.jpg
+          test -f assets/dioshablahoyia/visual_reference/noah_ark_user_new_01.jpg
           python -m py_compile \
             app/visual_variety.py \
+            app/visual_variety_v2.py \
+            app/spiritual_fresh_reference_bank.py \
             app/spiritual_reference_generation.py \
             app/spiritual_free_media.py \
             app/spiritual_image.py \
