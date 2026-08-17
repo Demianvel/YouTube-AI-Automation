@@ -20,6 +20,7 @@ from .spiritual_quality import enforce_spiritual_metadata
 from .spiritual_source_growth_engine import ground_and_optimize_spiritual_metadata
 from .spiritual_uniqueness import validate_spiritual_uniqueness
 from .spiritual_visual_library import enrich_metadata_visuals
+from .visual_variety import attach_visual_pack
 from .workers.divine_publisher_4x10 import mark_publish_metadata, validate_channel
 from .youtube import upload_video
 
@@ -122,6 +123,7 @@ def run(channel_slug: str, dry_run: bool = False, content_mode: str = "auto") ->
         metadata = enrich_short_growth(metadata, previous)
         metadata = ground_and_optimize_spiritual_metadata(metadata, previous, content_type="short")
         metadata = enrich_metadata_visuals(metadata, content_type="short")
+        metadata = attach_visual_pack(metadata, previous, content_type="short")
         metadata = validate_spiritual_uniqueness(metadata, previous)
         metadata = mark_publish_metadata(metadata, content_type="short")
         metadata = enforce_spiritual_topic_guard(metadata)
@@ -159,6 +161,8 @@ def run(channel_slug: str, dry_run: bool = False, content_mode: str = "auto") ->
         "uniqueness_gate_passed": metadata.get("uniqueness_gate_passed"),
         "visual_engine_version": metadata.get("visual_engine_version"),
         "visual_rotation_manifest": metadata.get("visual_rotation_manifest"),
+        "visual_pack": metadata.get("visual_pack"),
+        "visual_prompt_hashes": metadata.get("visual_prompt_hashes"),
         "generated_visual_provider": metadata.get("generated_visual_provider"),
         "character_reference_profile": metadata.get("character_reference_profile"),
         "text_to_video_engine": metadata.get("text_to_video_engine"),
