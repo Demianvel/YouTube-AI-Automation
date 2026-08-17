@@ -1,0 +1,117 @@
+name: Dios Habla Hoy IA - Short rapido
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "triggers/dioshablahoyia-short-fast.txt"
+
+permissions:
+  contents: write
+  issues: write
+
+concurrency:
+  group: dioshablahoyia-short-fast
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      PYTHONPATH: .
+      CHANNEL: dioshablahoyia
+      CONTENT_MODE: voice
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      GEMINI_TEXT_MODEL: gemini-3.6-flash
+      GEMINI_TTS_MODEL: gemini-3.1-flash-tts-preview
+      GEMINI_TTS_VOICE: Algenib
+      SPIRITUAL_MALE_GEMINI_VOICE: Algenib
+      SPIRITUAL_VOICE_PROFILE: voz_de_luz_serena_original_v1
+      SPIRITUAL_VOICE_BRAND: Voz de Luz
+      SPIRITUAL_VOICE_REFERENCE_MODE: two_reference_style_blend_no_speaker_clone
+      SPIRITUAL_VOICEOVER_MODE: "true"
+      SPIRITUAL_LIPSYNC_ENABLED: "false"
+      SPIRITUAL_SHORT_SECONDS: "60"
+      SPIRITUAL_SHORT_SCENE_SECONDS: "10"
+      SPIRITUAL_SHORT_AI_CLIPS: "0"
+      SPIRITUAL_ALLOW_STILL_FALLBACK: "true"
+      SPIRITUAL_VISUAL_VARIETY_LEVEL: high
+      SPIRITUAL_EDITORIAL_VARIETY_LEVEL: high
+      SPIRITUAL_CTA_OVERLAY: "false"
+      TTS_PROVIDER: gemini_tts
+      TTS_FALLBACK_KOKORO: "false"
+      GEMINI_VIDEO_ENABLED: "false"
+      HF_VIDEO_ENABLED: "false"
+      HF_REQUIRE_TEXT_TO_VIDEO: "false"
+      HF_VIDEO_STRICT: "false"
+      HF_REFERENCE_IMAGE_ENABLED: "false"
+      HF_TOKEN: ""
+      DIOS_FAST_LOCAL_VISUAL_MODE: "true"
+      MUSIC_PROVIDER: local
+      YOUTUBE_TOKEN_DIOSHABLAHOYIA: ${{ secrets.YOUTUBE_TOKEN_DIOSHABLAHOYIA }}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install lightweight runtime
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg espeak-ng libsndfile1 fonts-dejavu-core >/dev/null
+          python -m pip install -q --upgrade pip
+          pip install -q \
+            "google-genai>=2.3.0" \
+            "google-api-python-client>=2.170.0" \
+            "google-auth>=2.40.0" \
+            "google-auth-oauthlib>=1.2.2" \
+            "Pillow>=11.0.0" \
+            "requests>=2.32.0" \
+            "numpy<3,>=1.26" \
+            "soundfile>=0.13.1" \
+            "huggingface_hub<2,>=0.34.4" \
+            "gradio_client<3,>=1.11.0"
+
+      - name: Check ready
+        run: |
+          python scripts/check_ready.py --generation-only
+          test -n "$YOUTUBE_TOKEN_DIOSHABLAHOYIA"
+
+      - name: Generate and upload Short
+        run: python -m app.pipeline --channel dioshablahoyia --content-mode voice
+
+      - name: Persist anti-duplicate history
+        if: success()
+        shell: bash
+        run: |
+          git config user.name "youtube-ai-bot"
+          git config user.email "actions@users.noreply.github.com"
+          NEW_RECORD="$(tail -n 1 state/history.jsonl)"
+          for attempt in 1 2 3 4 5; do
+            git fetch origin main
+            git reset --hard origin/main
+            mkdir -p state
+            touch state/history.jsonl
+            if ! grep -Fqx "$NEW_RECORD" state/history.jsonl; then
+              printf '%s\n' "$NEW_RECORD" >> state/history.jsonl
+            fi
+            git add state/history.jsonl
+            if git diff --cached --quiet; then exit 0; fi
+            git commit -m "chore: update Shorts history"
+            if git push origin HEAD:main; then exit 0; fi
+          done
+          exit 1
+
+      - name: Upload generated artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dioshablahoyia-short-fast-${{ github.run_id }}
+          path: output/
+          retention-days: 2
