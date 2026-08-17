@@ -1,0 +1,210 @@
+name: Dios Habla Hoy IA - Completar 10 Shorts diarios
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "triggers/dioshablahoyia-catchup-shorts.txt"
+
+permissions:
+  contents: write
+  issues: write
+
+concurrency:
+  group: dioshablahoyia-short-publisher
+  cancel-in-progress: false
+
+jobs:
+  catchup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 150
+    env:
+      PYTHONPATH: .
+      TZ: America/Argentina/Buenos_Aires
+      CHANNEL: dioshablahoyia
+      CONTENT_MODE: voice
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      GEMINI_TEXT_MODEL: gemini-3.6-flash
+      GEMINI_TTS_MODEL: gemini-3.1-flash-tts-preview
+      GEMINI_TTS_VOICE: Algenib
+      SPIRITUAL_MALE_GEMINI_VOICE: Algenib
+      SPIRITUAL_VOICE_PROFILE: voz_de_luz_serena_original_v1
+      SPIRITUAL_VOICE_BRAND: Voz de Luz
+      SPIRITUAL_VOICE_REFERENCE_MODE: fresh_github_reference_bank_no_speaker_clone
+      SPIRITUAL_VOICEOVER_MODE: "true"
+      SPIRITUAL_LIPSYNC_ENABLED: "false"
+      SPIRITUAL_REQUIRE_PRIMARY_VOICE: "true"
+      SPIRITUAL_SHORT_SECONDS: "60"
+      SPIRITUAL_SHORT_SCENE_SECONDS: "10"
+      SPIRITUAL_SHORT_AI_CLIPS: "0"
+      SPIRITUAL_ALLOW_STILL_FALLBACK: "true"
+      SPIRITUAL_FAST_RENDER: "true"
+      SPIRITUAL_VISUAL_VARIETY_LEVEL: maximum
+      SPIRITUAL_EDITORIAL_VARIETY_LEVEL: high
+      SPIRITUAL_CTA_OVERLAY: "false"
+      SPIRITUAL_REQUIRE_FRESH_VISUAL: "true"
+      TTS_PROVIDER: gemini_tts
+      TTS_FALLBACK_KOKORO: "false"
+      KOKORO_VOICE: em_alex
+      KOKORO_SPEED: "0.91"
+      GEMINI_VIDEO_ENABLED: "false"
+      HF_VIDEO_ENABLED: "false"
+      HF_REQUIRE_TEXT_TO_VIDEO: "false"
+      HF_VIDEO_STRICT: "false"
+      HF_REFERENCE_IMAGE_ENABLED: "true"
+      HF_REFERENCE_EDITOR_ENABLED: "true"
+      HF_REFERENCE_ZERO_SPACE: black-forest-labs/FLUX.1-Kontext-Dev
+      HF_TEXT_ZERO_ENABLED: "true"
+      HF_TEXT_ZERO_SPACE: black-forest-labs/FLUX.1-schnell
+      HF_REFERENCE_ZERO_SPACE_FIRST: "true"
+      HF_ZERO_AUTH_RETRY: "true"
+      HF_REMOTE_CIRCUIT_BREAKER: "true"
+      HF_INFERENCE_PROVIDER_ENABLED: "false"
+      HF_ZERO_TOKEN: ${{ secrets.HF_TOKEN }}
+      HF_TOKEN: ""
+      SPIRITUAL_REFERENCE_AVOID_RECENT: "100"
+      DIOS_FAST_LOCAL_VISUAL_MODE: "false"
+      PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
+      MUSIC_PROVIDER: local
+      YOUTUBE_TOKEN_DIOSHABLAHOYIA: ${{ secrets.YOUTUBE_TOKEN_DIOSHABLAHOYIA }}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install lightweight runtime once
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg espeak-ng libsndfile1 fonts-dejavu-core git >/dev/null
+          python -m pip install -q --upgrade pip
+          pip install -q \
+            "google-genai>=2.3.0" \
+            "google-api-python-client>=2.170.0" \
+            "google-auth>=2.40.0" \
+            "google-auth-oauthlib>=1.2.2" \
+            "Pillow>=11.0.0" \
+            "requests>=2.32.0" \
+            "numpy<3,>=1.26" \
+            "soundfile>=0.13.1" \
+            "huggingface_hub<2,>=0.34.4" \
+            "gradio_client<3,>=1.11.0"
+
+      - name: Validate fixed voice and fresh visual engine
+        run: |
+          python scripts/check_ready.py --generation-only
+          test -n "$YOUTUBE_TOKEN_DIOSHABLAHOYIA"
+          test -n "$HF_ZERO_TOKEN"
+          test -f assets/dioshablahoyia/reference/jesus_reference_user_new_01.jpg
+          test -f assets/dioshablahoyia/reference/jesus_reference_user_new_02.jpg
+          test -f assets/dioshablahoyia/reference/jesus_reference_user_new_03.jpg
+          test -f assets/dioshablahoyia/visual_reference/noah_ark_user_new_01.jpg
+          python -m py_compile app/visual_variety.py app/visual_variety_v2.py app/spiritual_fresh_reference_bank.py app/spiritual_reference_generation.py app/spiritual_free_media.py app/spiritual_image.py app/pipeline.py scripts/publish_dios_fast.py
+
+      - name: Calculate full daily deficit and publish only missing Shorts
+        shell: bash
+        run: |
+          set -euo pipefail
+          HISTORY="state/history.jsonl"
+          mkdir -p state /tmp/dios-catchup
+          touch "$HISTORY"
+          BASE_LINES="$(wc -l < "$HISTORY")"
+
+          MISSING="$(python - <<'PY'
+          import json
+          from datetime import datetime
+          from pathlib import Path
+          from zoneinfo import ZoneInfo
+
+          tz = ZoneInfo("America/Argentina/Buenos_Aires")
+          today = datetime.now(tz).date()
+          count = 0
+          for raw in Path("state/history.jsonl").read_text(encoding="utf-8").splitlines():
+              try:
+                  row = json.loads(raw)
+                  dt = datetime.fromisoformat(str(row.get("created_at", "")).replace("Z", "+00:00"))
+                  if dt.tzinfo is None:
+                      dt = dt.replace(tzinfo=ZoneInfo("UTC"))
+              except Exception:
+                  continue
+              status = str(row.get("status") or "").lower()
+              if row.get("channel") == "dioshablahoyia" and dt.astimezone(tz).date() == today and (status == "uploaded" or row.get("video_id")):
+                  count += 1
+          print(max(0, 10 - count))
+          PY
+          )"
+          echo "Shorts faltantes para llegar a 10 hoy: $MISSING"
+
+          if [ "$MISSING" -eq 0 ]; then
+            touch /tmp/dios-catchup/new-short-records.jsonl
+            exit 0
+          fi
+
+          for i in $(seq 1 "$MISSING"); do
+            echo "=== Recuperando Short $i de $MISSING ==="
+            OK=0
+            for attempt in 1 2 3; do
+              echo "Intento $attempt/3 manteniendo Voz de Luz / Algenib y visual fresco"
+              if python scripts/publish_dios_fast.py; then
+                OK=1
+                break
+              fi
+              if [ "$attempt" -lt 3 ]; then
+                echo "Fallo temporal; esperando 75 segundos sin cambiar voz ni reutilizar visuales."
+                sleep 75
+              fi
+            done
+            if [ "$OK" -ne 1 ]; then
+              echo "No se pudo recuperar el Short $i sin violar voz fija/visual fresco."
+              exit 1
+            fi
+          done
+
+          tail -n +$((BASE_LINES + 1)) "$HISTORY" > /tmp/dios-catchup/new-short-records.jsonl || true
+          echo "Nuevos registros: $(wc -l < /tmp/dios-catchup/new-short-records.jsonl)"
+
+      - name: Persist all recovered Short history safely
+        if: success()
+        shell: bash
+        run: |
+          set -euo pipefail
+          RECORDS="/tmp/dios-catchup/new-short-records.jsonl"
+          [ -f "$RECORDS" ] || exit 0
+          git config user.name "youtube-ai-bot"
+          git config user.email "actions@users.noreply.github.com"
+          for attempt in 1 2 3 4 5; do
+            git fetch origin main
+            git reset --hard origin/main
+            mkdir -p state
+            touch state/history.jsonl
+            while IFS= read -r record; do
+              [ -n "$record" ] || continue
+              if ! grep -Fqx "$record" state/history.jsonl; then
+                printf '%s\n' "$record" >> state/history.jsonl
+              fi
+            done < "$RECORDS"
+            git add state/history.jsonl
+            if git diff --cached --quiet; then exit 0; fi
+            git commit -m "chore: catch up Dios Habla Hoy daily Shorts"
+            if git push origin HEAD:main; then exit 0; fi
+          done
+          exit 1
+
+      - name: Upload catch-up artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dioshablahoyia-catchup-shorts-${{ github.run_id }}
+          path: output/
+          retention-days: 2
+
+      - name: Open issue only if strict catch-up fails
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh issue create --title "Dios Habla Hoy: faltan Shorts del objetivo 10/dia" --body "El catch-up estricto no completo el objetivo sin cambiar Voz de Luz ni repetir visuales. Revisar Actions run $GITHUB_RUN_ID."
