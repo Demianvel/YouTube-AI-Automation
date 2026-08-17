@@ -16,6 +16,7 @@ PEXELS_PHOTOS = "https://api.pexels.com/v1/search"
 COMMONS_API = "https://commons.wikimedia.org/w/api.php"
 USER_AGENT = "YouTube-AI-Automation/1.0 (https://github.com/Demianvel/YouTube-AI-Automation)"
 W, H = 1080, 1920
+ALLOWED_RASTER_MIMES = {"image/jpeg", "image/png", "image/webp"}
 _USED_REMOTE_IDS: set[str] = set()
 
 
@@ -44,12 +45,13 @@ def _query_from_prompt(prompt: str) -> str:
 
 
 def _seed(prompt: str, seed: int) -> int:
-    raw = f"fresh-free-media-v1|{prompt}|{seed}|{os.getenv('GITHUB_RUN_ID','')}"
+    raw = f"fresh-free-media-v2|{prompt}|{seed}|{os.getenv('GITHUB_RUN_ID','')}"
     return int(hashlib.sha256(raw.encode("utf-8")).hexdigest()[:16], 16)
 
 
 def _normalize_image(raw: bytes, out: Path, seed: int) -> None:
     with Image.open(BytesIO(raw)) as source:
+        source.load()
         source = source.convert("RGB")
         safe = int(seed) & 0x7FFFFFFF
         centerings = ((0.50, 0.50), (0.42, 0.50), (0.58, 0.50), (0.50, 0.42), (0.50, 0.58))
@@ -128,12 +130,11 @@ def _commons_public_domain_image(prompt: str, out: Path, seed: int) -> str:
     candidates: list[dict[str, str]] = []
     for page in pages:
         info = (page.get("imageinfo") or [{}])[0]
-        mime = str(info.get("mime") or "")
-        if not mime.startswith("image/"):
+        mime = str(info.get("mime") or "").lower()
+        if mime not in ALLOWED_RASTER_MIMES:
             continue
         metadata = info.get("extmetadata") or {}
         license_name = _clean(metadata.get("LicenseShortName")).lower()
-        # Keep the automatic no-attribution fallback to CC0/public-domain only.
         if not (license_name.startswith("cc0") or license_name.startswith("public domain")):
             continue
         url = str(info.get("url") or "")
@@ -145,15 +146,30 @@ def _commons_public_domain_image(prompt: str, out: Path, seed: int) -> str:
             "marker": marker,
             "license": _clean(metadata.get("LicenseShortName")) or "Public domain/CC0",
             "artist": _clean(metadata.get("Artist")) or "Wikimedia Commons contributor",
+            "mime": mime,
         })
     if not candidates:
-        raise RuntimeError(f"Wikimedia Commons no encontro imagen CC0/dominio publico nueva para '{query}'.")
+        raise RuntimeError(f"Wikimedia Commons no encontro JPEG/PNG/WebP CC0 o dominio publico para '{query}'.")
 
     rng = random.Random(_seed(prompt, seed) ^ 0xC0A110)
-    chosen = candidates[rng.randrange(len(candidates))]
-    _USED_REMOTE_IDS.add(chosen["marker"])
-    _normalize_image(_download(chosen["url"]), out, seed)
-    return f"Wikimedia fresh public-domain image / {chosen['license']} / {chosen['artist']} / query:{query}"
+    rng.shuffle(candidates)
+    decode_errors: list[str] = []
+    for chosen in candidates[:12]:
+        try:
+            raw = _download(chosen["url"])
+            _normalize_image(raw, out, seed)
+            _USED_REMOTE_IDS.add(chosen["marker"])
+            return (
+                f"Wikimedia fresh public-domain raster / {chosen['license']} / "
+                f"{chosen['artist']} / query:{query}"
+            )
+        except Exception as exc:
+            decode_errors.append(str(exc))
+            continue
+    raise RuntimeError(
+        f"Wikimedia encontro candidatos para '{query}', pero ninguno de los raster pudo decodificarse: "
+        + " | ".join(decode_errors[-3:])
+    )
 
 
 def download_fresh_free_image(prompt: str, out: Path, seed: int) -> str:
