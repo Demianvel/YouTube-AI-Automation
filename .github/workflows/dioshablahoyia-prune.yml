@@ -1,0 +1,43 @@
+name: Dios Habla Hoy IA - Limpiar otros proyectos
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "triggers/dioshablahoyia-prune.txt"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: dioshablahoyia-prune
+  cancel-in-progress: false
+
+jobs:
+  prune:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Remove retired channel projects safely
+        shell: bash
+        run: bash scripts/prune_to_dios_only.sh
+      - name: Commit Dios-only repository cleanup
+        shell: bash
+        run: |
+          git config user.name "youtube-ai-bot"
+          git config user.email "actions@users.noreply.github.com"
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m "chore: prune repository to Dios Habla Hoy only"
+          for attempt in 1 2 3 4 5; do
+            if git push origin HEAD:main; then exit 0; fi
+            git fetch origin main
+            git rebase origin/main
+          done
+          exit 1
