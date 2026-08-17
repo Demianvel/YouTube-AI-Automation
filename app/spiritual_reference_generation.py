@@ -59,6 +59,13 @@ NEGATIVE_PROMPT = (
 )
 
 
+def _env_true(name: str, default: bool = True) -> bool:
+    raw = os.getenv(name)
+    if raw is None:
+        return default
+    return raw.lower().strip() == "true"
+
+
 def _reference_files() -> list[Path]:
     return sorted(REFERENCE_DIR.glob("jesus_reference_*.jpg"))
 
@@ -194,6 +201,13 @@ def _gradio_space_client(space: str, token: str | None):
     return Client(space, **kwargs)
 
 
+def _zero_modes(token: str | None) -> list[tuple[str, str | None]]:
+    modes: list[tuple[str, str | None]] = [("public", None)]
+    if token and _env_true("HF_ZERO_AUTH_RETRY", True):
+        modes.append(("authenticated", token))
+    return modes
+
+
 def _predict_zero_reference(client, space: str, reference: Path, prompt: str, seed: int):
     from gradio_client import handle_file
 
@@ -206,12 +220,9 @@ def _predict_zero_reference(client, space: str, reference: Path, prompt: str, se
 def _generate_reference_zerogpu(reference: Path, prompt: str, out: Path, seed: int, target_size: tuple[int, int]) -> str:
     space = os.getenv("HF_REFERENCE_ZERO_SPACE", "black-forest-labs/FLUX.1-Kontext-Dev").strip() or "black-forest-labs/FLUX.1-Kontext-Dev"
     token = os.getenv("HF_TOKEN", "").strip() or None
-    attempts = [("public", None)]
-    if token:
-        attempts.append(("authenticated", token))
     errors: list[str] = []
 
-    for mode, client_token in attempts:
+    for mode, client_token in _zero_modes(token):
         try:
             client = _gradio_space_client(space, client_token)
             result = _predict_zero_reference(client, space, reference, prompt, seed)
@@ -235,16 +246,13 @@ def _generate_text_zerogpu(reference: Path, prompt: str, out: Path, seed: int, t
     space = os.getenv("HF_TEXT_ZERO_SPACE", "black-forest-labs/FLUX.1-schnell").strip() or "black-forest-labs/FLUX.1-schnell"
     token = os.getenv("HF_TOKEN", "").strip() or None
     width, height = _flux_zero_size(target_size)
-    attempts = [("public", None)]
-    if token:
-        attempts.append(("authenticated", token))
     errors: list[str] = []
 
     text_prompt = (
         prompt.replace("Use the supplied image only as a visual identity and wardrobe reference for the recurring synthetic Jesus character. ", "")
         + " Generate a fresh original frame, not a copy of any existing photograph."
     )
-    for mode, client_token in attempts:
+    for mode, client_token in _zero_modes(token):
         try:
             client = _gradio_space_client(space, client_token)
             result = client.predict(
@@ -289,20 +297,27 @@ def generate_reference_guided_image(
     seed: int,
     target_size: tuple[int, int] = (1080, 1920),
 ) -> tuple[str, str]:
-    if os.getenv("HF_REFERENCE_IMAGE_ENABLED", "true").lower().strip() != "true":
+    if not _env_true("HF_REFERENCE_IMAGE_ENABLED", True):
         raise RuntimeError("HF reference image generation esta deshabilitado.")
 
     reference = choose_reference(seed)
     prompt = build_reference_prompt(full_prompt, seed, target_size=target_size)
-    zero_first = os.getenv("HF_REFERENCE_ZERO_SPACE_FIRST", "true").lower().strip() == "true"
+    zero_first = _env_true("HF_REFERENCE_ZERO_SPACE_FIRST", True)
     errors: list[str] = []
 
-    zero_attempts = (
-        ("ReferenceZeroGPU", lambda: _generate_reference_zerogpu(reference, prompt, out, seed, target_size)),
-        ("FluxSchnellZeroGPU", lambda: _generate_text_zerogpu(reference, prompt, out, seed, target_size)),
-    )
-    provider_attempt = ("InferenceProvider", lambda: _generate_inference_provider(reference, prompt, out, seed, target_size))
-    attempts = (*zero_attempts, provider_attempt) if zero_first else (provider_attempt, *zero_attempts)
+    zero_attempts: list[tuple[str, object]] = []
+    if _env_true("HF_REFERENCE_EDITOR_ENABLED", True):
+        zero_attempts.append(("ReferenceZeroGPU", lambda: _generate_reference_zerogpu(reference, prompt, out, seed, target_size)))
+    if _env_true("HF_TEXT_ZERO_ENABLED", True):
+        zero_attempts.append(("FluxSchnellZeroGPU", lambda: _generate_text_zerogpu(reference, prompt, out, seed, target_size)))
+
+    provider_attempts: list[tuple[str, object]] = []
+    if _env_true("HF_INFERENCE_PROVIDER_ENABLED", True):
+        provider_attempts.append(("InferenceProvider", lambda: _generate_inference_provider(reference, prompt, out, seed, target_size)))
+
+    attempts = (*zero_attempts, *provider_attempts) if zero_first else (*provider_attempts, *zero_attempts)
+    if not attempts:
+        raise RuntimeError("No hay rutas de generacion Hugging Face habilitadas.")
 
     for label, action in attempts:
         try:
