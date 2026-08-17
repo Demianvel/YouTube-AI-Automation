@@ -42,6 +42,7 @@ jobs:
       SPIRITUAL_VISUAL_VARIETY_LEVEL: maximum
       SPIRITUAL_EDITORIAL_VARIETY_LEVEL: high
       SPIRITUAL_CTA_OVERLAY: "false"
+      SPIRITUAL_REQUIRE_FRESH_VISUAL: "true"
       TTS_PROVIDER: gemini_tts
       TTS_FALLBACK_KOKORO: "false"
       KOKORO_VOICE: em_alex
@@ -65,6 +66,10 @@ jobs:
       HF_TOKEN: ""
       SPIRITUAL_REFERENCE_AVOID_RECENT: "12"
       DIOS_FAST_LOCAL_VISUAL_MODE: "false"
+
+      # Free non-generative backup. If Pexels is configured it is used first;
+      # otherwise the code falls back to CC0/public-domain Wikimedia images.
+      PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
 
       MUSIC_PROVIDER: local
       YOUTUBE_TOKEN_DIOSHABLAHOYIA: ${{ secrets.YOUTUBE_TOKEN_DIOSHABLAHOYIA }}
@@ -100,7 +105,13 @@ jobs:
           python scripts/check_ready.py --generation-only
           test -n "$YOUTUBE_TOKEN_DIOSHABLAHOYIA"
           test -n "$HF_ZERO_TOKEN"
-          python -m py_compile app/visual_variety.py app/spiritual_reference_generation.py app/spiritual_image.py app/pipeline.py
+          python -m py_compile \
+            app/visual_variety.py \
+            app/spiritual_reference_generation.py \
+            app/spiritual_free_media.py \
+            app/spiritual_image.py \
+            app/pipeline.py \
+            scripts/publish_dios_fast.py
 
       - name: Generate and upload Short with fresh visuals and Voz de Luz
         run: python scripts/publish_dios_fast.py
