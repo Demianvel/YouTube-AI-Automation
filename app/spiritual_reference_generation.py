@@ -12,6 +12,7 @@ ROOT = Path(__file__).resolve().parents[1]
 REFERENCE_DIR = ROOT / "assets" / "dioshablahoyia" / "reference"
 HISTORY_FILE = ROOT / "state" / "history.jsonl"
 LONG_HISTORY_FILE = ROOT / "state" / "dioshablahoyia_long_history.jsonl"
+_REMOTE_CIRCUIT_OPEN = False
 
 CAMERAS = (
     "cinematic close-up with shallow depth of field",
@@ -64,6 +65,10 @@ def _env_true(name: str, default: bool = True) -> bool:
     if raw is None:
         return default
     return raw.lower().strip() == "true"
+
+
+def _zero_token() -> str | None:
+    return os.getenv("HF_ZERO_TOKEN", "").strip() or os.getenv("HF_TOKEN", "").strip() or None
 
 
 def _reference_files() -> list[Path]:
@@ -219,7 +224,7 @@ def _predict_zero_reference(client, space: str, reference: Path, prompt: str, se
 
 def _generate_reference_zerogpu(reference: Path, prompt: str, out: Path, seed: int, target_size: tuple[int, int]) -> str:
     space = os.getenv("HF_REFERENCE_ZERO_SPACE", "black-forest-labs/FLUX.1-Kontext-Dev").strip() or "black-forest-labs/FLUX.1-Kontext-Dev"
-    token = os.getenv("HF_TOKEN", "").strip() or None
+    token = _zero_token()
     errors: list[str] = []
 
     for mode, client_token in _zero_modes(token):
@@ -244,7 +249,7 @@ def _flux_zero_size(target_size: tuple[int, int]) -> tuple[int, int]:
 
 def _generate_text_zerogpu(reference: Path, prompt: str, out: Path, seed: int, target_size: tuple[int, int]) -> str:
     space = os.getenv("HF_TEXT_ZERO_SPACE", "black-forest-labs/FLUX.1-schnell").strip() or "black-forest-labs/FLUX.1-schnell"
-    token = os.getenv("HF_TOKEN", "").strip() or None
+    token = _zero_token()
     width, height = _flux_zero_size(target_size)
     errors: list[str] = []
 
@@ -297,8 +302,12 @@ def generate_reference_guided_image(
     seed: int,
     target_size: tuple[int, int] = (1080, 1920),
 ) -> tuple[str, str]:
+    global _REMOTE_CIRCUIT_OPEN
+
     if not _env_true("HF_REFERENCE_IMAGE_ENABLED", True):
         raise RuntimeError("HF reference image generation esta deshabilitado.")
+    if _REMOTE_CIRCUIT_OPEN and _env_true("HF_REMOTE_CIRCUIT_BREAKER", True):
+        raise RuntimeError("HF free-image circuit abierto para esta ejecucion; fallback inmediato.")
 
     reference = choose_reference(seed)
     prompt = build_reference_prompt(full_prompt, seed, target_size=target_size)
@@ -327,4 +336,7 @@ def generate_reference_guided_image(
             errors.append(f"{label}: {exc}")
             print(f"Hugging Face {label} no disponible: {exc}")
 
+    if _env_true("HF_REMOTE_CIRCUIT_BREAKER", True):
+        _REMOTE_CIRCUIT_OPEN = True
+        print("HF free-image circuit abierto: las escenas restantes usaran fallback inmediato sin repetir esperas remotas.")
     raise RuntimeError("; ".join(errors))
