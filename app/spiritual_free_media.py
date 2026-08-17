@@ -49,7 +49,7 @@ def _queries_from_prompt(prompt: str) -> list[str]:
 
 
 def _seed(prompt: str, seed: int) -> int:
-    raw = f"fresh-free-media-v3|{prompt}|{seed}|{os.getenv('GITHUB_RUN_ID','')}"
+    raw = f"fresh-free-media-v4|{prompt}|{seed}|{os.getenv('GITHUB_RUN_ID','')}"
     return int(hashlib.sha256(raw.encode("utf-8")).hexdigest()[:16], 16)
 
 
@@ -115,14 +115,14 @@ def _pexels_image(prompt: str, out: Path, seed: int) -> str:
 
 
 def _license_is_usable(license_name: str) -> bool:
+    """For Dios Habla Hoy, only use Commons assets that require no public attribution block.
+
+    CC BY is intentionally excluded: even though it permits commercial use, it requires
+    attribution. The channel description must remain editorial (Dios/Biblia/fe), so the
+    Wikimedia fallback is restricted to CC0/Public Domain material.
+    """
     value = license_name.lower().strip()
-    if value.startswith("cc0") or value.startswith("public domain"):
-        return True
-    # CC BY permits commercial use with attribution. Explicitly exclude ShareAlike
-    # variants because normal YouTube licensing is not a good fit for CC BY-SA.
-    if value.startswith("cc by") and "by-sa" not in value and "sharealike" not in value:
-        return True
-    return False
+    return value.startswith("cc0") or value.startswith("public domain")
 
 
 def _commons_candidates(query: str) -> list[dict[str, str]]:
@@ -182,7 +182,7 @@ def _commons_free_image(prompt: str, out: Path, seed: int) -> str:
     unique: dict[str, dict[str, str]] = {item["marker"]: item for item in all_candidates}
     candidates = list(unique.values())
     if not candidates:
-        raise RuntimeError("Wikimedia Commons no encontro raster CC0/dominio publico/CC BY nuevo para esta escena.")
+        raise RuntimeError("Wikimedia Commons no encontro raster CC0/dominio publico nuevo para esta escena.")
 
     rng = random.Random(_seed(prompt, seed) ^ 0xC0A110)
     rng.shuffle(candidates)
@@ -204,10 +204,12 @@ def _commons_free_image(prompt: str, out: Path, seed: int) -> str:
 
 
 def append_free_media_credits(metadata: dict) -> dict:
+    """Store source/license data internally without altering the public YouTube description."""
     providers = metadata.get("generated_visual_provider") or []
     if isinstance(providers, str):
         providers = [providers]
     credits: list[str] = []
+    sources: list[dict[str, str]] = []
     for provider in providers:
         text = str(provider)
         if not text.startswith("Wikimedia fresh free raster"):
@@ -218,17 +220,16 @@ def append_free_media_credits(metadata: dict) -> dict:
                 key, value = part.split("=", 1)
                 fields[key.strip()] = value.strip()
         artist = fields.get("artist") or "Wikimedia Commons contributor"
-        license_name = fields.get("license") or "CC BY/Public Domain"
+        license_name = fields.get("license") or "Public Domain/CC0"
         source = fields.get("source") or "Wikimedia Commons"
         line = f"{artist} — {license_name} — {source}"
         if line not in credits:
             credits.append(line)
-    if not credits:
-        return metadata
-    block = "\n\nCréditos visuales de material libre (Wikimedia Commons):\n" + "\n".join(f"• {line}" for line in credits)
-    description = str(metadata.get("description") or "").rstrip()
-    metadata["description"] = (description + block)[:4900]
-    metadata["free_visual_credits"] = credits
+            sources.append({"artist": artist, "license": license_name, "source": source})
+
+    metadata["free_visual_credits"] = credits or None
+    metadata["free_visual_sources_internal"] = sources or None
+    metadata["public_visual_credit_block"] = False
     return metadata
 
 
