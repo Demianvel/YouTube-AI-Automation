@@ -1,4 +1,4 @@
-name: Monitor YouTube Analytics
+name: Monitor Dios Habla Hoy YouTube Analytics
 
 on:
   workflow_dispatch:
@@ -16,21 +16,15 @@ permissions:
   contents: read
 
 concurrency:
-  group: youtube-analytics-monitor
+  group: dioshablahoyia-analytics-monitor
   cancel-in-progress: true
 
 jobs:
   analytics:
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    strategy:
-      fail-fast: false
-      matrix:
-        channel: [brotavida, demianvelo, dioshablahoyia]
     env:
       PYTHONPATH: .
-      YOUTUBE_TOKEN_BROTAVIDA: ${{ secrets.YOUTUBE_TOKEN_BROTAVIDA }}
-      YOUTUBE_TOKEN_DEMIANVELO: ${{ secrets.YOUTUBE_TOKEN_DEMIANVELO }}
       YOUTUBE_TOKEN_DIOSHABLAHOYIA: ${{ secrets.YOUTUBE_TOKEN_DIOSHABLAHOYIA }}
     steps:
       - uses: actions/checkout@v4
@@ -38,44 +32,23 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-          cache: pip
 
       - name: Install API dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install google-api-python-client google-auth
+        run: pip install -q google-api-python-client google-auth
 
-      - name: Check OAuth token for channel
-        id: token
-        shell: bash
+      - name: Verify Dios Habla Hoy OAuth
+        run: test -n "$YOUTUBE_TOKEN_DIOSHABLAHOYIA"
+
+      - name: Collect 90-day Dios Habla Hoy analytics
         run: |
-          READY=false
-          if [ "${{ matrix.channel }}" = "brotavida" ] && [ -n "$YOUTUBE_TOKEN_BROTAVIDA" ]; then READY=true; fi
-          if [ "${{ matrix.channel }}" = "demianvelo" ] && [ -n "$YOUTUBE_TOKEN_DEMIANVELO" ]; then READY=true; fi
-          if [ "${{ matrix.channel }}" = "dioshablahoyia" ] && [ -n "$YOUTUBE_TOKEN_DIOSHABLAHOYIA" ]; then READY=true; fi
-          echo "ready=$READY" >> "$GITHUB_OUTPUT"
           mkdir -p analytics-output
-          if [ "$READY" != "true" ]; then
-            printf '{"channel":"%s","oauth_connected":false,"message":"Falta token OAuth de YouTube para este canal"}\n' "${{ matrix.channel }}" > "analytics-output/${{ matrix.channel }}.json"
-            echo "OAUTH_MISSING: ${{ matrix.channel }}"
-          else
-            echo "OAUTH_PRESENT: ${{ matrix.channel }}"
-          fi
-
-      - name: Collect 90-day audience and video analytics
-        if: steps.token.outputs.ready == 'true'
-        shell: bash
-        run: |
-          python scripts/analytics_snapshot.py \
-            --channel "${{ matrix.channel }}" \
-            --days 90 \
-            --out "analytics-output/${{ matrix.channel }}.json"
+          python scripts/analytics_snapshot.py --channel dioshablahoyia --days 90 --out analytics-output/dioshablahoyia.json
 
       - name: Upload analytics snapshot
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: analytics-${{ matrix.channel }}-${{ github.run_id }}
-          path: analytics-output/${{ matrix.channel }}.json
+          name: analytics-dioshablahoyia-${{ github.run_id }}
+          path: analytics-output/dioshablahoyia.json
           if-no-files-found: warn
           retention-days: 7
