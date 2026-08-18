@@ -10,6 +10,7 @@ from . import video as video_module
 from .channel_analytics import analytics_digest, collect_channel_analytics
 from .config import HISTORY_FILE, OUTPUT_DIR, load_channel
 from .dios_visual_integrity import validate_short_visuals
+from .facebook_pages import facebook_page_configured, publish_facebook_reel
 from .generator_resilient import generate_metadata
 from .history import append_history, read_history
 from .performance import enrich_history_with_youtube_stats
@@ -208,9 +209,27 @@ def run(channel_slug: str, dry_run: bool = False, content_mode: str = "auto") ->
 
     video_id = None
     status = "generated"
+    facebook_result: dict = {"status": "not_attempted"}
     if not dry_run:
         video_id = upload_video(channel, metadata, video_path)
         status = "uploaded"
+
+        if channel_slug == "dioshablahoyia":
+            if facebook_page_configured():
+                try:
+                    facebook_result = publish_facebook_reel(video_path, metadata)
+                    print(
+                        "Facebook Page Reel publicado con el mismo video y la misma Voz de Luz; "
+                        f"video_id={facebook_result.get('facebook_video_id')}"
+                    )
+                except Exception as exc:
+                    facebook_result = {"status": "failed_nonfatal", "error": str(exc)}
+                    print(f"Facebook cross-post falló sin afectar YouTube: {exc}")
+            else:
+                facebook_result = {
+                    "status": "not_configured",
+                    "reason": "configure FACEBOOK_PAGE_ID and FACEBOOK_PAGE_ACCESS_TOKEN in GitHub Actions secrets",
+                }
 
     record = {
         "created_at": datetime.now(timezone.utc).isoformat(),
@@ -248,6 +267,11 @@ def run(channel_slug: str, dry_run: bool = False, content_mode: str = "auto") ->
         "worker_publisher_id": metadata.get("worker_publisher_id"),
         "video_id": video_id,
         "status": status,
+        "facebook_status": facebook_result.get("status"),
+        "facebook_video_id": facebook_result.get("facebook_video_id"),
+        "facebook_title": facebook_result.get("facebook_title"),
+        "facebook_graph_api_version": facebook_result.get("graph_api_version"),
+        "facebook_error": facebook_result.get("error"),
         "comment_publish_status": metadata.get("comment_publish_status"),
         "comment_thread_id": metadata.get("comment_thread_id"),
         "comment_pin_status": metadata.get("comment_pin_status"),
