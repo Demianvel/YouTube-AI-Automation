@@ -11,10 +11,7 @@ GRAPH_BASE = f"https://graph.facebook.com/{GRAPH_API_VERSION}"
 
 
 def facebook_page_configured() -> bool:
-    return bool(
-        os.getenv("FACEBOOK_PAGE_ID", "").strip()
-        and os.getenv("FACEBOOK_PAGE_ACCESS_TOKEN", "").strip()
-    )
+    return bool(os.getenv("FACEBOOK_PAGE_ACCESS_TOKEN", "").strip())
 
 
 def _clean_hashtag(value: str) -> str:
@@ -74,17 +71,18 @@ def _raise_for_meta(response: requests.Response, step: str) -> dict:
 
 def publish_facebook_reel(video_path: Path, metadata: dict) -> dict:
     """Publish a local vertical MP4 to a Facebook Page using Meta's Reels upload flow."""
-    page_id = os.getenv("FACEBOOK_PAGE_ID", "").strip()
     token = os.getenv("FACEBOOK_PAGE_ACCESS_TOKEN", "").strip()
-    if not page_id or not token:
-        return {"status": "not_configured", "reason": "missing_page_id_or_page_access_token"}
+    page_id = os.getenv("FACEBOOK_PAGE_ID", "").strip()
+    if not token:
+        return {"status": "not_configured", "reason": "missing_page_access_token"}
 
     video_path = Path(video_path)
     if not video_path.exists() or video_path.stat().st_size < 10_000:
         raise RuntimeError(f"Facebook Reel inválido o inexistente: {video_path}")
 
     title, description = build_facebook_reel_copy(metadata)
-    endpoint = f"{GRAPH_BASE}/{page_id}/video_reels"
+    page_target = page_id or "me"
+    endpoint = f"{GRAPH_BASE}/{page_target}/video_reels"
 
     with requests.Session() as session:
         start_response = session.post(
@@ -133,6 +131,7 @@ def publish_facebook_reel(video_path: Path, metadata: dict) -> dict:
     return {
         "status": "published",
         "facebook_video_id": video_id,
+        "facebook_page_target": page_target,
         "facebook_title": title,
         "facebook_description": description,
         "upload_result": upload,
