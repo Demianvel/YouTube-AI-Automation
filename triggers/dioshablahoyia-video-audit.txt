@@ -1,0 +1,1 @@
+2026-08-18 12:38 ART | read-only audit of current YouTube inventory versus GitHub uploaded history; no delete/update/privacy changes
