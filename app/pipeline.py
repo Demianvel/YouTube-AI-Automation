@@ -9,6 +9,7 @@ from datetime import datetime, timezone
 from . import video as video_module
 from .channel_analytics import analytics_digest, collect_channel_analytics
 from .config import HISTORY_FILE, OUTPUT_DIR, load_channel
+from .dios_visual_integrity import validate_short_visuals
 from .generator_resilient import generate_metadata
 from .history import append_history, read_history
 from .performance import enrich_history_with_youtube_stats
@@ -139,6 +140,7 @@ def run(channel_slug: str, dry_run: bool = False, content_mode: str = "auto") ->
 
     video_path = generate_short(channel, metadata, workdir)
     if channel_slug == "dioshablahoyia":
+        metadata = validate_short_visuals(workdir, previous, metadata)
         metadata = append_free_media_credits(metadata)
     _write_metadata(workdir, metadata)
 
@@ -166,10 +168,18 @@ def run(channel_slug: str, dry_run: bool = False, content_mode: str = "auto") ->
         "visual_rotation_manifest": metadata.get("visual_rotation_manifest"),
         "visual_pack": metadata.get("visual_pack"),
         "visual_prompt_hashes": metadata.get("visual_prompt_hashes"),
+        "visual_asset_sha256": metadata.get("visual_asset_sha256"),
+        "visual_asset_dhash": metadata.get("visual_asset_dhash"),
+        "visual_freshness_verified": metadata.get("visual_freshness_verified"),
+        "visual_fingerprint_mode": metadata.get("visual_fingerprint_mode"),
         "generated_visual_provider": metadata.get("generated_visual_provider"),
         "free_visual_credits": metadata.get("free_visual_credits"),
         "character_reference_profile": metadata.get("character_reference_profile"),
         "text_to_video_engine": metadata.get("text_to_video_engine"),
+        "tts_provider_used": metadata.get("tts_provider_used"),
+        "voice_profile": metadata.get("voice_profile"),
+        "voice_identity_locked": metadata.get("voice_identity_locked"),
+        "voice_lock_version": metadata.get("voice_lock_version"),
         "worker_publisher": metadata.get("worker_publisher"),
         "worker_publisher_id": metadata.get("worker_publisher_id"),
         "video_id": video_id,
