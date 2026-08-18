@@ -9,6 +9,10 @@ from .premium_audio import make_premium_original_music
 from .spiritual_continuity import ensure_spoken_text, fit_and_validate_spiritual_voice
 from .spiritual_voice import polish_voice
 
+VOICE_LOCK_VERSION = "voz-de-luz-algenib-v2"
+EXPECTED_VOICE = "Algenib"
+EXPECTED_PROFILE = "voz_de_luz_serena_original_v1"
+
 
 def _cta_overlay(path: Path, duration: int) -> None:
     if os.getenv("SPIRITUAL_CTA_OVERLAY", "true").lower().strip() != "true":
@@ -28,6 +32,18 @@ def _cta_overlay(path: Path, duration: int) -> None:
     ], check=True)
     if temp.exists() and temp.stat().st_size > 50_000:
         temp.replace(path)
+
+
+def _enforce_voice_identity(used: str) -> None:
+    if os.getenv("SPIRITUAL_REQUIRE_PRIMARY_VOICE", "false").lower().strip() != "true":
+        return
+    value = str(used or "")
+    low = value.lower()
+    if "gemini" not in low or f":{EXPECTED_VOICE.lower()}:" not in low or "fallback" in low:
+        raise RuntimeError(
+            "VOICE_IDENTITY_GUARD: se rechazo publicar porque la narracion no usa "
+            f"Voz de Luz/{EXPECTED_VOICE} como voz primaria. Provider recibido: {value or 'vacio'}"
+        )
 
 
 def apply_spiritual_audio(video: Path, out: Path, channel: dict, meta: dict, duration: int, seed: int) -> None:
@@ -55,6 +71,8 @@ def apply_spiritual_audio(video: Path, out: Path, channel: dict, meta: dict, dur
         if master != "unprocessed":
             used = f"{used}+{master}"
 
+    _enforce_voice_identity(used)
+
     continuity = fit_and_validate_spiritual_voice(voice_path, duration)
     meta.update(continuity)
 
@@ -72,7 +90,10 @@ def apply_spiritual_audio(video: Path, out: Path, channel: dict, meta: dict, dur
 
     _cta_overlay(out, duration)
     meta["tts_provider_used"] = used
-    meta["voice_profile"] = os.getenv("SPIRITUAL_VOICE_PROFILE", "default")
+    meta["voice_profile"] = EXPECTED_PROFILE
+    meta["voice_identity_locked"] = True
+    meta["voice_lock_version"] = VOICE_LOCK_VERSION
+    meta["voice_expected_provider"] = f"Gemini TTS/{EXPECTED_VOICE}"
     meta["voice_delivery"] = "continuous_full_duration_validated_same_track_used_for_lipsync"
     meta["music_variant"] = music_variant
     meta["audio_source"] = "unique_spiritual_voice_plus_low_original_music"
