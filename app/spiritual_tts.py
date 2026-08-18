@@ -12,15 +12,14 @@ from .audio import continuous_speech_text
 
 
 # Permanent original voice identity for Dios Habla Hoy.
-# It is inspired only by broad delivery qualities found in the two user-provided
-# references: intimate warmth + gentle authority. It never clones or impersonates
-# an identifiable speaker. Algenib remains the stable male base voice.
+# Algenib is the single stable male base voice. Content type may change semantic
+# emphasis, but never narrator identity, cadence, pitch, accent or vocal texture.
 MALE_GEMINI_VOICE_DEFAULT = "Algenib"
 MALE_KOKORO_VOICE_DEFAULT = "em_alex"
 SPIRITUAL_VOICE_PROFILE = "voz_de_luz_serena_original_v1"
 VOICE_BRAND_NAME = "Voz de Luz"
-VOICE_LOCK_VERSION = "voz-de-luz-algenib-v2"
-REFERENCE_MODE = "two_reference_style_blend_no_speaker_clone"
+VOICE_LOCK_VERSION = "voz-de-luz-algenib-v3-natural-fixed"
+REFERENCE_MODE = "fixed_original_identity_no_speaker_clone"
 
 
 def safe_tts_chunks(text: str, max_words: int = 42, max_chars: int = 300) -> list[str]:
@@ -62,45 +61,36 @@ def _delivery_mode(text: str) -> str:
     if forced in {"prayer", "night_prayer", "biblical_story", "biblical_reflection"}:
         return forced
     clean = " ".join(str(text or "").lower().split())
-    prayer_markers = (
-        "señor,", "senor,", "padre,", "dios, te", "te pedimos", "te pido",
-        "gracias, dios", "gracias señor", "gracias senor", "en tus manos",
-        "nuestra oración", "nuestra oracion", "amén", "amen",
-    )
     story_markers = (
         "evangelio", "parábola", "parabola", "discípulos", "discipulos", "pedro",
         "moisés", "moises", "david", "daniel", "noé", "noe", "abraham", "pablo",
     )
-    if any(marker in clean for marker in prayer_markers):
-        return "prayer"
+    prayer_markers = (
+        "señor,", "senor,", "padre,", "dios, te", "te pedimos", "te pido",
+        "gracias, dios", "gracias señor", "gracias senor", "en tus manos",
+    )
     if any(marker in clean for marker in story_markers):
         return "biblical_story"
+    if any(marker in clean for marker in prayer_markers):
+        return "prayer"
     return "biblical_reflection"
 
 
 def _director_notes(mode: str) -> str:
-    if mode == "night_prayer":
-        return (
-            "Deliver it as a peaceful night prayer at roughly 118 to 128 words per minute. "
-            "Use soft downward endings and comfortable pauses of about 300 to 650 milliseconds. "
-            "Do not change speaker identity, perceived age, accent, vocal texture or pitch register."
-        )
-    if mode == "prayer":
-        return (
-            "Deliver it as a sincere guided prayer at roughly 122 to 134 words per minute. "
-            "Sound intimate, reverent and compassionate with calm conviction and natural breathing. "
-            "Change pacing only; never change speaker identity, perceived age, accent, vocal texture or pitch register."
-        )
-    if mode == "biblical_story":
-        return (
-            "Deliver it as a premium biblical storyteller at roughly 136 to 148 words per minute. "
-            "Maintain clear narrative progression, excellent articulation and subtle wonder. "
-            "Change pacing only; never change speaker identity, perceived age, accent, vocal texture or pitch register."
-        )
+    """Keep one permanent cadence; mode changes meaning/emphasis only."""
+    semantic = {
+        "night_prayer": "Keep the emotional emphasis gentle and comforting, appropriate for evening listening.",
+        "prayer": "Keep the emotional emphasis sincere, close and compassionate, as a guided prayer.",
+        "biblical_story": "Keep the emotional emphasis clear and engaging, with subtle narrative interest.",
+        "biblical_reflection": "Keep the emotional emphasis thoughtful, warm and conversational.",
+    }.get(mode, "Keep the emotional emphasis thoughtful, warm and conversational.")
     return (
-        "Deliver it as a thoughtful biblical reflection at roughly 128 to 140 words per minute. "
-        "Use a fluid conversational rhythm, clear Scripture emphasis and short organic pauses. "
-        "Change pacing only; never change speaker identity, perceived age, accent, vocal texture or pitch register."
+        "Use the permanent channel cadence for every format: a natural conversational flow at roughly "
+        "134 to 142 words per minute. Most phrase pauses should feel like normal human breathing, roughly "
+        "120 to 280 milliseconds, with an occasional meaningful transition never intentionally exceeding "
+        "about 400 milliseconds. Do not slow down for prayer or night content and do not speed up for stories. "
+        "Keep speaking rate, perceived age, accent, pitch register, vocal texture, resonance and speaking distance fixed. "
+        + semantic
     )
 
 
@@ -159,23 +149,23 @@ def _gemini_spiritual_voice(path: Path, text: str) -> str:
 Synthesize speech only. Do not read these directions aloud.
 
 ### PERMANENT CHANNEL VOICE — VOZ DE LUZ
-Use the Algenib ADULT MALE voice for the entire narration. Create one stable, original vocal identity for Dios Habla Hoy called Voz de Luz. It may combine broad qualities from two style references—intimate warmth and gentle authority—but must not imitate, clone, identify or reproduce any real speaker.
+Use the Algenib ADULT MALE voice for the entire narration. Create one stable, original vocal identity for Dios Habla Hoy called Voz de Luz. It must not imitate, clone, identify or reproduce any real speaker.
 
 ### VOICE CONSISTENCY LOCK — {VOICE_LOCK_VERSION}
-This must sound like the SAME narrator used in every previous and future Dios Habla Hoy upload. Keep the same perceived age, baritone register, vocal texture, speaking distance, neutral Latin-American Spanish accent, resonance and calm energy. Prayer, story, reflection and night-prayer modes may change ONLY pacing, pauses and emphasis. They must never sound like a different man, a different age, a different accent, a different pitch register or a different vocal character.
+This must sound like the SAME narrator used in every previous and future Dios Habla Hoy upload. Keep the same perceived age, baritone register, vocal texture, speaking distance, neutral Latin-American Spanish accent, resonance, pitch and calm energy. Prayer, story, reflection and night-prayer modes may change ONLY semantic and emotional emphasis. They must NOT change speaking speed, pause style, cadence, perceived age, accent, pitch register, vocal texture or vocal character.
 
 ### VOCAL IDENTITY
-Original mature male baritone with a natural fundamental center around 90 to 105 Hz. Warm chest resonance, relaxed throat, lightly textured human timbre, clear consonants and open vowels. Neutral Latin-American Spanish with excellent diction and professional locution. The sound is serene, luminous, compassionate and close, as if speaking personally to one listener.
+Original mature male baritone with warm chest resonance, relaxed throat, lightly textured human timbre, clear consonants and open vowels. Neutral Latin-American Spanish with excellent diction and professional but natural locution. The sound is serene, luminous, compassionate and close, as if speaking personally to one listener.
 
 ### EMOTIONAL BALANCE
-Blend the tenderness and fluidity of a comforting reflection with the calm authority of a biblical narrator. Communicate peace, tranquility, faith, hope, love, safety and reverence. Keep strength without hardness and spirituality without theatrical solemnity.
+Blend tenderness, fluidity and calm authority. Communicate peace, faith, hope, love, safety and reverence without theatrical solemnity.
 
 ### DELIVERY MODE
 {mode}
 {_director_notes(mode)}
 
 ### PERMANENT SPEECH RULES
-Use natural breaths and mostly short pauses between phrases, with an occasional longer pause only at a meaningful transition. Maintain smooth phrase linking, precise articulation and a pleasant conversational flow. Give subtle heartfelt emphasis to Dios, Jesús, Señor, Biblia, fe, amor, paz, esperanza and consuelo. Finish sentences with soft controlled downward cadences. Avoid whispering, shouting, growling, exaggerated bass, sing-song rhythm, robotic spacing, commercial-announcer energy, movie-trailer drama, fake preacher cadence, cathedral echo or long empty silences.
+Speak naturally and continuously. Link phrases smoothly. Use normal human breaths and short organic pauses; do not create long reflective gaps. Never drag vowels or stretch words to fill time. Never slow the speech to make the narration match a target duration. Give subtle heartfelt emphasis to Dios, Jesús, Señor, Biblia, fe, amor, paz, esperanza and consuelo. Finish sentences with soft controlled cadences. Avoid whispering, shouting, growling, exaggerated bass, sing-song rhythm, robotic spacing, commercial-announcer energy, movie-trailer drama, fake preacher cadence, cathedral echo or long empty silences.
 
 ### TRANSCRIPT — SPEAK EXACTLY THIS TEXT
 {text}
@@ -210,7 +200,7 @@ def _kokoro_chunked_voice(path: Path, text: str) -> None:
     from kokoro import KPipeline
 
     voice = MALE_KOKORO_VOICE_DEFAULT
-    speed = float(os.getenv("KOKORO_SPEED", "0.91"))
+    speed = 1.0
     pipeline = KPipeline(lang_code="e")
     rendered: list[np.ndarray] = []
 
@@ -233,7 +223,7 @@ def _kokoro_chunked_voice(path: Path, text: str) -> None:
         if piece_count == 0:
             raise RuntimeError(f"Kokoro no genero audio para el fragmento espiritual {index}/{len(chunks)}.")
 
-    pause = np.zeros(max(1, int(24000 * 0.024)), dtype=np.float32)
+    pause = np.zeros(max(1, int(24000 * 0.018)), dtype=np.float32)
     joined: list[np.ndarray] = []
     for index, audio in enumerate(rendered):
         if index:
