@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import re
 import subprocess
 from pathlib import Path
 
@@ -46,6 +47,70 @@ def _enforce_voice_identity(used: str) -> None:
         )
 
 
+def _fit_text_for_natural_short_voice(text: str, duration: int, seed: int) -> tuple[str, dict]:
+    """Keep Algenib natural by fitting the script instead of speeding the narrator.
+
+    Voz de Luz is intentionally calm. For a 60 s Short we keep roughly 85-105
+    spoken words. If the editorial script is longer, retain complete early
+    sentences plus the closing prayer rather than time-stretching the voice.
+    """
+    clean = " ".join(str(text or "").split()).strip()
+    max_words = max(30, int(float(duration) * 1.75))
+    min_words = max(24, int(float(duration) * 1.38))
+    original_words = len(clean.split())
+
+    if original_words > max_words:
+        sentences = [s.strip() for s in re.split(r"(?<=[.!?])\s+", clean) if s.strip()]
+        closing = ""
+        if sentences and any(token in sentences[-1].lower() for token in ("amén", "amen", "dios", "señor", "esperanza")):
+            closing = sentences.pop()
+
+        selected: list[str] = []
+        used_words = 0
+        reserve = len(closing.split()) if closing else 0
+        budget = max(20, max_words - reserve)
+        for sentence in sentences:
+            count = len(sentence.split())
+            if selected and used_words + count > budget:
+                continue
+            if count > budget and not selected:
+                words = sentence.split()[:budget]
+                sentence = " ".join(words).rstrip(" ,;:") + "."
+                count = len(words)
+            if used_words + count <= budget:
+                selected.append(sentence)
+                used_words += count
+        if closing:
+            selected.append(closing)
+        clean = " ".join(selected).strip()
+
+    if len(clean.split()) < min_words:
+        clean, expansion = ensure_spoken_text(clean, duration, seed=seed, words_per_minute=78)
+    else:
+        expansion = {
+            "target_words": min_words,
+            "final_words": len(clean.split()),
+            "continuity_expansions": 0,
+        }
+
+    final_words = len(clean.split())
+    if final_words > max_words + 4:
+        # Last-resort phrase-safe cap. This is preferable to changing the voice
+        # identity or accelerating a calm narrator by 30%+.
+        words = clean.split()
+        clean = " ".join(words[:max_words]).rstrip(" ,;:") + ". Que Dios te acompañe. Amén."
+        final_words = len(clean.split())
+
+    return clean, {
+        **expansion,
+        "original_words": original_words,
+        "final_words": final_words,
+        "natural_voice_word_budget_min": min_words,
+        "natural_voice_word_budget_max": max_words,
+        "script_shortened_for_voice_identity": final_words < original_words,
+    }
+
+
 def apply_spiritual_audio(video: Path, out: Path, channel: dict, meta: dict, duration: int, seed: int) -> None:
     text = " ".join(
         str(scene.get("narration") or "").strip()
@@ -55,9 +120,10 @@ def apply_spiritual_audio(video: Path, out: Path, channel: dict, meta: dict, dur
     if not text:
         raise RuntimeError("El Short espiritual requiere narracion continua.")
 
-    text, text_stats = ensure_spoken_text(text, duration, seed=seed)
+    text, text_stats = _fit_text_for_natural_short_voice(text, duration, seed)
     meta["spoken_text_continuity"] = text_stats
     meta["spoken_text_final_words"] = text_stats["final_words"]
+    meta["spoken_text_used_for_tts"] = text
 
     precomputed = str(meta.get("_precomputed_voice_path") or "").strip()
     precomputed_provider = str(meta.get("_precomputed_tts_provider") or "").strip()
