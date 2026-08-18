@@ -1,0 +1,426 @@
+{
+  "audited_at": "2026-08-18T15:40:23.097267+00:00",
+  "channel_id": "UC5elM7spfsl6tr_A0xGmnhQ",
+  "channel_title": "Dios Habla Hoy",
+  "channel_custom_url": "@dioshablahoyia",
+  "youtube_reported_public_video_count": 45,
+  "history_uploaded_unique_ids": 46,
+  "history_ids_currently_returned_by_owner_api": 43,
+  "history_ids_missing_from_owner_api": 3,
+  "privacy_counts_for_history_ids": {
+    "public": 43
+  },
+  "upload_status_counts_for_history_ids": {
+    "processed": 43
+  },
+  "missing_history_videos": [
+    {
+      "video_id": "NMHhIe2vgOs",
+      "title_in_history": "Cómo Orar Cuando No Sabes Qué Decir | Dios Escucha Tu Corazón",
+      "created_at_in_history": "2026-08-14T13:55:08.742649+00:00",
+      "content_type": "short_or_standard"
+    },
+    {
+      "video_id": "o3fe1fwibpw",
+      "title_in_history": "Una Luz en la Oscuridad | La Profecía de Isaías 9",
+      "created_at_in_history": "2026-08-15T03:36:20.656242+00:00",
+      "content_type": "short_or_standard"
+    },
+    {
+      "video_id": "qerN6TsgLJw",
+      "title_in_history": "Jesús Te Da Descanso: Cómo Entregar Tus Cargas y Encontrar Paz Hoy",
+      "created_at_in_history": "2026-08-14T14:05:46.384098+00:00",
+      "content_type": "short_or_standard"
+    }
+  ],
+  "current_history_videos": [
+    {
+      "video_id": "Q37Uoz9q9hQ",
+      "title": "Cuando el corazón necesita descanso | Romanos 8:28",
+      "published_at": "2026-08-18T15:36:09Z",
+      "privacy_status": "public",
+      "upload_status": "processed",
+      "made_for_kids": false,
+      "duration": "PT1M1S"
+    },
+    {
+      "video_id": "4qaLlMUhMto",
+      "title": "Marcos 4 y Jesus calma la tormenta — enfoque 2 | Una enseñanza bíblica para hoy",
+      "published_at": "2026-08-18T15:31:48Z",
+      "privacy_status": "public",
+      "upload_status": "processed",
+      "made_for_kids": false,
+      "duration": "PT1M1S"
+    },
+    {
+      "video_id": "L1l9XZNHxJc",
+      "title": "Una oración breve para ordenar el corazón",
+      "published_at": "2026-08-18T15:27:01Z",
+      "privacy_status": "public",
+      "upload_status": "processed",
+      "made_for_kids": false,
+      "duration": "PT1M1S"
+    },
+    {
+      "video_id": "N5cDjToMMfE",
+      "title": "Dios obra también en los procesos que no entendemos",
+      "published_at": "2026-08-18T14:58:54Z",
+      "privacy_status": "public",
+      "upload_status": "processed",
+      "made_for_kids": false,
+      "duration": "PT1M1S"
+    },
+    {
+      "video_id": "llmFUvsuea0",
+      "title": "Salmo 34 y Dios cerca del corazon herido | Fe, paz y esperanza",
+      "published_at": "2026-08-18T01:17:24Z",
+      "privacy_status": "public",
+      "upload_status": "processed",
+      "made_for_kids": false,
+      "duration": "PT1M1S"
+    },
+    {
+      "video_id": "0vqcGxvGZJQ",
+      "title": "Esta enseñanza puede ayudarte a recuperar la calma | Mateo 6:25-34",
+      "published_at": "2026-08-17T22:52:45Z",
+      "privacy_status": "public",
+      "upload_status": "processed",
+      "made_for_kids": false,
+      "duration": "PT1M1S"
+    },
+    {
+      "video_id": "aSYi2AHxWUo",
+      "title": "Fe para seguir caminando aun sin ver el resultado",
+      "published_at": "2026-08-17T21:31:00Z",
+      "privacy_status": "public",
+      "upload_status": "processed",
+      "made_for_kids": false,
+      "duration": "PT1M1S"
+    },
+    {
+      "video_id": "WO0ToOPGNYI",
+      "title": "Una promesa de esperanza, sin miedo ni presión | Filipenses 4:6-7",
+      "published_at": "2026-08-17T19:58:38Z",
+      "privacy_status": "public",
+      "upload_status": "processed",
+      "made_for_kids": false,
+      "duration": "PT1M1S"
+    },
+    {
+      "video_id": "KaLcGcNgY0M",
+      "title": "Jesús trae serenidad al corazón cansado",
+      "published_at": "2026-08-17T19:54:18Z",
+      "privacy_status": "public",
+      "upload_status": "processed",
+      "made_for_kids": false,
+      "duration": "PT1M1S"
+    },
+    {
+      "video_id": "EWdA_lHa2m4",
+      "title": "Romanos 12 y vencer el mal con el bien | Una enseñanza bíblica para hoy",
+      "published_at": "2026-08-17T18:42:52Z",
+      "privacy_status": "public",
+      "upload_status": "processed",
+      "made_for_kids": false,
+      "duration": "PT1M1S"
+    },
+    {
+      "video_id": "Umlh3WMo5oM",
+      "title": "Lo que la Biblia enseña cuando nada parece cambiar",
+      "published_at": "2026-08-17T17:02:52Z",
+      "privacy_status": "public",
+      "upload_status": "processed",
+      "made_for_kids": false,
+      "duration": "PT1M1S"
+    },
+    {
+      "video_id": "LonimrbtbOY",
+      "title": "Respirá y recordá esta verdad bíblica | Mateo 6:25-34",
+      "published_at": "2026-08-17T15:24:44Z",
+      "privacy_status": "public",
+      "upload_status": "processed",
+      "made_for_kids": false,
+      "duration": "PT1M1S"
+    },
+    {
+      "video_id": "WeFXU-ZSIB8",
+      "title": "La paz de Dios en medio de la incertidumbre",
+      "published_at": "2026-08-17T14:09:16Z",
+      "privacy_status": "public",
+      "upload_status": "processed",
+      "made_for_kids": false,
+      "duration": "PT1M1S"
+    },
+    {
+      "video_id": "UtaVsnPb6Bk",
+      "title": "Respirá y recordá esta verdad bíblica | Jonás 1-2",
+      "published_at": "2026-08-17T13:52:32Z",
+      "privacy_status": "public",
+      "upload_status": "processed",
+      "made_for_kids": false,
+      "duration": "PT1M1S"
+    },
+    {
+      "video_id": "zj91XdjPY4I",
+      "title": "Cuando el corazón necesita descanso | Mateo 6:25-34",
+      "published_at": "2026-08-17T11:03:14Z",
+      "privacy_status": "public",
+      "upload_status": "processed",
+      "made_for_kids": false,
+      "duration": "PT1M1S"
+    },
+    {
+      "video_id": "jM0EqTK82X0",
+      "title": "No estás solo en esta etapa | Mensaje de fe",
+      "published_at": "2026-08-17T10:55:39Z",
+      "privacy_status": "public",
+      "upload_status": "processed",
+      "made_for_kids": false,
+      "duration": "PT1M1S"
+    },
+    {
+      "video_id": "oI-0Itw-Cqs",
+      "title": "Cuando el corazón necesita descanso | Salmo 23",
+      "published_at": "2026-08-17T02:16:46Z",
+      "privacy_status": "public",
+      "upload_status": "processed",
+      "made_for_kids": false,
+      "duration": "PT1M1S"
+    },
+    {
+      "video_id": "Yn33mjYzGLE",
+      "title": "Una enseñanza de Jesús para transformar este día",
+      "published_at": "2026-08-17T00:59:41Z",
+      "privacy_status": "public",
+      "upload_status": "processed",
+      "made_for_kids": false,
+      "duration": "PT1M1S"
+    },
+    {
+      "video_id": "AwGlVuOddK4",
+      "title": "La Biblia y el valor de confiar un día a la vez",
+      "published_at": "2026-08-16T23:50:35Z",
+      "privacy_status": "public",
+      "upload_status": "processed",
+      "made_for_kids": false,
+      "duration": "PT1M1S"
+    },
+    {
+      "video_id": "0cu4Stvava4",
+      "title": "Respirá y recordá esta verdad bíblica | Juan 10:1-18",
+      "published_at": "2026-08-16T23:39:56Z",
+      "privacy_status": "public",
+      "upload_status": "processed",
+      "made_for_kids": false,
+      "duration": "PT1M1S"
+    },
+    {
+      "video_id": "0OxyzsShXjI",
+      "title": "Cómo sostener la fe cuando el camino se hace difícil",
+      "published_at": "2026-08-16T17:09:34Z",
+      "privacy_status": "public",
+      "upload_status": "processed",
+      "made_for_kids": false,
+      "duration": "PT1M1S"
+    },
+    {
+      "video_id": "MN5tVRfnVr8",
+      "title": "Cuando el corazón necesita descanso | Filipenses 4:6-7",
+      "published_at": "2026-08-16T16:57:56Z",
+      "privacy_status": "public",
+      "upload_status": "processed",
+      "made_for_kids": false,
+      "duration": "PT1M1S"
+    },
+    {
+      "video_id": "NtM9-kPO8tw",
+      "title": "Una palabra de esperanza para el día de hoy",
+      "published_at": "2026-08-16T16:31:02Z",
+      "privacy_status": "public",
+      "upload_status": "processed",
+      "made_for_kids": false,
+      "duration": "PT1M1S"
+    },
+    {
+      "video_id": "HfEIMJqEcoM",
+      "title": "Cuando necesitás paz: Miqueas 5:2",
+      "published_at": "2026-08-16T15:39:01Z",
+      "privacy_status": "public",
+      "upload_status": "processed",
+      "made_for_kids": false,
+      "duration": "PT1M1S"
+    },
+    {
+      "video_id": "n0EVrDDw0yw",
+      "title": "Cuando necesitás paz: Isaías 9",
+      "published_at": "2026-08-16T15:31:24Z",
+      "privacy_status": "public",
+      "upload_status": "processed",
+      "made_for_kids": false,
+      "duration": "PT1M1S"
+    },
+    {
+      "video_id": "uDvCSFc3R3s",
+      "title": "Cuando necesitás paz: Mateo 5:1-12",
+      "published_at": "2026-08-16T15:19:57Z",
+      "privacy_status": "public",
+      "upload_status": "processed",
+      "made_for_kids": false,
+      "duration": "PT1M1S"
+    },
+    {
+      "video_id": "dLrZdg845kI",
+      "title": "Cuando necesitás paz: Lucas 15:1-7",
+      "published_at": "2026-08-16T13:59:45Z",
+      "privacy_status": "public",
+      "upload_status": "processed",
+      "made_for_kids": false,
+      "duration": "PT1M1S"
+    },
+    {
+      "video_id": "v7W7C7k8-k0",
+      "title": "Cuando necesitás paz: Mateo 5:1-12",
+      "published_at": "2026-08-16T12:28:58Z",
+      "privacy_status": "public",
+      "upload_status": "processed",
+      "made_for_kids": false,
+      "duration": "PT1M1S"
+    },
+    {
+      "video_id": "ScIFSlIWCIg",
+      "title": "Cuando necesitás paz: Mateo 6:25-34",
+      "published_at": "2026-08-16T12:05:17Z",
+      "privacy_status": "public",
+      "upload_status": "processed",
+      "made_for_kids": false,
+      "duration": "PT1M1S"
+    },
+    {
+      "video_id": "vQgSsM6gGMc",
+      "title": "Cuando necesitás paz: Isaías 40:28-31",
+      "published_at": "2026-08-16T10:55:50Z",
+      "privacy_status": "public",
+      "upload_status": "processed",
+      "made_for_kids": false,
+      "duration": "PT1M1S"
+    },
+    {
+      "video_id": "WHBRfx2t9NM",
+      "title": "Cuando necesitás paz: Lucas 15:1-7",
+      "published_at": "2026-08-15T22:55:00Z",
+      "privacy_status": "public",
+      "upload_status": "processed",
+      "made_for_kids": false,
+      "duration": "PT1M1S"
+    },
+    {
+      "video_id": "Bxed_AKEcbg",
+      "title": "Cuando necesitás paz: Filipenses 4:6-7",
+      "published_at": "2026-08-15T18:22:45Z",
+      "privacy_status": "public",
+      "upload_status": "processed",
+      "made_for_kids": false,
+      "duration": "PT1M1S"
+    },
+    {
+      "video_id": "U6O2nDgomdk",
+      "title": "Mantén Tu Mirada en Jesús en Medio de la Tormenta | Mateo 14",
+      "published_at": "2026-08-15T13:13:32Z",
+      "privacy_status": "public",
+      "upload_status": "processed",
+      "made_for_kids": false,
+      "duration": "PT1M1S"
+    },
+    {
+      "video_id": "tyGE4ZhcSwY",
+      "title": "Cuando No Sabes Qué Orar, Dios Intercede Por Ti | Romanos 8:26",
+      "published_at": "2026-08-15T13:10:19Z",
+      "privacy_status": "public",
+      "upload_status": "processed",
+      "made_for_kids": false,
+      "duration": "PT1M1S"
+    },
+    {
+      "video_id": "DZEYdeCFh1c",
+      "title": "Si Sientes Cansancio, Jesús Te Llama al Descanso | Mateo 11:28",
+      "published_at": "2026-08-15T13:02:51Z",
+      "privacy_status": "public",
+      "upload_status": "processed",
+      "made_for_kids": false,
+      "duration": "PT9S"
+    },
+    {
+      "video_id": "3ihXxti-yks",
+      "title": "Dios Está Guiando Tu Camino | Romanos 8:28",
+      "published_at": "2026-08-15T13:01:43Z",
+      "privacy_status": "public",
+      "upload_status": "processed",
+      "made_for_kids": false,
+      "duration": "PT9S"
+    },
+    {
+      "video_id": "ojZOrbP3gy0",
+      "title": "La Paz que Transforma Tu Corazón | Juan 14:27",
+      "published_at": "2026-08-15T12:59:43Z",
+      "privacy_status": "public",
+      "upload_status": "processed",
+      "made_for_kids": false,
+      "duration": "PT9S"
+    },
+    {
+      "video_id": "Q39cnws9QJA",
+      "title": "Bajo la Sombra del Todopoderoso | Salmo 91",
+      "published_at": "2026-08-15T12:34:47Z",
+      "privacy_status": "public",
+      "upload_status": "processed",
+      "made_for_kids": false,
+      "duration": "PT9S"
+    },
+    {
+      "video_id": "FixVCw1SShc",
+      "title": "Rendir el temor y caminar en la paz de Dios: El refugio inquebrantable de la fe",
+      "published_at": "2026-08-15T11:21:25Z",
+      "privacy_status": "public",
+      "upload_status": "processed",
+      "made_for_kids": false,
+      "duration": "PT10M1S"
+    },
+    {
+      "video_id": "A4p_vWPLfMI",
+      "title": "El Hijo del Hombre en Daniel 7: Soberanía y Esperanza",
+      "published_at": "2026-08-15T04:52:08Z",
+      "privacy_status": "public",
+      "upload_status": "processed",
+      "made_for_kids": false,
+      "duration": "PT3M1S"
+    },
+    {
+      "video_id": "rH4uwy19zwg",
+      "title": "¿Quién es Tu Prójimo? La Lección de Amor de Jesús",
+      "published_at": "2026-08-15T02:20:32Z",
+      "privacy_status": "public",
+      "upload_status": "processed",
+      "made_for_kids": false,
+      "duration": "PT25S"
+    },
+    {
+      "video_id": "VL_nxiOYfXM",
+      "title": "Vence el Mal Haciendo el Bien | El Poder del Amor Diferente",
+      "published_at": "2026-08-15T00:52:43Z",
+      "privacy_status": "public",
+      "upload_status": "processed",
+      "made_for_kids": false,
+      "duration": "PT25S"
+    },
+    {
+      "video_id": "Vy7QiIR7GeY",
+      "title": "El Poder de Agradecer Antes de Ver el Milagro | Dios Habla Hoy IA",
+      "published_at": "2026-08-14T23:45:15Z",
+      "privacy_status": "public",
+      "upload_status": "processed",
+      "made_for_kids": false,
+      "duration": "PT25S"
+    }
+  ],
+  "audit_mode": "read_only_no_delete_no_update_no_privacy_change"
+}
