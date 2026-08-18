@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import json
 import re
+import subprocess
 from pathlib import Path
 
 from app import spiritual_long_pipeline as base
@@ -11,6 +12,59 @@ from app.spiritual_long_resilient_runner import run
 
 ROOT = Path(__file__).resolve().parents[1]
 LONG_HISTORY = ROOT / "state" / "dioshablahoyia_long_history.jsonl"
+VOICE_LOCK_VERSION = "voz-de-luz-algenib-v3-natural-fixed"
+
+
+def _probe_duration(path: Path) -> float:
+    result = subprocess.run(
+        ["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "default=nw=1:nk=1", str(path)],
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    return max(0.0, float(result.stdout.strip() or 0.0))
+
+
+def _natural_long_voice_fit(path: Path, target_seconds: float) -> None:
+    """Never slow Voz de Luz to fill a long-form timeline.
+
+    A slightly shorter natural narration is padded by the long-form mixer with
+    the music bed. If narration is longer, only a very small acceleration is
+    allowed. Severe mismatches fail instead of changing the narrator character.
+    """
+    target = float(target_seconds)
+    if target <= 1 or not path.exists():
+        return
+    current = _probe_duration(path)
+    if current <= 1:
+        raise RuntimeError("VOICE_CADENCE_LOCK: narracion larga vacia o invalida.")
+
+    coverage = current / target
+    if coverage < 0.90:
+        raise RuntimeError(
+            f"VOICE_CADENCE_LOCK: la narracion ocupa solo {coverage:.1%} del video. "
+            "Se debe regenerar con mas texto; no se ralentizara Voz de Luz."
+        )
+
+    if current <= target * 1.005:
+        # Never slow a shorter natural narration. The final mixer pads the tail.
+        return
+
+    tempo = current / (target * 0.995)
+    if tempo > 1.055:
+        raise RuntimeError(
+            f"VOICE_CADENCE_LOCK: la narracion excede demasiado la duracion ({current:.1f}s/{target:.1f}s). "
+            "Se debe ajustar el guion, no cambiar perceptiblemente la voz."
+        )
+
+    temp = path.with_name(path.stem + ".natural-long-fit.wav")
+    subprocess.run([
+        "ffmpeg", "-y", "-loglevel", "error", "-i", str(path),
+        "-af", f"atempo={tempo:.7f}", "-ar", "48000", "-ac", "1", str(temp),
+    ], check=True)
+    if not temp.exists() or temp.stat().st_size < 1000:
+        raise RuntimeError("VOICE_CADENCE_LOCK: no se pudo aplicar el ajuste minimo de voz larga.")
+    temp.replace(path)
 
 
 def _extract_visual_fingerprints(providers: list[str]) -> tuple[list[str], list[str]]:
@@ -48,24 +102,29 @@ def _enrich_last_history(result: dict) -> None:
     last["voice_identity_locked"] = True
     last["voice_profile"] = "voz_de_luz_serena_original_v1"
     last["voice_expected_provider"] = "Gemini TTS/Algenib"
-    last["voice_lock_version"] = "voz-de-luz-algenib-v2"
+    last["voice_lock_version"] = VOICE_LOCK_VERSION
+    last["voice_cadence_locked"] = True
+    last["voice_slow_stretch_forbidden"] = True
     raw_lines[-1] = json.dumps(last, ensure_ascii=False)
     LONG_HISTORY.write_text("\n".join(raw_lines) + "\n", encoding="utf-8")
 
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--minutes", required=True, type=int, choices=[10, 15, 20, 30])
+    parser.add_argument("--minutes", required=True, type=int, choices=[10, 15, 25, 30])
     parser.add_argument("--publish", action="store_true")
     args = parser.parse_args()
 
     original_download = base._download_image
+    original_fit = base.fit_voice_to_duration
     base._download_image = download_fresh_long_visual
+    base.fit_voice_to_duration = _natural_long_voice_fit
     try:
         result = run(args.minutes, publish=args.publish)
         _enrich_last_history(result)
     finally:
         base._download_image = original_download
+        base.fit_voice_to_duration = original_fit
     print(json.dumps(result, ensure_ascii=False))
 
 
