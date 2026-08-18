@@ -19,6 +19,7 @@ MALE_GEMINI_VOICE_DEFAULT = "Algenib"
 MALE_KOKORO_VOICE_DEFAULT = "em_alex"
 SPIRITUAL_VOICE_PROFILE = "voz_de_luz_serena_original_v1"
 VOICE_BRAND_NAME = "Voz de Luz"
+VOICE_LOCK_VERSION = "voz-de-luz-algenib-v2"
 REFERENCE_MODE = "two_reference_style_blend_no_speaker_clone"
 
 
@@ -81,25 +82,25 @@ def _director_notes(mode: str) -> str:
     if mode == "night_prayer":
         return (
             "Deliver it as a peaceful night prayer at roughly 118 to 128 words per minute. "
-            "Use a deep but gentle baritone, soft downward endings and comfortable pauses of about 300 to 650 milliseconds. "
-            "The listener should feel safe, accompanied and ready to rest."
+            "Use soft downward endings and comfortable pauses of about 300 to 650 milliseconds. "
+            "Do not change speaker identity, perceived age, accent, vocal texture or pitch register."
         )
     if mode == "prayer":
         return (
             "Deliver it as a sincere guided prayer at roughly 122 to 134 words per minute. "
-            "Sound intimate, reverent and compassionate, with calm conviction and natural breathing. "
-            "Allow petitions and gratitude to breathe without becoming slow or theatrical."
+            "Sound intimate, reverent and compassionate with calm conviction and natural breathing. "
+            "Change pacing only; never change speaker identity, perceived age, accent, vocal texture or pitch register."
         )
     if mode == "biblical_story":
         return (
             "Deliver it as a premium biblical storyteller at roughly 136 to 148 words per minute. "
             "Maintain clear narrative progression, excellent articulation and subtle wonder. "
-            "Keep the authority gentle and human, never like a trailer or an aggressive preacher."
+            "Change pacing only; never change speaker identity, perceived age, accent, vocal texture or pitch register."
         )
     return (
         "Deliver it as a thoughtful biblical reflection at roughly 128 to 140 words per minute. "
         "Use a fluid conversational rhythm, clear Scripture emphasis and short organic pauses. "
-        "The voice should feel close, luminous, peaceful and trustworthy."
+        "Change pacing only; never change speaker identity, perceived age, accent, vocal texture or pitch register."
     )
 
 
@@ -108,8 +109,6 @@ def _brand_master(path: Path) -> None:
     if not path.exists():
         return
     temp = path.with_name(path.stem + ".voz-de-luz-master.wav")
-    # Tuned for a warm 90-105 Hz male center, smooth low mids, intelligible diction
-    # and reduced harshness. No cathedral echo or artificial cavern reverb.
     filters = (
         "highpass=f=50,"
         "lowpass=f=10500,"
@@ -135,6 +134,16 @@ def _brand_master(path: Path) -> None:
         temp.unlink(missing_ok=True)
 
 
+def _locked_gemini_voice() -> str:
+    requested = os.getenv("GEMINI_TTS_VOICE", MALE_GEMINI_VOICE_DEFAULT).strip() or MALE_GEMINI_VOICE_DEFAULT
+    locked = os.getenv("SPIRITUAL_VOICE_LOCKED", "true").lower().strip() == "true"
+    if locked and requested.lower() != MALE_GEMINI_VOICE_DEFAULT.lower():
+        raise RuntimeError(
+            f"VOICE_LOCK: GEMINI_TTS_VOICE={requested} no coincide con la voz fija {MALE_GEMINI_VOICE_DEFAULT}."
+        )
+    return MALE_GEMINI_VOICE_DEFAULT
+
+
 def _gemini_spiritual_voice(path: Path, text: str) -> str:
     from google import genai
 
@@ -143,7 +152,7 @@ def _gemini_spiritual_voice(path: Path, text: str) -> str:
         raise RuntimeError("Falta GEMINI_API_KEY para Gemini TTS.")
 
     model = os.getenv("GEMINI_TTS_MODEL", "gemini-3.1-flash-tts-preview").strip()
-    voice = MALE_GEMINI_VOICE_DEFAULT
+    voice = _locked_gemini_voice()
     mode = _delivery_mode(text)
     client = genai.Client(api_key=api_key)
     prompt = f"""
@@ -151,6 +160,9 @@ Synthesize speech only. Do not read these directions aloud.
 
 ### PERMANENT CHANNEL VOICE — VOZ DE LUZ
 Use the Algenib ADULT MALE voice for the entire narration. Create one stable, original vocal identity for Dios Habla Hoy called Voz de Luz. It may combine broad qualities from two style references—intimate warmth and gentle authority—but must not imitate, clone, identify or reproduce any real speaker.
+
+### VOICE CONSISTENCY LOCK — {VOICE_LOCK_VERSION}
+This must sound like the SAME narrator used in every previous and future Dios Habla Hoy upload. Keep the same perceived age, baritone register, vocal texture, speaking distance, neutral Latin-American Spanish accent, resonance and calm energy. Prayer, story, reflection and night-prayer modes may change ONLY pacing, pauses and emphasis. They must never sound like a different man, a different age, a different accent, a different pitch register or a different vocal character.
 
 ### VOCAL IDENTITY
 Original mature male baritone with a natural fundamental center around 90 to 105 Hz. Warm chest resonance, relaxed throat, lightly textured human timbre, clear consonants and open vowels. Neutral Latin-American Spanish with excellent diction and professional locution. The sound is serene, luminous, compassionate and close, as if speaking personally to one listener.
@@ -183,7 +195,7 @@ Use natural breaths and mostly short pauses between phrases, with an occasional 
             if not data:
                 raise RuntimeError("Gemini TTS no devolvio audio.")
             _write_pcm_wave(path, base64.b64decode(data), rate=24000)
-            return f"{model}:{voice}:{SPIRITUAL_VOICE_PROFILE}:{mode}"
+            return f"{model}:{voice}:{SPIRITUAL_VOICE_PROFILE}:{mode}:{VOICE_LOCK_VERSION}"
         except Exception as exc:
             last_error = exc
             if attempt < 3:
@@ -198,7 +210,7 @@ def _kokoro_chunked_voice(path: Path, text: str) -> None:
     from kokoro import KPipeline
 
     voice = MALE_KOKORO_VOICE_DEFAULT
-    speed = float(os.getenv("KOKORO_SPEED", "0.93"))
+    speed = float(os.getenv("KOKORO_SPEED", "0.91"))
     pipeline = KPipeline(lang_code="e")
     rendered: list[np.ndarray] = []
 
@@ -221,8 +233,6 @@ def _kokoro_chunked_voice(path: Path, text: str) -> None:
         if piece_count == 0:
             raise RuntimeError(f"Kokoro no genero audio para el fragmento espiritual {index}/{len(chunks)}.")
 
-    # Keep fallback phrasing connected; the reference blend uses brief organic gaps,
-    # not long dramatic pauses.
     pause = np.zeros(max(1, int(24000 * 0.024)), dtype=np.float32)
     joined: list[np.ndarray] = []
     for index, audio in enumerate(rendered):
@@ -264,5 +274,11 @@ def make_spiritual_spanish_voice(path: Path, text: str) -> str:
 
     if not path.exists() or path.stat().st_size < 1000:
         raise RuntimeError(f"{used} genero un archivo de voz espiritual invalido.")
+
+    if require_primary:
+        low = used.lower()
+        if "gemini" not in low or f":{MALE_GEMINI_VOICE_DEFAULT.lower()}:" not in low or "fallback" in low:
+            raise RuntimeError(f"VOICE_LOCK: proveedor de voz inesperado: {used}")
+
     _brand_master(path)
     return used
