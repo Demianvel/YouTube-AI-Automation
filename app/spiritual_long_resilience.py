@@ -6,8 +6,10 @@ from pathlib import Path
 
 from huggingface_hub import InferenceClient
 
+from .dios_visual_integrity import fresh_against_persisted_history
 from .hf_video import _safe_seed
 from .spiritual_image import _local_reference
+from .spiritual_reference_generation import generate_reference_guided_image
 from . import wikimedia_video as commons
 
 _COMMONS_QUERIES = (
@@ -23,7 +25,20 @@ _COMMONS_QUERIES = (
     "river valley landscape",
     "forest sunlight mist",
     "clouds sky landscape",
+    "Norway fjord aurora",
+    "Lofoten Norway mountains sea",
 )
+
+
+def _env_true(name: str, default: bool = True) -> bool:
+    raw = os.getenv(name)
+    if raw is None:
+        return default
+    return raw.lower().strip() == "true"
+
+
+def _provider_with_fingerprint(provider: str, signature: dict[str, str]) -> str:
+    return f"{provider} | image_sha256={signature['sha256']} | image_dhash={signature['dhash']}"
 
 
 def _download_commons_landscape(out: Path, seed: int) -> str:
@@ -41,23 +56,50 @@ def _download_commons_landscape(out: Path, seed: int) -> str:
     raise RuntimeError("Wikimedia Commons no encontro un paisaje CC0 o de dominio publico para esta escena.")
 
 
+def _accept_if_fresh(out: Path, provider: str, current_dhash: list[str] | None = None) -> str:
+    fresh, signature, distance = fresh_against_persisted_history(out, current_dhash=current_dhash)
+    if not fresh:
+        out.unlink(missing_ok=True)
+        raise RuntimeError(f"visual repetido o demasiado parecido; distancia perceptual={distance}")
+    return _provider_with_fingerprint(provider, signature)
+
+
 def download_landscape_image(prompt: str, out: Path, seed: int, style: str) -> str:
-    """Prefer new AI imagery, then public-domain/CC0 Commons nature, then local reference."""
-    full_prompt = f"{prompt}, {style}"
+    """Generate a new 16:9 frame first; never reuse an old local still in strict mode."""
+    full_prompt = f"{prompt}, {style}. Create a completely new composition, camera angle, light and environment; never copy a prior channel frame."
     errors: list[str] = []
+
+    # Primary FREE route used by the channel: Hugging Face ZeroGPU. It reads
+    # HF_ZERO_TOKEN, so it also works when HF_TOKEN is intentionally blank to
+    # avoid paid Inference Providers.
+    for attempt in range(3):
+        attempt_seed = _safe_seed(seed + attempt * 104729)
+        try:
+            provider, _reference = generate_reference_guided_image(
+                full_prompt,
+                out,
+                attempt_seed,
+                target_size=(1920, 1080),
+            )
+            return _accept_if_fresh(out, provider)
+        except Exception as exc:
+            errors.append(f"HF ZeroGPU intento {attempt + 1}: {exc}")
+
+    # Optional paid/provider route only when the user explicitly exposes
+    # HF_TOKEN. Normal Dios workflows keep this empty and use ZeroGPU above.
     token = os.getenv("HF_TOKEN", "").strip()
     if token:
         try:
             provider = os.getenv("HF_IMAGE_PROVIDER", "auto").strip() or "auto"
             model = os.getenv("HF_IMAGE_MODEL", "black-forest-labs/FLUX.1-schnell").strip()
             client = InferenceClient(provider=provider, api_key=token, timeout=180)
-            image = client.text_to_image(full_prompt, model=model, seed=_safe_seed(seed))
+            image = client.text_to_image(full_prompt, model=model, seed=_safe_seed(seed ^ 0x51A7))
             if image is None:
                 raise RuntimeError("HF no devolvio imagen")
             image.convert("RGB").save(out, format="JPEG", quality=95, optimize=True)
             if not out.exists() or out.stat().st_size < 20_000:
                 raise RuntimeError("HF devolvio una imagen invalida")
-            return f"Hugging Face Inference Providers / {model}"
+            return _accept_if_fresh(out, f"Hugging Face Inference Providers / {model}")
         except Exception as exc:
             errors.append(f"HF image: {exc}")
 
@@ -72,7 +114,7 @@ def download_landscape_image(prompt: str, out: Path, seed: int, style: str) -> s
                 "model": os.getenv("POLLINATIONS_IMAGE_MODEL", "flux"),
                 "width": 1920,
                 "height": 1080,
-                "seed": _safe_seed(seed),
+                "seed": _safe_seed(seed ^ 0xA11CE),
                 "nologo": "true",
                 "enhance": "true",
             }
@@ -85,23 +127,35 @@ def download_landscape_image(prompt: str, out: Path, seed: int, style: str) -> s
             if len(response.content) < 20_000:
                 raise RuntimeError("Pollinations devolvio una imagen invalida")
             out.write_bytes(response.content)
-            return "Pollinations authenticated image API"
+            return _accept_if_fresh(out, "Pollinations authenticated image API")
         except Exception as exc:
             errors.append(f"Pollinations: {exc}")
     else:
         errors.append("Pollinations: falta POLLINATIONS_API_KEY")
 
-    try:
-        provider = _download_commons_landscape(out, seed)
-        print("Usando paisaje CC0/dominio publico de Wikimedia Commons como respaldo visual largo.")
-        return provider
-    except Exception as exc:
-        errors.append(f"Commons: {exc}")
+    # Free emergency route: only CC0/public-domain material and only if its
+    # visual fingerprint has never been used by the channel.
+    if _env_true("SPIRITUAL_ALLOW_FREE_FRESH_FALLBACK", True):
+        for attempt in range(6):
+            try:
+                provider = _download_commons_landscape(out, _safe_seed(seed + attempt * 65537))
+                accepted = _accept_if_fresh(out, provider)
+                print("Usando paisaje CC0/dominio publico NUEVO como respaldo visual largo.")
+                return accepted
+            except Exception as exc:
+                errors.append(f"Commons intento {attempt + 1}: {exc}")
+
+    # In strict mode we intentionally fail rather than recycle an old Jesus
+    # reference. This is the permanent anti-repetition contract for the channel.
+    if _env_true("SPIRITUAL_REQUIRE_FRESH_VISUAL", True):
+        raise RuntimeError(
+            "No existe un visual NUEVO disponible; se rechazo reutilizar una imagen antigua. "
+            + "; ".join(errors[-8:])
+        )
 
     try:
         provider = _local_reference(out, seed)
-        print("Usando referencia fotorrealista local de emergencia como ultimo respaldo.")
-        return provider
+        return _accept_if_fresh(out, provider)
     except Exception as exc:
         errors.append(f"local reference: {exc}")
 
