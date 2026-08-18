@@ -92,6 +92,9 @@ jobs:
       PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
       MUSIC_PROVIDER: local
       YOUTUBE_TOKEN_DIOSHABLAHOYIA: ${{ secrets.YOUTUBE_TOKEN_DIOSHABLAHOYIA }}
+      FACEBOOK_PAGE_ID: ${{ secrets.FACEBOOK_PAGE_ID }}
+      FACEBOOK_PAGE_ACCESS_TOKEN: ${{ secrets.FACEBOOK_PAGE_ACCESS_TOKEN }}
+      FACEBOOK_GRAPH_API_VERSION: v25.0
 
     steps:
       - uses: actions/checkout@v4
@@ -118,7 +121,7 @@ jobs:
           test -f assets/dioshablahoyia/reference/jesus_reference_user_new_02.jpg
           test -f assets/dioshablahoyia/reference/jesus_reference_user_new_03.jpg
           test -f assets/dioshablahoyia/visual_reference/noah_ark_user_new_01.jpg
-          python -m py_compile scripts/publish_dios_fast.py app/pipeline.py app/spiritual_reference_generation.py app/spiritual_image.py app/spiritual_tts.py app/spiritual_audio.py app/dios_visual_integrity.py
+          python -m py_compile scripts/publish_dios_fast.py app/pipeline.py app/facebook_pages.py app/spiritual_reference_generation.py app/spiritual_image.py app/spiritual_tts.py app/spiritual_audio.py app/dios_visual_integrity.py
       - name: Generate fresh Short
         shell: bash
         run: |
