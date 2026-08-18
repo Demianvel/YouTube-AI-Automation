@@ -43,11 +43,14 @@ jobs:
       SPIRITUAL_VOICE_PROFILE: voz_de_luz_serena_original_v1
       SPIRITUAL_VOICE_BRAND: Voz de Luz
       SPIRITUAL_VOICE_REFERENCE_MODE: fresh_github_reference_bank_no_speaker_clone
+      SPIRITUAL_VOICE_LOCKED: "true"
       SPIRITUAL_VOICEOVER_MODE: "true"
       SPIRITUAL_REQUIRE_PRIMARY_VOICE: "true"
       SPIRITUAL_LIPSYNC_ENABLED: "false"
       SPIRITUAL_LONG_LIPSYNC_ENABLED: "false"
       SPIRITUAL_REQUIRE_FRESH_VISUAL: "true"
+      SPIRITUAL_VISUAL_PHASH_MAX_DISTANCE: "7"
+      SPIRITUAL_ALLOW_FREE_FRESH_FALLBACK: "true"
       SPIRITUAL_ALLOW_STILL_FALLBACK: "true"
       SPIRITUAL_VISUAL_VARIETY_LEVEL: maximum
       SPIRITUAL_EDITORIAL_VARIETY_LEVEL: high
@@ -97,7 +100,10 @@ jobs:
           sudo apt-get install -y -qq ffmpeg espeak-ng libsndfile1 fonts-dejavu-core git >/dev/null
           python -m pip install -q --upgrade pip
           pip install -q "google-genai>=2.3.0" "google-api-python-client>=2.170.0" "google-auth>=2.40.0" "google-auth-oauthlib>=1.2.2" "Pillow>=11.0.0" "requests>=2.32.0" "numpy<3,>=1.26" "soundfile>=0.13.1" "huggingface_hub<2,>=0.34.4" "gradio_client<3,>=1.11.0"
-          python -m py_compile app/spiritual_long_fresh_visual.py scripts/publish_dios_long_fresh.py
+          test "$GEMINI_TTS_VOICE" = "Algenib"
+          test "$SPIRITUAL_REQUIRE_PRIMARY_VOICE" = "true"
+          test "$SPIRITUAL_VOICE_LOCKED" = "true"
+          python -m py_compile app/spiritual_long_fresh_visual.py app/spiritual_long_resilience.py app/spiritual_tts.py app/dios_visual_integrity.py scripts/publish_dios_long_fresh.py
       - name: Publish fresh long video
         shell: bash
         run: |
