@@ -62,6 +62,76 @@ def _configure_spiritual_short(channel_slug: str, channel: dict) -> None:
     channel["spiritual_short_target_seconds"] = scenes * scene_seconds
 
 
+def _salt_numeric_marker(value: str, attempt: int) -> str:
+    if not value:
+        return value
+    try:
+        return str(int(value) + attempt * 1_000_003)
+    except ValueError:
+        return value
+
+
+def _prepare_spiritual_candidate(channel: dict, previous: list[dict]) -> dict:
+    """Apply the full SEO/editorial stack, then retry if the FINAL result is repetitive.
+
+    The fast metadata selector can choose a fresh script, but SEO/title optimization may
+    later turn it into packaging that resembles a recent upload. We therefore evaluate
+    uniqueness only after every SEO transformation and choose another biblical candidate
+    rather than weakening the anti-spam gate.
+    """
+    original_run_id = os.getenv("GITHUB_RUN_ID", "")
+    original_run_number = os.getenv("GITHUB_RUN_NUMBER", "")
+    last_duplicate: RuntimeError | None = None
+
+    try:
+        for attempt in range(12):
+            if original_run_id:
+                os.environ["GITHUB_RUN_ID"] = _salt_numeric_marker(original_run_id, attempt)
+            elif original_run_number:
+                os.environ["GITHUB_RUN_NUMBER"] = _salt_numeric_marker(original_run_number, attempt)
+
+            metadata = generate_metadata(channel, previous)
+            metadata = enforce_spiritual_metadata(metadata, previous)
+            metadata["target_short_seconds"] = int(channel["scenes_per_short"]) * int(channel["scene_seconds"])
+            metadata["short_format"] = "vertical_native_cinematic_short"
+            metadata = enrich_short_growth(metadata, previous)
+            metadata = ground_and_optimize_spiritual_metadata(metadata, previous, content_type="short")
+            metadata = enrich_metadata_visuals(metadata, content_type="short")
+            metadata = attach_visual_pack(metadata, previous, content_type="short")
+
+            try:
+                metadata = validate_spiritual_uniqueness(metadata, previous)
+            except RuntimeError as exc:
+                if "BLOQUEADO ANTI-SPAM" not in str(exc):
+                    raise
+                last_duplicate = exc
+                print(
+                    f"Candidato SEO {attempt + 1}/12 descartado por anti-spam ({exc}). "
+                    "Probando otro tema/enfoque biblico antes de renderizar."
+                )
+                continue
+
+            metadata = mark_publish_metadata(metadata, content_type="short")
+            metadata = enforce_spiritual_topic_guard(metadata)
+            metadata["metadata_retry_count"] = attempt
+            metadata["final_seo_uniqueness_prechecked"] = True
+            return metadata
+    finally:
+        if original_run_id:
+            os.environ["GITHUB_RUN_ID"] = original_run_id
+        else:
+            os.environ.pop("GITHUB_RUN_ID", None)
+        if original_run_number:
+            os.environ["GITHUB_RUN_NUMBER"] = original_run_number
+        else:
+            os.environ.pop("GITHUB_RUN_NUMBER", None)
+
+    raise RuntimeError(
+        "No se encontro un guion + titulo + tema SEO suficientemente diferente tras 12 intentos. "
+        f"Ultimo control: {last_duplicate}"
+    )
+
+
 def run(channel_slug: str, dry_run: bool = False, content_mode: str = "auto") -> dict:
     if channel_slug not in ACTIVE_SHORT_CHANNELS:
         raise RuntimeError(
@@ -110,25 +180,17 @@ def run(channel_slug: str, dry_run: bool = False, content_mode: str = "auto") ->
         print(f"YouTube Analytics detallado no disponible: {exc}")
 
     resolved_mode = _apply_content_mode(channel_slug, channel, content_mode, previous)
-    metadata = generate_metadata(channel, previous)
+
+    if channel_slug == "dioshablahoyia":
+        metadata = _prepare_spiritual_candidate(channel, previous)
+    else:
+        metadata = generate_metadata(channel, previous)
 
     if channel_slug == "brotavida":
         metadata["content_family"] = "seed_to_plant_timelapse"
         metadata["audio_policy"] = "asmr_natural_foley_plus_optional_original_low_music_no_voice"
         metadata["real_botanical_timelapse_required"] = True
         metadata["no_synthetic_plant_visuals"] = True
-
-    if channel_slug == "dioshablahoyia":
-        metadata = enforce_spiritual_metadata(metadata, previous)
-        metadata["target_short_seconds"] = int(channel["scenes_per_short"]) * int(channel["scene_seconds"])
-        metadata["short_format"] = "vertical_native_cinematic_short"
-        metadata = enrich_short_growth(metadata, previous)
-        metadata = ground_and_optimize_spiritual_metadata(metadata, previous, content_type="short")
-        metadata = enrich_metadata_visuals(metadata, content_type="short")
-        metadata = attach_visual_pack(metadata, previous, content_type="short")
-        metadata = validate_spiritual_uniqueness(metadata, previous)
-        metadata = mark_publish_metadata(metadata, content_type="short")
-        metadata = enforce_spiritual_topic_guard(metadata)
 
     metadata["content_mode"] = resolved_mode
     metadata["analytics_used"] = bool(channel.get("_analytics_digest"))
@@ -164,6 +226,8 @@ def run(channel_slug: str, dry_run: bool = False, content_mode: str = "auto") ->
         "script_hash": metadata.get("script_hash"),
         "narration_preview": metadata.get("narration_preview"),
         "uniqueness_gate_passed": metadata.get("uniqueness_gate_passed"),
+        "metadata_retry_count": metadata.get("metadata_retry_count"),
+        "final_seo_uniqueness_prechecked": metadata.get("final_seo_uniqueness_prechecked"),
         "visual_engine_version": metadata.get("visual_engine_version"),
         "visual_rotation_manifest": metadata.get("visual_rotation_manifest"),
         "visual_pack": metadata.get("visual_pack"),
