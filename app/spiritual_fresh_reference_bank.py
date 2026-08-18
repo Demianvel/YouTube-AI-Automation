@@ -5,6 +5,8 @@ import json
 import re
 from pathlib import Path
 
+from PIL import Image
+
 ROOT = Path(__file__).resolve().parents[1]
 REFERENCE_DIR = ROOT / "assets" / "dioshablahoyia" / "reference"
 VISUAL_REFERENCE_DIR = ROOT / "assets" / "dioshablahoyia" / "visual_reference"
@@ -55,17 +57,29 @@ def _recent_reference_names(limit: int = 120) -> set[str]:
     return result
 
 
+def _valid_image(path: Path) -> bool:
+    try:
+        if not path.exists() or path.stat().st_size < 2_000:
+            return False
+        with Image.open(path) as image:
+            image.verify()
+        return True
+    except Exception as exc:
+        print(f"Referencia visual dañada ignorada: {path.name} ({exc})")
+        return False
+
+
 def new_jesus_references() -> list[Path]:
-    refs = sorted(REFERENCE_DIR.glob("jesus_reference_user_new_*.jpg"))
+    refs = [path for path in sorted(REFERENCE_DIR.glob("jesus_reference_user_new_*.jpg")) if _valid_image(path)]
     if not refs:
-        raise RuntimeError("No existe el banco renovado de referencias de Jesus.")
+        raise RuntimeError("No existe una referencia renovada y valida de Jesus; se usara generacion sin referencia/fallback fresco.")
     return refs
 
 
 def noah_references() -> list[Path]:
-    refs = sorted(VISUAL_REFERENCE_DIR.glob("noah_ark_user_new_*.jpg"))
+    refs = [path for path in sorted(VISUAL_REFERENCE_DIR.glob("noah_ark_user_new_*.jpg")) if _valid_image(path)]
     if not refs:
-        raise RuntimeError("No existe el banco renovado del Arca de Noe.")
+        raise RuntimeError("No existe una referencia renovada y valida del Arca de Noe; se usara generacion/fallback fresco.")
     return refs
 
 
@@ -73,7 +87,7 @@ def _pick(refs: list[Path], seed: int) -> Path:
     recent = _recent_reference_names()
     preferred = [ref for ref in refs if ref.name not in recent]
     pool = preferred or refs
-    digest = hashlib.sha256(f"fresh-reference-v3|{seed}".encode()).hexdigest()
+    digest = hashlib.sha256(f"fresh-reference-v4|{seed}".encode()).hexdigest()
     return pool[int(digest[:12], 16) % len(pool)]
 
 
