@@ -54,6 +54,7 @@ jobs:
       SPIRITUAL_VOICE_PROFILE: voz_de_luz_serena_original_v1
       SPIRITUAL_VOICE_BRAND: Voz de Luz
       SPIRITUAL_VOICE_REFERENCE_MODE: fresh_github_reference_bank_no_speaker_clone
+      SPIRITUAL_VOICE_LOCKED: "true"
       SPIRITUAL_VOICEOVER_MODE: "true"
       SPIRITUAL_LIPSYNC_ENABLED: "false"
       SPIRITUAL_REQUIRE_PRIMARY_VOICE: "true"
@@ -66,6 +67,7 @@ jobs:
       SPIRITUAL_EDITORIAL_VARIETY_LEVEL: high
       SPIRITUAL_CTA_OVERLAY: "false"
       SPIRITUAL_REQUIRE_FRESH_VISUAL: "true"
+      SPIRITUAL_VISUAL_PHASH_MAX_DISTANCE: "7"
       TTS_PROVIDER: gemini_tts
       TTS_FALLBACK_KOKORO: "false"
       KOKORO_VOICE: em_alex
@@ -109,11 +111,14 @@ jobs:
           python scripts/check_ready.py --generation-only
           test -n "$YOUTUBE_TOKEN_DIOSHABLAHOYIA"
           test -n "$HF_ZERO_TOKEN"
+          test "$GEMINI_TTS_VOICE" = "Algenib"
+          test "$SPIRITUAL_REQUIRE_PRIMARY_VOICE" = "true"
+          test "$SPIRITUAL_VOICE_LOCKED" = "true"
           test -f assets/dioshablahoyia/reference/jesus_reference_user_new_01.jpg
           test -f assets/dioshablahoyia/reference/jesus_reference_user_new_02.jpg
           test -f assets/dioshablahoyia/reference/jesus_reference_user_new_03.jpg
           test -f assets/dioshablahoyia/visual_reference/noah_ark_user_new_01.jpg
-          python -m py_compile scripts/publish_dios_fast.py app/pipeline.py app/spiritual_reference_generation.py app/spiritual_image.py
+          python -m py_compile scripts/publish_dios_fast.py app/pipeline.py app/spiritual_reference_generation.py app/spiritual_image.py app/spiritual_tts.py app/spiritual_audio.py app/dios_visual_integrity.py
       - name: Generate fresh Short
         shell: bash
         run: |
