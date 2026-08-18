@@ -1,4 +1,4 @@
-name: Dios Habla Hoy IA - 2 videos largos por fin de semana
+name: Dios Habla Hoy IA - 2 videos largos por semana
 
 on:
   workflow_dispatch:
@@ -16,7 +16,7 @@ on:
     paths: ["triggers/dioshablahoyia-long.txt"]
   schedule:
     # GitHub cron usa UTC. 18:00 UTC = 15:00 en Argentina (UTC-3).
-    # Un video largo cada sabado y otro cada domingo. Los Shorts siguen aparte todos los dias.
+    # Normalmente publica sabado y domingo. El limite semanal impide superar 2 largos.
     - cron: "0 18 * * 6"
     - cron: "0 18 * * 0"
 
@@ -84,16 +84,52 @@ jobs:
         with:
           python-version: "3.11"
 
+      - name: Enforce weekly maximum of two long videos
+        if: github.event_name == 'schedule'
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json, os
+          from datetime import datetime
+          from pathlib import Path
+          from zoneinfo import ZoneInfo
+
+          tz = ZoneInfo("America/Argentina/Buenos_Aires")
+          now = datetime.now(tz)
+          current = now.isocalendar()
+          count = 0
+          path = Path("state/dioshablahoyia_long_history.jsonl")
+          if path.exists():
+              for raw in path.read_text(encoding="utf-8").splitlines():
+                  try:
+                      row = json.loads(raw)
+                      if row.get("channel") != "dioshablahoyia" or row.get("content_type") != "long":
+                          continue
+                      if row.get("status") != "uploaded" and not row.get("video_id"):
+                          continue
+                      stamp = row.get("created_at")
+                      if not stamp:
+                          continue
+                      dt = datetime.fromisoformat(stamp.replace("Z", "+00:00")).astimezone(tz)
+                      iso = dt.isocalendar()
+                      if (iso.year, iso.week) == (current.year, current.week):
+                          count += 1
+                  except Exception:
+                      continue
+          skip = count >= 2
+          print(f"Videos largos ya publicados esta semana: {count}")
+          with open(os.environ["GITHUB_ENV"], "a", encoding="utf-8") as fh:
+              fh.write(f"SKIP_LONG={'true' if skip else 'false'}\n")
+          PY
+
       - name: Resolve weekend duration
+        if: env.SKIP_LONG != 'true'
         shell: bash
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             MINUTES="${{ inputs.minutes }}"
             PUBLISH="${{ inputs.publish }}"
           elif [ "${{ github.event_name }}" = "schedule" ]; then
-            # Rotacion de 4 duraciones en ciclos de dos fines de semana:
-            # semana par: sabado 10 min / domingo 15 min
-            # semana impar: sabado 25 min / domingo 30 min
             WEEK="$(date -u +%V)"
             PARITY=$((10#$WEEK % 2))
             DOW="$(date -u +%u)"
@@ -122,9 +158,10 @@ jobs:
           echo "MINUTES=$MINUTES" >> "$GITHUB_ENV"
           echo "PUBLISH=$PUBLISH" >> "$GITHUB_ENV"
           echo "SPIRITUAL_NARRATION_STYLE=$STYLE" >> "$GITHUB_ENV"
-          echo "Video largo del fin de semana: ${MINUTES} minutos"
+          echo "Video largo: ${MINUTES} minutos"
 
       - name: Install runtime
+        if: env.SKIP_LONG != 'true'
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y -qq ffmpeg espeak-ng libsndfile1 fonts-dejavu-core git >/dev/null
@@ -136,6 +173,7 @@ jobs:
           python -m py_compile app/spiritual_long_fresh_visual.py app/spiritual_long_resilience.py app/spiritual_tts.py app/dios_visual_integrity.py scripts/publish_dios_long_fresh.py
 
       - name: Publish fresh long video
+        if: env.SKIP_LONG != 'true'
         shell: bash
         run: |
           test -n "$YOUTUBE_TOKEN_DIOSHABLAHOYIA"
@@ -144,7 +182,7 @@ jobs:
           python scripts/publish_dios_long_fresh.py --minutes "$MINUTES" $EXTRA
 
       - name: Persist history
-        if: success()
+        if: success() && env.SKIP_LONG != 'true'
         shell: bash
         run: |
           H=state/dioshablahoyia_long_history.jsonl; test -f "$H" || exit 0; R="$(tail -n 1 "$H")"
