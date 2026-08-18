@@ -1,10 +1,15 @@
 from __future__ import annotations
 
 import hashlib
+import json
 import os
 from pathlib import Path
 
 from PIL import Image
+
+ROOT = Path(__file__).resolve().parents[1]
+SHORT_HISTORY = ROOT / "state" / "history.jsonl"
+LONG_HISTORY = ROOT / "state" / "dioshablahoyia_long_history.jsonl"
 
 
 def _env_true(name: str, default: bool = True) -> bool:
@@ -44,10 +49,14 @@ def _hamming_hex(left: str, right: str) -> int:
         return 10_000
 
 
+def fingerprint_image(path: Path) -> dict[str, str]:
+    return {"sha256": _sha256(path), "dhash": _dhash(path)}
+
+
 def _history_fingerprints(previous: list[dict]) -> tuple[set[str], list[str]]:
     exact: set[str] = set()
     perceptual: list[str] = []
-    for row in previous[-100:]:
+    for row in previous[-160:]:
         for value in row.get("visual_asset_sha256") or []:
             if str(value).strip():
                 exact.add(str(value).strip())
@@ -55,6 +64,39 @@ def _history_fingerprints(previous: list[dict]) -> tuple[set[str], list[str]]:
             if str(value).strip():
                 perceptual.append(str(value).strip())
     return exact, perceptual
+
+
+def _read_persisted_rows() -> list[dict]:
+    rows: list[dict] = []
+    for path in (SHORT_HISTORY, LONG_HISTORY):
+        if not path.exists():
+            continue
+        for raw in path.read_text(encoding="utf-8").splitlines():
+            raw = raw.strip()
+            if not raw:
+                continue
+            try:
+                item = json.loads(raw)
+            except Exception:
+                continue
+            if item.get("channel") == "dioshablahoyia":
+                rows.append(item)
+    return rows[-200:]
+
+
+def fresh_against_persisted_history(path: Path, current_dhash: list[str] | None = None) -> tuple[bool, dict[str, str], int]:
+    signature = fingerprint_image(path)
+    previous_exact, previous_perceptual = _history_fingerprints(_read_persisted_rows())
+    current_dhash = current_dhash or []
+    threshold = max(0, int(os.getenv("SPIRITUAL_VISUAL_PHASH_MAX_DISTANCE", "7")))
+
+    if signature["sha256"] in previous_exact:
+        return False, signature, 0
+
+    distance = min(
+        [_hamming_hex(signature["dhash"], old) for old in previous_perceptual + current_dhash] or [10_000]
+    )
+    return distance > threshold, signature, distance
 
 
 def validate_short_visuals(workdir: Path, previous: list[dict], metadata: dict) -> dict:
