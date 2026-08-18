@@ -1,4 +1,4 @@
-name: Dios Habla Hoy IA - 4 videos largos diarios
+name: Dios Habla Hoy IA - 2 videos largos por fin de semana
 
 on:
   workflow_dispatch:
@@ -7,7 +7,7 @@ on:
         required: true
         default: "10"
         type: choice
-        options: ["10", "15", "20", "30"]
+        options: ["10", "15", "25", "30"]
       publish:
         required: true
         default: true
@@ -15,10 +15,10 @@ on:
   push:
     paths: ["triggers/dioshablahoyia-long.txt"]
   schedule:
-    - cron: "0 15 * * *"
-    - cron: "0 18 * * *"
-    - cron: "0 21 * * *"
-    - cron: "0 0 * * *"
+    # GitHub cron usa UTC. 18:00 UTC = 15:00 en Argentina (UTC-3).
+    # Un video largo cada sabado y otro cada domingo. Los Shorts siguen aparte todos los dias.
+    - cron: "0 18 * * 6"
+    - cron: "0 18 * * 0"
 
 permissions:
   contents: write
@@ -74,26 +74,56 @@ jobs:
       SPIRITUAL_REFERENCE_AVOID_RECENT: "100"
       PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
       YOUTUBE_TOKEN_DIOSHABLAHOYIA: ${{ secrets.YOUTUBE_TOKEN_DIOSHABLAHOYIA }}
+
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-      - name: Resolve duration
+
+      - name: Resolve weekend duration
         shell: bash
         run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then MINUTES="${{ inputs.minutes }}"; PUBLISH="${{ inputs.publish }}";
-          elif [ "${{ github.event.schedule }}" = "0 15 * * *" ]; then MINUTES=10; PUBLISH=true;
-          elif [ "${{ github.event.schedule }}" = "0 18 * * *" ]; then MINUTES=15; PUBLISH=true;
-          elif [ "${{ github.event.schedule }}" = "0 21 * * *" ]; then MINUTES=20; PUBLISH=true;
-          elif [ "${{ github.event.schedule }}" = "0 0 * * *" ]; then MINUTES=30; PUBLISH=true;
-          else MINUTES=10; PUBLISH=true; fi
-          case "$MINUTES" in 10) STYLE=biblical_story;; 15) STYLE=prayer;; 20) STYLE=biblical_reflection;; 30) STYLE=night_prayer;; esac
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            MINUTES="${{ inputs.minutes }}"
+            PUBLISH="${{ inputs.publish }}"
+          elif [ "${{ github.event_name }}" = "schedule" ]; then
+            # Rotacion de 4 duraciones en ciclos de dos fines de semana:
+            # semana par: sabado 10 min / domingo 15 min
+            # semana impar: sabado 25 min / domingo 30 min
+            WEEK="$(date -u +%V)"
+            PARITY=$((10#$WEEK % 2))
+            DOW="$(date -u +%u)"
+            if [ "$DOW" = "6" ]; then
+              if [ "$PARITY" = "0" ]; then MINUTES=10; else MINUTES=25; fi
+            elif [ "$DOW" = "7" ]; then
+              if [ "$PARITY" = "0" ]; then MINUTES=15; else MINUTES=30; fi
+            else
+              echo "Este workflow programado solo debe publicar sabados o domingos."
+              exit 0
+            fi
+            PUBLISH=true
+          else
+            MINUTES=10
+            PUBLISH=true
+          fi
+
+          case "$MINUTES" in
+            10) STYLE=biblical_story ;;
+            15) STYLE=prayer ;;
+            25) STYLE=biblical_reflection ;;
+            30) STYLE=night_prayer ;;
+            *) echo "Duracion no permitida: $MINUTES"; exit 1 ;;
+          esac
+
           echo "MINUTES=$MINUTES" >> "$GITHUB_ENV"
           echo "PUBLISH=$PUBLISH" >> "$GITHUB_ENV"
           echo "SPIRITUAL_NARRATION_STYLE=$STYLE" >> "$GITHUB_ENV"
+          echo "Video largo del fin de semana: ${MINUTES} minutos"
+
       - name: Install runtime
         run: |
           sudo apt-get update -qq
@@ -104,6 +134,7 @@ jobs:
           test "$SPIRITUAL_REQUIRE_PRIMARY_VOICE" = "true"
           test "$SPIRITUAL_VOICE_LOCKED" = "true"
           python -m py_compile app/spiritual_long_fresh_visual.py app/spiritual_long_resilience.py app/spiritual_tts.py app/dios_visual_integrity.py scripts/publish_dios_long_fresh.py
+
       - name: Publish fresh long video
         shell: bash
         run: |
@@ -111,6 +142,7 @@ jobs:
           test -n "$HF_ZERO_TOKEN"
           EXTRA=""; if [ "$PUBLISH" = "true" ]; then EXTRA="--publish"; fi
           python scripts/publish_dios_long_fresh.py --minutes "$MINUTES" $EXTRA
+
       - name: Persist history
         if: success()
         shell: bash
@@ -118,6 +150,7 @@ jobs:
           H=state/dioshablahoyia_long_history.jsonl; test -f "$H" || exit 0; R="$(tail -n 1 "$H")"
           git config user.name youtube-ai-bot; git config user.email actions@users.noreply.github.com
           for a in 1 2 3 4 5; do git fetch origin main; git reset --hard origin/main; mkdir -p state; touch "$H"; grep -Fqx "$R" "$H" || printf '%s\n' "$R" >> "$H"; git add "$H"; if git diff --cached --quiet; then exit 0; fi; git commit -m "chore: update Dios long history"; git push origin HEAD:main && exit 0; done; exit 1
+
       - name: Upload artifact
         if: always()
         uses: actions/upload-artifact@v4
