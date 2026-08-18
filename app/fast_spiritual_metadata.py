@@ -2,150 +2,172 @@ from __future__ import annotations
 
 import hashlib
 import os
+import re
 import time
+from difflib import SequenceMatcher
 
 
 THEMES = (
-    {
-        "family": "Salmo 23 y caminar acompañado por Dios",
-        "reference": "Salmo 23:1-4",
-        "title": "Cuando el camino pesa, recordá quién camina con vos | Salmo 23",
-        "hook": "Si hoy sentís que estás caminando solo, este Salmo puede cambiar tu mirada.",
-        "lines": (
-            "Hay días en que el camino parece demasiado largo y el corazón se cansa antes que los pies, pero el Salmo 23 recuerda que Dios guía con paciencia.",
-            "El buen Pastor no promete una vida sin valles; promete su presencia dentro de ellos, una compañía firme cuando la oscuridad intenta ocupar toda la atención.",
-            "Tal vez hoy no puedas resolver cada problema, pero sí podés dar el siguiente paso con calma, confiando en que no estás abandonado a tu propia fuerza.",
-            "Pedile a Dios discernimiento para reconocer el camino correcto, serenidad para no decidir desde el miedo y humildad para aceptar ayuda cuando la necesites.",
-            "La fe también se practica en gestos pequeños: respirar antes de reaccionar, hablar con verdad, cuidar a alguien y descansar sin sentir culpa por detenerte.",
-            "Que esta palabra te acompañe hoy: aun en el valle, hay una presencia que sostiene, orienta y devuelve esperanza. Caminá un paso a la vez. Amén.",
-        ),
-    },
-    {
-        "family": "Juan 14 y la paz que Jesus ofrece",
-        "reference": "Juan 14:27",
-        "title": "La paz que Jesús ofrece no depende de un día perfecto | Juan 14:27",
-        "hook": "No necesitás que todo esté resuelto para empezar a recuperar la paz.",
-        "lines": (
-            "Jesús habló de una paz distinta a la tranquilidad momentánea: una paz que puede permanecer incluso cuando alrededor todavía existen preguntas, cambios y preocupaciones.",
-            "En Juan 14:27, su invitación no es ignorar lo que duele, sino evitar que el temor se convierta en la única voz que dirige tus decisiones.",
-            "Hoy podés reconocer aquello que te inquieta sin dejar que te domine; nombrarlo delante de Dios puede ser el comienzo de una respuesta más serena y sabia.",
-            "Hacé una pausa, soltá la necesidad de controlar cada resultado y pedí claridad para ocuparte de lo que sí está en tus manos durante este día.",
-            "La paz bíblica no es pasividad: puede impulsarte a pedir perdón, poner un límite sano, trabajar con paciencia o buscar ayuda en el momento adecuado.",
-            "Que la paz de Cristo ordene tus pensamientos y te permita avanzar sin apresurarte. Guardá esta verdad para cuando el ruido vuelva a crecer. Amén.",
-        ),
-    },
-    {
-        "family": "Isaias 43 y atravesar tiempos dificiles",
-        "reference": "Isaías 43:2",
-        "title": "Si atravesás una etapa difícil, Isaías 43 tiene una palabra para vos",
-        "hook": "Atravesar una dificultad no significa que Dios te haya dejado atrás.",
-        "lines": (
-            "Isaías 43 presenta aguas profundas y fuego, imágenes de etapas donde parece que todo exige más de lo que podemos dar y la salida todavía no se ve.",
-            "La promesa no dice que nunca habrá momentos difíciles; afirma que la presencia de Dios puede acompañarte mientras los atravesás y el miedo pierde autoridad.",
-            "Si hoy estás en una transición, una pérdida o una decisión incierta, no necesitás fingir fortaleza; podés llevar tu cansancio a Dios con sinceridad.",
-            "Pedí sabiduría para diferenciar lo urgente de lo importante y fuerza para hacer solamente el paso que corresponde hoy, sin cargar también con todo el mañana.",
-            "Recordá las veces en que ya atravesaste algo que parecía imposible. La memoria agradecida puede devolverte perspectiva cuando el presente se siente demasiado grande.",
-            "Que Isaías 43 te recuerde esto: estás atravesando, no viviendo para siempre en ese lugar. Seguí caminando con fe, paciencia y esperanza. Amén.",
-        ),
-    },
-    {
-        "family": "Proverbios 3 y confiar cuando no entendemos",
-        "reference": "Proverbios 3:5-6",
-        "title": "Cuando no ves el camino completo, hacé esto | Proverbios 3:5-6",
-        "hook": "No ver todo el camino no significa que no puedas dar un buen próximo paso.",
-        "lines": (
-            "Proverbios 3 invita a confiar en Dios de todo corazón y a no depender únicamente de nuestra propia comprensión, especialmente cuando faltan datos o certezas.",
-            "Confiar no significa dejar de pensar; significa reconocer que nuestra mirada es limitada y abrir espacio para la oración, el consejo sabio y una decisión humilde.",
-            "Si tenés que elegir algo importante, evitá decidir desde la ansiedad. Revisá las opciones, sus consecuencias y pedí a Dios una conciencia clara para discernir.",
-            "A veces la dirección correcta no llega como una señal espectacular, sino como coherencia: una puerta honesta, una conversación necesaria o una acción que trae paz.",
-            "También puede ser sabio esperar. No toda demora es pérdida de tiempo; algunas pausas evitan decisiones impulsivas y permiten ver detalles que antes estaban ocultos.",
-            "Que hoy puedas confiar sin apagar tu inteligencia y pensar sin apagar tu fe. Pedí dirección, actuá con integridad y avanzá con serenidad. Amén.",
-        ),
-    },
-    {
-        "family": "Salmo 121 y ayuda en el camino",
-        "reference": "Salmo 121:1-8",
-        "title": "¿De dónde viene mi ayuda? Una reflexión para hoy | Salmo 121",
-        "hook": "Cuando sentís que todo depende de vos, recordá la pregunta del Salmo 121.",
-        "lines": (
-            "El Salmo 121 comienza levantando la mirada hacia los montes y preguntando de dónde vendrá la ayuda cuando nuestras fuerzas personales parecen insuficientes.",
-            "La respuesta dirige la atención al Creador, no para negar nuestras responsabilidades, sino para recordar que nuestra vida no descansa solamente sobre nuestra capacidad.",
-            "Hoy quizás necesites ayuda práctica, emocional o espiritual. Pedirla no disminuye tu fe; muchas veces Dios acompaña mediante personas, oportunidades y decisiones prudentes.",
-            "Pensá en una carga que estás sosteniendo solo por orgullo o costumbre. Tal vez hoy sea buen momento para iniciar una conversación o aceptar una mano cercana.",
-            "El Salmo habla de un Dios atento al camino diario. Esa imagen puede ayudarte a trabajar, viajar, descansar y tomar decisiones con menos temor y más conciencia.",
-            "Levantá la mirada sin dejar de mover los pies. Que hoy encuentres la ayuda necesaria y también puedas convertirte en ayuda para otra persona. Amén.",
-        ),
-    },
-    {
-        "family": "Mateo 6 y vivir un dia a la vez",
-        "reference": "Mateo 6:31-34",
-        "title": "Jesús enseñó a no cargar hoy con todo el mañana | Mateo 6",
-        "hook": "Tal vez parte de tu cansancio viene de intentar vivir mañana antes de que llegue.",
-        "lines": (
-            "En Mateo 6, Jesús habla a personas preocupadas por necesidades reales y les enseña a no convertir el futuro en una carga permanente sobre el presente.",
-            "La preocupación puede hacernos repetir escenarios que todavía no ocurrieron. La fe propone otra práctica: atender con responsabilidad lo de hoy y confiar el resto a Dios.",
-            "Elegí una preocupación concreta y preguntate qué acción útil podés realizar ahora. Si existe una llamada, una conversación o una tarea pendiente, empezá por ahí.",
-            "Después soltá aquello que no podés controlar. Orar también es reconocer límites y dejar de exigirle a la mente una respuesta para cada posibilidad futura.",
-            "Mirar la creación, como propone Jesús, es recuperar atención sobre la vida presente: respirar, agradecer, trabajar y observar lo que sí está sucediendo hoy.",
-            "Que hoy tenga su propio espacio y mañana llegue cuando corresponda. Caminá con responsabilidad, gratitud y confianza en la fidelidad de Dios. Amén.",
-        ),
-    },
-    {
-        "family": "Salmo 34 y Dios cerca del corazon herido",
-        "reference": "Salmo 34:18",
-        "title": "Para el corazón herido: una promesa breve del Salmo 34",
-        "hook": "Hay dolores que nadie ve, pero eso no significa que tengas que atravesarlos en silencio.",
-        "lines": (
-            "El Salmo 34 dice que Dios está cerca de quienes tienen el corazón quebrantado, una frase valiosa cuando el dolor no se puede explicar con facilidad.",
-            "La fe no exige sonreír todo el tiempo. Podés reconocer tristeza, decepción o cansancio sin sentir que eso te aleja de Dios; la sinceridad también puede ser oración.",
-            "Si algo te hirió, tratá de no convertir esa herida en aislamiento permanente. Elegí una persona confiable y hablá con la claridad que hoy te sea posible.",
-            "Cuidar el corazón también incluye descansar, alimentarse bien, pedir ayuda cuando hace falta y alejarse de dinámicas que siguen causando daño innecesario.",
-            "Dios puede acompañar procesos que llevan tiempo. No midas tu avance solamente por cómo te sentís hoy; observá también las decisiones saludables que estás aprendiendo.",
-            "Que esta promesa te recuerde que tu dolor no es invisible. Buscá compañía, cuidate con paciencia y permití que la esperanza vuelva poco a poco. Amén.",
-        ),
-    },
-    {
-        "family": "Romanos 12 y vencer el mal con el bien",
-        "reference": "Romanos 12:21",
-        "title": "No dejes que el mal decida quién vas a ser | Romanos 12:21",
-        "hook": "Responder bien a una herida no es debilidad; a veces es la forma más difícil de ser fuerte.",
-        "lines": (
-            "Romanos 12:21 resume una decisión exigente: no ser vencidos por el mal, sino vencer el mal haciendo el bien, sin convertirnos en aquello que nos dañó.",
-            "Eso no significa permitir abusos ni ignorar límites. Hacer el bien puede incluir decir no, tomar distancia, pedir justicia y negarse a responder desde el odio.",
-            "Antes de reaccionar a una ofensa, preguntate qué respuesta protege tu dignidad sin alimentar el conflicto. A veces una pausa evita palabras que después pesan mucho.",
-            "También existe un bien silencioso: no difundir rumores, no celebrar la caída de otro y elegir hablar con verdad incluso cuando sería fácil devolver la misma moneda.",
-            "Jesús enseñó un amor que no depende de que el otro lo merezca, pero ese amor también camina con sabiduría, límites y respeto por la verdad.",
-            "Que hoy el dolor no escriba tu carácter. Elegí una acción concreta de bien compatible con la justicia, la prudencia y la paz. Amén.",
-        ),
-    },
+    ("Salmo 23 y el Buen Pastor", "Salmo 23:1-4", "Dios guía incluso cuando el camino atraviesa un valle", "dar el siguiente paso con calma y pedir dirección"),
+    ("Juan 14 y la paz de Jesus", "Juan 14:27", "la paz de Cristo puede permanecer aun cuando no todo esté resuelto", "nombrar la preocupación y entregar a Dios lo que no podés controlar"),
+    ("Isaias 43 y atravesar pruebas", "Isaías 43:2", "atravesar aguas profundas no significa caminar sin la presencia de Dios", "hacer hoy solamente el paso que corresponde"),
+    ("Proverbios 3 y confiar en Dios", "Proverbios 3:5-6", "la sabiduría bíblica invita a confiar sin apagar el discernimiento", "orar, revisar opciones y decidir con integridad"),
+    ("Salmo 121 y la ayuda de Dios", "Salmo 121:1-8", "la ayuda no depende únicamente de nuestras propias fuerzas", "pedir ayuda con humildad y seguir avanzando"),
+    ("Mateo 6 y vivir un dia a la vez", "Mateo 6:31-34", "Jesús enseña a no cargar hoy con todos los problemas de mañana", "resolver una acción concreta del presente y soltar el resto"),
+    ("Salmo 34 y el corazon herido", "Salmo 34:18", "Dios está cerca de quienes atraviesan dolor y quebranto", "buscar compañía, descanso y una oración sincera"),
+    ("Romanos 12 y vencer el mal con el bien", "Romanos 12:21", "el mal no tiene que decidir en qué persona nos convertimos", "responder con límites, verdad y una acción de bien"),
+    ("Filipenses 4 y entregar la ansiedad", "Filipenses 4:6-7", "la oración abre espacio para una paz que no depende de tener todas las respuestas", "convertir una preocupación concreta en una oración concreta"),
+    ("Josue 1 y avanzar con valentia", "Josué 1:9", "la valentía bíblica no elimina el miedo, pero evita que el miedo gobierne", "dar un paso responsable confiando en que Dios acompaña"),
+    ("Isaias 41 y no vivir dominado por el miedo", "Isaías 41:10", "Dios promete sostener y fortalecer al que se siente débil", "recordar una verdad bíblica antes de tomar una decisión desde el temor"),
+    ("Mateo 11 y descansar en Jesus", "Mateo 11:28-30", "Jesús invita a los cansados a acercarse y encontrar descanso", "soltar una carga innecesaria y aceptar ayuda"),
+    ("Romanos 8 y Dios obrando en medio de todo", "Romanos 8:28", "la fe puede confiar aun cuando todavía no entiende cómo encajan las circunstancias", "mirar el día con paciencia y elegir una respuesta fiel"),
+    ("Romanos 8 y orar cuando faltan palabras", "Romanos 8:26-27", "la oración no deja de ser válida cuando el cansancio nos deja sin palabras", "presentarse ante Dios con sinceridad aunque solo haya silencio"),
+    ("Salmo 46 y encontrar refugio", "Salmo 46:1-3", "Dios es presentado como refugio y fortaleza en momentos de inestabilidad", "detener el ruido, respirar y recordar dónde está la seguridad"),
+    ("Salmo 91 y habitar bajo el cuidado de Dios", "Salmo 91:1-2", "el salmo habla de refugio y confianza en medio de la incertidumbre", "repetir una promesa bíblica y actuar con prudencia"),
+    ("1 Pedro 5 y soltar preocupaciones", "1 Pedro 5:7", "la Biblia invita a depositar las preocupaciones en Dios porque Él cuida de nosotros", "identificar una carga y dejar de sostenerla en soledad"),
+    ("Juan 10 y Jesus como Buen Pastor", "Juan 10:11-14", "Jesús describe un cuidado personal que conoce y acompaña", "escuchar su enseñanza y elegir un camino de paz y verdad"),
+    ("Juan 8 y Jesus como luz", "Juan 8:12", "seguir a Jesús ofrece dirección cuando el camino parece confuso", "buscar claridad para el próximo paso en lugar de exigir ver todo el futuro"),
+    ("Marcos 4 y Jesus calma la tormenta", "Marcos 4:39-40", "la tormenta no impide que Jesús esté presente con sus discípulos", "separar el peligro real del miedo que amplifica todo"),
+    ("Lucas 10 y el Buen Samaritano", "Lucas 10:33-37", "el amor al prójimo se vuelve concreto cuando alguien decide detenerse y ayudar", "hacer hoy una obra de misericordia posible y prudente"),
+    ("Lucas 15 y volver a casa", "Lucas 15:20-24", "la parábola muestra un padre que recibe con misericordia al que regresa", "dar un paso de arrepentimiento, reconciliación o nuevo comienzo"),
+    ("Genesis 9 y la esperanza despues de la tormenta", "Génesis 9:12-16", "el arco después del diluvio recuerda pacto, memoria y esperanza", "mirar lo que sobrevivió a la tormenta y agradecer por un nuevo comienzo"),
+    ("Exodo 14 y avanzar cuando parece no haber salida", "Éxodo 14:13-16", "Israel enfrentó un momento donde el camino parecía cerrado", "dejar de paralizarse y hacer la parte que sí corresponde"),
+    ("Exodo 16 y confiar en la provision diaria", "Éxodo 16:4", "el maná enseña una dependencia diaria en vez de vivir atrapados por el mañana", "agradecer lo suficiente para hoy y administrar con responsabilidad"),
+    ("1 Reyes 17 y la provision inesperada", "1 Reyes 17:4-6", "Elías recibió sustento de una manera que no habría podido planificar", "mantenerse atento a soluciones humildes e inesperadas"),
+    ("Jonas 2 y clamar desde la profundidad", "Jonás 2:1-2", "Jonás oró desde un lugar de oscuridad y reconoció que todavía podía dirigirse a Dios", "dejar de huir y comenzar una oración honesta"),
+    ("Daniel 6 y permanecer fiel", "Daniel 6:10", "Daniel mantuvo su práctica de oración incluso bajo presión", "sostener una convicción sin responder con violencia ni arrogancia"),
+    ("Salmo 27 y esperar con confianza", "Salmo 27:13-14", "esperar en Dios no es resignarse sino fortalecer el corazón mientras llega claridad", "usar la espera para prepararse, orar y actuar con paciencia"),
+    ("Salmo 30 y recordar que la noche no dura para siempre", "Salmo 30:5", "el salmo contrasta el llanto de la noche con una mañana que puede traer alegría", "permitirse sentir sin convertir el dolor presente en una sentencia permanente"),
+    ("Lamentaciones 3 y misericordias nuevas", "Lamentaciones 3:22-23", "en medio del dolor aparece la memoria de una misericordia que se renueva", "empezar el día agradeciendo una oportunidad concreta de volver a intentar"),
+    ("Efesios 4 y practicar el perdon", "Efesios 4:31-32", "la vida cristiana llama a abandonar amargura y cultivar compasión", "perdonar con sabiduría sin negar límites ni verdad"),
+    ("Santiago 1 y pedir sabiduria", "Santiago 1:5", "cuando falta claridad la Biblia invita a pedir sabiduría a Dios", "hacer preguntas mejores antes de apresurarse a decidir"),
+    ("Miqueas 6 y caminar con humildad", "Miqueas 6:8", "la fe se expresa haciendo justicia, amando misericordia y caminando humildemente", "elegir una acción pequeña que combine verdad y compasión"),
+    ("Mateo 5 y ser luz con buenas obras", "Mateo 5:14-16", "Jesús relaciona la luz con obras que ayudan a otros y apuntan a Dios", "hacer algo bueno sin buscar reconocimiento personal"),
+)
+
+INTRO_STYLES = (
+    "Tal vez hoy necesitás escuchar una verdad sencilla:",
+    "Antes de seguir con el día, considerá esta enseñanza bíblica:",
+    "Cuando la mente se llena de preguntas, la Biblia ofrece una perspectiva diferente:",
+    "Hay momentos en que una sola verdad puede ordenar el corazón:",
+    "Si hoy sentís que llevás demasiado peso, recordá esto:",
+    "Una enseñanza antigua puede hablar con mucha claridad a lo que vivís hoy:",
+)
+
+BRIDGE_STYLES = (
+    "Eso no significa negar la realidad; significa mirarla sin entregarle todo el control al miedo.",
+    "La fe bíblica no reemplaza la responsabilidad: la acompaña con esperanza, prudencia y oración.",
+    "Dios no nos invita a fingir que nada duele, sino a atravesarlo sin perder dirección.",
+    "La confianza no exige entender cada detalle antes de avanzar; sí invita a caminar con integridad.",
+    "Muchas veces la respuesta comienza cuando dejamos de intentar resolverlo todo al mismo tiempo.",
+    "Esta enseñanza no promete una vida sin problemas, pero sí cambia la manera de enfrentarlos.",
+)
+
+CLOSINGS = (
+    "Que esta palabra te acompañe durante el resto del día y te ayude a caminar con fe, serenidad y esperanza. Amén.",
+    "Llevá esta verdad a tu oración de hoy y permití que produzca una decisión más tranquila y fiel. Amén.",
+    "No necesitás resolver toda tu historia ahora; caminá con Dios en el próximo paso que sí podés dar. Amén.",
+    "Que Dios te conceda claridad para decidir, paciencia para esperar y fuerza para perseverar en el bien. Amén.",
+    "Guardá esta enseñanza para cuando vuelva el ruido y recordá que la fe también se construye un día a la vez. Amén.",
+    "Que la Palabra de Dios vuelva a ordenar tu mirada y te recuerde que la esperanza todavía tiene lugar. Amén.",
 )
 
 
-def build_fast_metadata(base_metadata: dict, channel: dict, previous: list[dict]) -> dict:
-    recent = {
-        str(row.get("content_family") or row.get("topic") or "").lower().strip()
-        for row in previous[-20:]
-    }
-    available = [theme for theme in THEMES if theme["family"].lower() not in recent]
-    pool = available or list(THEMES)
-    marker = os.getenv("GITHUB_RUN_ID", "") or os.getenv("GITHUB_RUN_NUMBER", "") or str(time.time_ns())
-    index = int(hashlib.sha256(marker.encode("utf-8")).hexdigest()[:12], 16) % len(pool)
-    theme = pool[index]
+def _clean(text: str) -> str:
+    text = " ".join(str(text or "").split()).lower()
+    text = re.sub(r"[^a-z0-9áéíóúüñ\s]", " ", text)
+    return " ".join(text.split())
 
+
+def _sim(a: str, b: str) -> float:
+    return SequenceMatcher(None, (a or "").lower().strip(), (b or "").lower().strip()).ratio()
+
+
+def _candidate(theme: tuple[str, str, str, str], style: int, count: int) -> dict:
+    family, reference, truth, practice = theme
+    intro = INTRO_STYLES[style % len(INTRO_STYLES)]
+    bridge = BRIDGE_STYLES[(style * 3 + 1) % len(BRIDGE_STYLES)]
+    close = CLOSINGS[(style * 5 + 2) % len(CLOSINGS)]
+    lines = [
+        f"{intro} {truth}.",
+        f"En {reference}, la atención vuelve a Dios y a una forma de vivir que no queda gobernada solamente por las circunstancias.",
+        bridge,
+        f"Una aplicación concreta para hoy puede ser {practice}.",
+        "Hacé una pausa y preguntate qué parte de esta enseñanza necesitás convertir en una decisión, una conversación, una oración o un acto de amor.",
+        close,
+    ]
+    while len(lines) < count:
+        lines.append(lines[len(lines) % 6])
+    title_prefixes = ("Una palabra para hoy", "Cuando necesitás dirección", "Una verdad bíblica para recordar", "Fe para este momento")
+    title = f"{title_prefixes[style % len(title_prefixes)]} | {reference}"
+    topic = f"{family} — enfoque {style + 1}"
+    script = _clean(" ".join(lines[:count]))
+    return {
+        "family": topic,
+        "topic": topic,
+        "reference": reference,
+        "title": title,
+        "hook": intro,
+        "lines": lines[:count],
+        "script": script,
+        "script_hash": hashlib.sha256(script.encode("utf-8")).hexdigest(),
+    }
+
+
+def _passes_recent(candidate: dict, previous: list[dict]) -> bool:
+    recent = [row for row in previous if str(row.get("status") or "") == "uploaded"][-30:]
+    for old in recent:
+        old_hash = str(old.get("script_hash") or "").strip()
+        if old_hash and old_hash == candidate["script_hash"]:
+            return False
+        old_preview = _clean(str(old.get("narration_preview") or ""))
+        if old_preview and _sim(candidate["script"][:1200], old_preview) >= 0.75:
+            return False
+        old_title = str(old.get("title") or "")
+        old_topic = str(old.get("topic") or "")
+        if old_title and old_topic:
+            if _sim(candidate["title"], old_title) >= 0.80 and _sim(candidate["topic"], old_topic) >= 0.84:
+                return False
+    return True
+
+
+def build_fast_metadata(base_metadata: dict, channel: dict, previous: list[dict]) -> dict:
     count = int(channel.get("scenes_per_short") or 6)
+    marker = os.getenv("GITHUB_RUN_ID", "") or os.getenv("GITHUB_RUN_NUMBER", "") or str(time.time_ns())
+    seed = int(hashlib.sha256(marker.encode("utf-8")).hexdigest()[:16], 16)
+
+    chosen = None
+    for offset in range(len(THEMES)):
+        theme = THEMES[(seed + offset) % len(THEMES)]
+        for style_offset in range(len(INTRO_STYLES)):
+            style = (seed + offset + style_offset) % len(INTRO_STYLES)
+            candidate = _candidate(theme, style, count)
+            if _passes_recent(candidate, previous):
+                chosen = candidate
+                break
+        if chosen is not None:
+            break
+
+    if chosen is None:
+        theme = THEMES[seed % len(THEMES)]
+        chosen = _candidate(theme, (seed // len(THEMES)) % len(INTRO_STYLES), count)
+
     rows = list(base_metadata.get("scenes") or [])
     while len(rows) < count:
         rows.append({})
     for idx in range(count):
-        rows[idx]["narration"] = theme["lines"][idx % len(theme["lines"])]
+        rows[idx]["narration"] = chosen["lines"][idx]
 
     base_metadata["scenes"] = rows[:count]
-    base_metadata["content_family"] = theme["family"]
-    base_metadata["topic"] = theme["family"]
-    base_metadata["title"] = theme["title"]
-    base_metadata["hook"] = theme["hook"]
-    base_metadata["bible_reference"] = theme["reference"]
-    base_metadata["description"] = f"Reflexión cristiana inspirada en {theme['reference']} para vivir la fe en lo cotidiano."
-    base_metadata["cta"] = "Si esta reflexión te ayudó, guardala para volver a escucharla cuando la necesites."
-    base_metadata["metadata_provider"] = "local_unique_biblical:fast_voice_quota_reserved:v2"
+    base_metadata["content_family"] = chosen["family"]
+    base_metadata["topic"] = chosen["topic"]
+    base_metadata["title"] = chosen["title"]
+    base_metadata["hook"] = chosen["hook"]
+    base_metadata["bible_reference"] = chosen["reference"]
+    base_metadata["description"] = (
+        f"Reflexión cristiana inspirada en {chosen['reference']} para fortalecer la fe, "
+        "la esperanza y la confianza en Dios en la vida cotidiana."
+    )
+    base_metadata["cta"] = "Si esta palabra te ayudó, guardala para volver a escucharla cuando la necesites."
+    base_metadata["metadata_provider"] = "local_unique_biblical:prechecked_against_history:v3"
     return base_metadata
