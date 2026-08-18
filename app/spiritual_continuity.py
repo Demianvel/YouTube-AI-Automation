@@ -25,14 +25,15 @@ def _clean(text: str) -> str:
     return " ".join(str(text or "").split()).strip()
 
 
-def ensure_spoken_text(text: str, target_seconds: float, seed: int = 0, words_per_minute: int = 126) -> tuple[str, dict]:
-    """Ensure there is enough original, safe prose to sustain continuous narration.
+def ensure_spoken_text(text: str, target_seconds: float, seed: int = 0, words_per_minute: int = 136) -> tuple[str, dict]:
+    """Ensure enough prose for the fixed natural Voz de Luz cadence.
 
-    This adds only general prayer/faith/application language and never invents a
-    Bible quote or attributes a direct new statement to God.
+    Duration is filled with spoken content rather than slowing or stretching the
+    narrator. Added prose is general prayer/faith/application language and never
+    invents a Bible quote or attributes a new direct statement to God.
     """
     clean = _clean(text)
-    target_words = max(1, math.ceil((float(target_seconds) / 60.0) * words_per_minute * 1.02))
+    target_words = max(1, math.ceil((float(target_seconds) / 60.0) * words_per_minute * 0.98))
     words = len(clean.split())
     used: set[int] = set()
     cursor = 0
@@ -67,7 +68,7 @@ def _probe_duration(path: Path) -> float:
 
 def _longest_silence(path: Path) -> float:
     result = subprocess.run(
-        ["ffmpeg", "-hide_banner", "-nostats", "-i", str(path), "-af", "silencedetect=noise=-48dB:d=0.70", "-f", "null", "-"],
+        ["ffmpeg", "-hide_banner", "-nostats", "-i", str(path), "-af", "silencedetect=noise=-48dB:d=0.55", "-f", "null", "-"],
         capture_output=True,
         text=True,
         check=False,
@@ -80,14 +81,14 @@ def fit_and_validate_spiritual_voice(
     path: Path,
     target_seconds: float,
     *,
-    min_coverage: float = 0.96,
-    max_silence_seconds: float = 2.2,
+    min_coverage: float = 0.94,
+    max_silence_seconds: float = 1.15,
 ) -> dict:
-    """Fit narration to the whole video and block uploads with a silent tail.
+    """Validate fixed natural narration and allow only tiny timing correction.
 
-    The function refuses extreme time stretching. A severe duration mismatch is
-    treated as a generation failure so the watchdog can regenerate instead of
-    publishing a mostly silent video.
+    The previous pipeline could slow narration substantially to fill the video.
+    That is forbidden here. A mismatch beyond a few percent must be solved by
+    regenerating/fitting the script, not by changing the narrator's speed.
     """
     if not path.exists() or path.stat().st_size < 1000:
         raise RuntimeError("La pista de voz espiritual no existe o está vacía.")
@@ -99,27 +100,33 @@ def fit_and_validate_spiritual_voice(
     if before <= 1:
         raise RuntimeError("La narración espiritual generada es demasiado corta.")
 
-    desired = target * 0.995
+    desired = target * 0.985
     tempo = before / desired
-    if tempo < 0.78:
+
+    # Never make Voz de Luz perceptibly slower. If narration is too short,
+    # regenerate with more text instead of stretching it.
+    if tempo < 0.965:
         raise RuntimeError(
-            f"BLOQUEADO: la voz dura {before:.1f}s para un video de {target:.1f}s. "
-            "Se regenerará antes de publicar para evitar un tramo largo en silencio."
+            f"VOICE_CADENCE_LOCK: la voz dura {before:.1f}s para un video de {target:.1f}s. "
+            "Se requiere más texto; está prohibido ralentizar Voz de Luz para rellenar tiempo."
         )
-    if tempo > 1.28:
+    if tempo > 1.055:
         raise RuntimeError(
-            f"BLOQUEADO: la narración dura {before:.1f}s para un video de {target:.1f}s. "
-            "Requiere una regeneración porque acelerarla dañaría la naturalidad."
+            f"VOICE_CADENCE_LOCK: la narración dura {before:.1f}s para un video de {target:.1f}s. "
+            "Se requiere ajustar el guion; está prohibido cambiar perceptiblemente la velocidad fija."
         )
 
-    if abs(tempo - 1.0) >= 0.006:
-        temp = path.with_name(path.stem + ".continuous-fit.wav")
+    # Only a tiny correction is allowed, small enough not to alter perceived identity.
+    applied_tempo = 1.0
+    if abs(tempo - 1.0) >= 0.008:
+        applied_tempo = tempo
+        temp = path.with_name(path.stem + ".natural-fit.wav")
         subprocess.run([
             "ffmpeg", "-y", "-loglevel", "error", "-i", str(path),
             "-af", f"atempo={tempo:.7f}", "-ar", "48000", "-ac", "1", str(temp),
         ], check=True)
         if not temp.exists() or temp.stat().st_size < 1000:
-            raise RuntimeError("FFmpeg no pudo ajustar la narración continua.")
+            raise RuntimeError("FFmpeg no pudo aplicar el ajuste mínimo de sincronización.")
         temp.replace(path)
 
     after = _probe_duration(path)
@@ -128,17 +135,20 @@ def fit_and_validate_spiritual_voice(
     if coverage < min_coverage:
         raise RuntimeError(
             f"BLOQUEADO: cobertura de voz {coverage:.1%}; se exige al menos {min_coverage:.0%}. "
-            "No se publicará un video con cola silenciosa."
+            "Se regenerará el guion sin ralentizar la voz."
         )
     if longest > max_silence_seconds:
         raise RuntimeError(
-            f"BLOQUEADO: se detectó una pausa de {longest:.2f}s en la narración; "
-            f"máximo permitido {max_silence_seconds:.2f}s."
+            f"VOICE_CADENCE_LOCK: pausa de {longest:.2f}s; máximo permitido {max_silence_seconds:.2f}s. "
+            "No se publicará una narración excesivamente pausada."
         )
     return {
         "voice_seconds_before_fit": round(before, 3),
         "voice_seconds_after_fit": round(after, 3),
         "voice_coverage_ratio": round(coverage, 5),
         "longest_voice_silence_seconds": round(longest, 3),
+        "voice_tempo_adjustment": round(applied_tempo, 5),
+        "voice_cadence_locked": True,
+        "voice_slow_stretch_forbidden": True,
         "voice_continuity_passed": True,
     }
