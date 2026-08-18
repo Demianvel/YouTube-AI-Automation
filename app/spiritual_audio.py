@@ -10,7 +10,7 @@ from .premium_audio import make_premium_original_music
 from .spiritual_continuity import ensure_spoken_text, fit_and_validate_spiritual_voice
 from .spiritual_voice import polish_voice
 
-VOICE_LOCK_VERSION = "voz-de-luz-algenib-v2"
+VOICE_LOCK_VERSION = "voz-de-luz-algenib-v3-natural-fixed"
 EXPECTED_VOICE = "Algenib"
 EXPECTED_PROFILE = "voz_de_luz_serena_original_v1"
 
@@ -48,15 +48,15 @@ def _enforce_voice_identity(used: str) -> None:
 
 
 def _fit_text_for_natural_short_voice(text: str, duration: int, seed: int) -> tuple[str, dict]:
-    """Keep Algenib natural by fitting the script instead of speeding the narrator.
+    """Fit the script to the permanent natural Algenib cadence, never vice versa.
 
-    Voz de Luz is intentionally calm. For a 60 s Short we keep roughly 85-105
-    spoken words. If the editorial script is longer, retain complete early
-    sentences plus the closing prayer rather than time-stretching the voice.
+    A 60 s Short targets roughly 130-141 words. If a draft is too short we add
+    safe original connective prose; if it is too long we retain complete phrases.
+    The voice itself is not slowed down to fill the timeline.
     """
     clean = " ".join(str(text or "").split()).strip()
-    max_words = max(30, int(float(duration) * 1.75))
-    min_words = max(24, int(float(duration) * 1.38))
+    max_words = max(36, int(float(duration) * 2.35))
+    min_words = max(32, int(float(duration) * 2.16))
     original_words = len(clean.split())
 
     if original_words > max_words:
@@ -68,7 +68,7 @@ def _fit_text_for_natural_short_voice(text: str, duration: int, seed: int) -> tu
         selected: list[str] = []
         used_words = 0
         reserve = len(closing.split()) if closing else 0
-        budget = max(20, max_words - reserve)
+        budget = max(24, max_words - reserve)
         for sentence in sentences:
             count = len(sentence.split())
             if selected and used_words + count > budget:
@@ -84,30 +84,30 @@ def _fit_text_for_natural_short_voice(text: str, duration: int, seed: int) -> tu
             selected.append(closing)
         clean = " ".join(selected).strip()
 
+    expansion = {
+        "target_words": min_words,
+        "final_words": len(clean.split()),
+        "continuity_expansions": 0,
+    }
     if len(clean.split()) < min_words:
-        clean, expansion = ensure_spoken_text(clean, duration, seed=seed, words_per_minute=78)
-    else:
-        expansion = {
-            "target_words": min_words,
-            "final_words": len(clean.split()),
-            "continuity_expansions": 0,
-        }
+        clean, expansion = ensure_spoken_text(clean, duration, seed=seed, words_per_minute=132)
+
+    # Safe final cap: preserve the fixed voice rate rather than accelerating it.
+    words = clean.split()
+    if len(words) > max_words:
+        clean = " ".join(words[:max_words]).rstrip(" ,;:")
+        if not re.search(r"[.!?]$", clean):
+            clean += "."
 
     final_words = len(clean.split())
-    if final_words > max_words + 4:
-        # Last-resort phrase-safe cap. This is preferable to changing the voice
-        # identity or accelerating a calm narrator by 30%+.
-        words = clean.split()
-        clean = " ".join(words[:max_words]).rstrip(" ,;:") + ". Que Dios te acompañe. Amén."
-        final_words = len(clean.split())
-
     return clean, {
         **expansion,
         "original_words": original_words,
         "final_words": final_words,
         "natural_voice_word_budget_min": min_words,
         "natural_voice_word_budget_max": max_words,
-        "script_shortened_for_voice_identity": final_words < original_words,
+        "script_adjusted_for_fixed_voice_cadence": final_words != original_words,
+        "voice_rate_policy": "fixed_natural_134_142_wpm_no_slow_stretch",
     }
 
 
@@ -160,7 +160,9 @@ def apply_spiritual_audio(video: Path, out: Path, channel: dict, meta: dict, dur
     meta["voice_identity_locked"] = True
     meta["voice_lock_version"] = VOICE_LOCK_VERSION
     meta["voice_expected_provider"] = f"Gemini TTS/{EXPECTED_VOICE}"
-    meta["voice_delivery"] = "continuous_full_duration_validated_same_track_used_for_lipsync"
+    meta["voice_delivery"] = "permanent_natural_cadence_same_track_no_slow_stretch"
+    meta["voice_cadence_locked"] = True
+    meta["voice_slow_stretch_forbidden"] = True
     meta["music_variant"] = music_variant
     meta["audio_source"] = "unique_spiritual_voice_plus_low_original_music"
     meta["cta_overlay"] = "SUSCRIBITE | COMPARTI | AMEN"
