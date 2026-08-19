@@ -110,6 +110,7 @@ jobs:
             scripts/publish_dios_fast.py \
             scripts/publish_dios_animal_short.py \
             app/spiritual_tts.py \
+            app/spiritual_audio.py \
             app/pipeline.py
 
       - name: Publish missing regular Shorts and two animal Bible bonus Shorts
@@ -156,9 +157,19 @@ jobs:
 
           def counts():
               rows=rows_today()
-              animals=[r for r in rows if str(r.get("content_family") or "").startswith("animales_y_biblia_")]
-              regular=[r for r in rows if not str(r.get("content_family") or "").startswith("animales_y_biblia_")]
-              return len(regular), len(animals), {str(r.get("animal_bible_short_index") or "") for r in animals}
+              animals=[]
+              animal_ids=set()
+              regular=[]
+              for row in rows:
+                  family=str(row.get("content_family") or "")
+                  if family.startswith("animales_y_biblia_"):
+                      animals.append(row)
+                      suffix=family.rsplit("_", 1)[-1]
+                      if suffix in {"1", "2"}:
+                          animal_ids.add(suffix)
+                  else:
+                      regular.append(row)
+              return len(regular), len(animals), animal_ids
 
           def run_with_retries(cmd, env=None, label="Short"):
               merged=os.environ.copy()
@@ -175,7 +186,7 @@ jobs:
               raise SystemExit(f"No se pudo publicar {label} manteniendo la voz fija.")
 
           regular, animals, animal_ids = counts()
-          print(f"Estado inicial ART: regulares={regular}/10, animales={animals}/2", flush=True)
+          print(f"Estado inicial ART: regulares={regular}/10, animales={animals}/2, animal_ids={sorted(animal_ids)}", flush=True)
 
           while regular < 10:
               run_with_retries([sys.executable, "scripts/publish_dios_fast.py"], label=f"Short regular {regular+1}/10")
