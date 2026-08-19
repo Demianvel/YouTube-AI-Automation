@@ -1,1 +1,1 @@
-2026-08-19T15:47:00-03:00 | reintentar hoy 10 Shorts regulares + 2 Shorts Animales y Biblia despues de corregir duracion de Voz de Luz y contador animal; mantener Algenib fija; Hugging Face primero; no duplicar videos ya publicados.
+2026-08-19T16:49:00-03:00 | ejecutar recuperacion reparada: reconocer 3 uploads del run 32289159427, continuar hasta 10 Shorts regulares + 2 Animales y Biblia, checkpoint tras cada exito, Voz de Luz/Algenib permanente, Hugging Face primero, no duplicar video_id.
