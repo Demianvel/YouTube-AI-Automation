@@ -1,1 +1,1 @@
-2026-08-18 12:27 ART | publish Dios Habla Hoy Short with natural 60s Voz de Luz Algenib, final SEO anti-repeat and fresh visual fingerprints only
+2026-08-18 23:55 ART | verify run #259 fix: respect daily 10-Short cap, keep Voz de Luz Algenib fixed, use quota-aware retries only when publication is still required
