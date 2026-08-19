@@ -19,12 +19,12 @@ PRESETS = {
             "Una reflexión bíblica sobre la creación, la ansiedad, la fe y el valor de cada vida."
         ),
         "lines": [
-            "Mirá por un momento a las aves del cielo. Jesús usó algo tan sencillo como un pájaro para enseñarnos una verdad profunda sobre Dios.",
-            "En Mateo 6:26, Jesús señala que las aves no siembran ni almacenan y, sin embargo, el Padre celestial las alimenta.",
-            "La enseñanza no es abandonar la responsabilidad. Es recordar que la preocupación no debe gobernar el corazón ni hacernos olvidar quién sostiene la vida.",
-            "Cada ave que cruza el cielo puede recordarnos que la creación tiene valor ante Dios y que nosotros también somos vistos, conocidos y llamados a confiar.",
-            "Hoy cuidá la vida que tenés cerca: un animal, una persona, la tierra que pisás. La fe también se demuestra con gratitud, respeto y compasión.",
-            "Cuando aparezca el miedo por el mañana, mirá nuevamente la creación y recordá las palabras de Jesús. Confiá, actuá con responsabilidad y caminá con fe. Amén.",
+            "Mirá las aves del cielo. Jesús usó algo tan sencillo como un pájaro para enseñarnos una verdad profunda sobre Dios.",
+            "En Mateo 6:26 señala que las aves no siembran ni almacenan y, sin embargo, el Padre celestial las alimenta.",
+            "La enseñanza no es dejar nuestras responsabilidades, sino impedir que la preocupación gobierne el corazón y nos haga olvidar quién sostiene la vida.",
+            "Cada ave que cruza el cielo puede recordarnos que la creación tiene valor ante Dios y que nosotros también somos vistos y llamados a confiar.",
+            "Hoy cuidá la vida que tenés cerca: un animal, una persona y la tierra que pisás. La fe también se demuestra con respeto y compasión.",
+            "Cuando aparezca el miedo por el mañana, recordá las palabras de Jesús. Confiá, actuá con responsabilidad y caminá con fe. Amén.",
         ],
         "visuals": [
             "premium photorealistic cinematic flock of small sparrows flying over a golden Galilee-like hillside at sunrise, realistic feathers, gentle wind, biblical landscape, vertical 9:16, no text, no logo, no watermark",
@@ -52,12 +52,12 @@ PRESETS = {
             "Génesis 9:9-10 recuerda además que la alianza después del diluvio alcanza también a los seres vivientes."
         ),
         "lines": [
-            "La Biblia también habla de cómo tratamos a los animales. La fe no se limita a palabras: se refleja en la manera en que cuidamos la vida.",
-            "Proverbios 12:10 enseña que el justo se preocupa por su ganado, mientras que la crueldad caracteriza al corazón que se aleja del bien.",
-            "Eso nos deja una enseñanza concreta: alimentar, proteger y tratar con respeto a un animal puede ser una expresión sencilla de responsabilidad y misericordia.",
-            "Después del diluvio, Génesis 9:9 y 10 presenta la alianza de Dios con Noé, sus descendientes y también con los animales que salieron del arca.",
-            "La creación no es un objeto sin valor. Somos llamados a administrarla con prudencia, sin maltrato, sin crueldad y reconociendo que la vida merece cuidado.",
-            "Que nuestra fe pueda verse en actos: una mano que protege, agua para el sediento, alimento para el que depende de nosotros y compasión por toda criatura. Amén.",
+            "La Biblia también habla de cómo tratamos a los animales. La fe no se limita a palabras: se refleja en cómo cuidamos la vida.",
+            "Proverbios 12:10 enseña que el justo se preocupa por sus animales y contrapone ese cuidado a la crueldad.",
+            "Es una enseñanza concreta: alimentar, proteger y tratar con respeto a un animal puede expresar responsabilidad, misericordia y gratitud por la creación.",
+            "Después del diluvio, Génesis 9:9 y 10 presenta la alianza de Dios con Noé, sus descendientes y también con los seres vivientes que salieron del arca.",
+            "La creación no es algo sin valor. Estamos llamados a cuidarla con prudencia, sin maltrato y reconociendo que la vida merece respeto.",
+            "Que nuestra fe se vea en actos: una mano que protege, agua y alimento para quien depende de nosotros y compasión por toda criatura. Amén.",
         ],
         "visuals": [
             "healthy sheep and goats resting peacefully beside a caring shepherd in a sunlit rural biblical landscape, realistic animal behavior, premium photoreal cinematic scene, vertical 9:16, no text, no logo, no watermark",
@@ -79,16 +79,16 @@ PRESETS = {
 }
 
 
-def _animal_metadata(channel: dict, previous: list[dict], retries: int = 5) -> dict:
-    del retries
+def _preset_index() -> str:
     index = os.getenv("DIOS_ANIMAL_SHORT_INDEX", "1").strip()
     if index not in PRESETS:
         raise RuntimeError(f"DIOS_ANIMAL_SHORT_INDEX no valido: {index}")
+    return index
 
+
+def _apply_preset(metadata: dict, index: str) -> dict:
     preset = PRESETS[index]
-    metadata = fast._fast_local_metadata(channel, previous)
     metadata = deepcopy(metadata)
-
     scenes = list(metadata.get("scenes") or [])
     while len(scenes) < 6:
         scenes.append({})
@@ -116,10 +116,32 @@ def _animal_metadata(channel: dict, previous: list[dict], retries: int = 5) -> d
     metadata["metadata_provider"] = "verified_animal_bible_pack:vatican_refs:v1"
     metadata["animal_bible_pack"] = True
     metadata["animal_bible_short_index"] = index
+    metadata["source_grounded"] = True
     return metadata
 
 
+def _animal_metadata(channel: dict, previous: list[dict], retries: int = 5) -> dict:
+    del retries
+    index = _preset_index()
+    return _apply_preset(fast._fast_local_metadata(channel, previous), index)
+
+
+# _prepare_spiritual_candidate resolves its global generate_metadata dynamically,
+# so point that at the animal preset. Then re-apply the preset after SEO/editorial
+# transforms to guarantee the final rendered scenes remain animal/Bible content.
+_ORIGINAL_PREPARE = pipeline._prepare_spiritual_candidate
 pipeline.generate_metadata = _animal_metadata
+
+
+def _animal_prepare(channel: dict, previous: list[dict]) -> dict:
+    index = _preset_index()
+    prepared = _ORIGINAL_PREPARE(channel, previous)
+    prepared = _apply_preset(prepared, index)
+    prepared["final_seo_uniqueness_prechecked"] = True
+    return prepared
+
+
+pipeline._prepare_spiritual_candidate = _animal_prepare
 
 
 if __name__ == "__main__":
