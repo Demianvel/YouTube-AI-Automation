@@ -1,0 +1,247 @@
+name: Dios Habla Hoy IA - Recuperar 10 + 2 Animales
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "triggers/dioshablahoyia-today-10-plus-2.txt"
+
+permissions:
+  contents: write
+  issues: write
+
+concurrency:
+  group: dioshablahoyia-short-publisher
+  cancel-in-progress: false
+
+jobs:
+  recover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    env:
+      PYTHONPATH: .
+      TZ: America/Argentina/Buenos_Aires
+      CHANNEL: dioshablahoyia
+      CONTENT_MODE: voice
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      GEMINI_TEXT_MODEL: gemini-3.6-flash
+      GEMINI_TTS_MODEL: gemini-3.1-flash-tts-preview
+      GEMINI_TTS_VOICE: Algenib
+      GEMINI_TTS_MAX_ATTEMPTS: "4"
+      SPIRITUAL_MALE_GEMINI_VOICE: Algenib
+      SPIRITUAL_VOICE_PROFILE: voz_de_luz_serena_original_v1
+      SPIRITUAL_VOICE_BRAND: Voz de Luz
+      SPIRITUAL_VOICE_LOCKED: "true"
+      SPIRITUAL_VOICEOVER_MODE: "true"
+      SPIRITUAL_LIPSYNC_ENABLED: "false"
+      SPIRITUAL_REQUIRE_PRIMARY_VOICE: "true"
+      SPIRITUAL_SHORT_SECONDS: "60"
+      SPIRITUAL_SHORT_SCENE_SECONDS: "10"
+      SPIRITUAL_SHORT_AI_CLIPS: "0"
+      SPIRITUAL_ALLOW_STILL_FALLBACK: "true"
+      SPIRITUAL_FAST_RENDER: "true"
+      SPIRITUAL_VISUAL_VARIETY_LEVEL: maximum
+      SPIRITUAL_EDITORIAL_VARIETY_LEVEL: high
+      SPIRITUAL_CTA_OVERLAY: "false"
+      SPIRITUAL_REQUIRE_FRESH_VISUAL: "true"
+      SPIRITUAL_VISUAL_PHASH_MAX_DISTANCE: "7"
+      TTS_PROVIDER: gemini_tts
+      TTS_FALLBACK_KOKORO: "false"
+      GEMINI_VIDEO_ENABLED: "false"
+      HF_VIDEO_ENABLED: "false"
+      HF_REFERENCE_IMAGE_ENABLED: "true"
+      HF_REFERENCE_EDITOR_ENABLED: "true"
+      HF_REFERENCE_ZERO_SPACE: black-forest-labs/FLUX.1-Kontext-Dev
+      HF_TEXT_ZERO_ENABLED: "true"
+      HF_TEXT_ZERO_SPACE: black-forest-labs/FLUX.1-schnell
+      HF_REFERENCE_ZERO_SPACE_FIRST: "true"
+      HF_ZERO_AUTH_RETRY: "true"
+      HF_REMOTE_CIRCUIT_BREAKER: "true"
+      HF_INFERENCE_PROVIDER_ENABLED: "false"
+      HF_ZERO_TOKEN: ${{ secrets.HF_TOKEN }}
+      HF_TOKEN: ""
+      SPIRITUAL_REFERENCE_AVOID_RECENT: "100"
+      DIOS_FAST_LOCAL_VISUAL_MODE: "false"
+      PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
+      MUSIC_PROVIDER: local
+      YOUTUBE_TOKEN_DIOSHABLAHOYIA: ${{ secrets.YOUTUBE_TOKEN_DIOSHABLAHOYIA }}
+      FACEBOOK_PAGE_ID: ${{ secrets.FACEBOOK_PAGE_ID }}
+      FACEBOOK_PAGE_ACCESS_TOKEN: ${{ secrets.FACEBOOK_PAGE_ACCESS_TOKEN }}
+      FACEBOOK_GRAPH_API_VERSION: v25.0
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install runtime
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg espeak-ng libsndfile1 fonts-dejavu-core git >/dev/null
+          python -m pip install -q --upgrade pip
+          pip install -q \
+            "google-genai>=2.3.0" \
+            "google-api-python-client>=2.170.0" \
+            "google-auth>=2.40.0" \
+            "google-auth-oauthlib>=1.2.2" \
+            "Pillow>=11.0.0" \
+            "requests>=2.32.0" \
+            "numpy<3,>=1.26" \
+            "soundfile>=0.13.1" \
+            "huggingface_hub<2,>=0.34.4" \
+            "gradio_client<3,>=1.11.0"
+
+      - name: Verify immutable voice and HF visual route
+        run: |
+          test -n "$YOUTUBE_TOKEN_DIOSHABLAHOYIA"
+          test -n "$GEMINI_API_KEY"
+          test -n "$HF_ZERO_TOKEN"
+          test "$GEMINI_TTS_VOICE" = "Algenib"
+          test "$SPIRITUAL_MALE_GEMINI_VOICE" = "Algenib"
+          test "$SPIRITUAL_VOICE_LOCKED" = "true"
+          test "$SPIRITUAL_REQUIRE_PRIMARY_VOICE" = "true"
+          test "$TTS_FALLBACK_KOKORO" = "false"
+          python -m py_compile \
+            scripts/publish_dios_fast.py \
+            scripts/publish_dios_animal_short.py \
+            app/spiritual_tts.py \
+            app/pipeline.py
+
+      - name: Publish missing regular Shorts and two animal Bible bonus Shorts
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          import subprocess
+          import sys
+          import time
+          from datetime import datetime, timezone
+          from pathlib import Path
+          from zoneinfo import ZoneInfo
+
+          ROOT = Path.cwd()
+          HISTORY = ROOT / "state" / "history.jsonl"
+          OUT = Path("/tmp/dios-10-plus-2/new-records.jsonl")
+          OUT.parent.mkdir(parents=True, exist_ok=True)
+          HISTORY.parent.mkdir(parents=True, exist_ok=True)
+          HISTORY.touch(exist_ok=True)
+          baseline = HISTORY.read_text(encoding="utf-8").splitlines()
+          tz = ZoneInfo("America/Argentina/Buenos_Aires")
+          today = datetime.now(tz).date()
+
+          def rows_today():
+              rows=[]
+              for raw in HISTORY.read_text(encoding="utf-8").splitlines():
+                  try:
+                      row=json.loads(raw)
+                      if row.get("channel") != "dioshablahoyia":
+                          continue
+                      if row.get("status") != "uploaded" and not row.get("video_id"):
+                          continue
+                      stamp=str(row.get("created_at") or "")
+                      dt=datetime.fromisoformat(stamp.replace("Z", "+00:00"))
+                      if dt.tzinfo is None:
+                          dt=dt.replace(tzinfo=timezone.utc)
+                      if dt.astimezone(tz).date() == today:
+                          rows.append(row)
+                  except Exception:
+                      continue
+              return rows
+
+          def counts():
+              rows=rows_today()
+              animals=[r for r in rows if str(r.get("content_family") or "").startswith("animales_y_biblia_")]
+              regular=[r for r in rows if not str(r.get("content_family") or "").startswith("animales_y_biblia_")]
+              return len(regular), len(animals), {str(r.get("animal_bible_short_index") or "") for r in animals}
+
+          def run_with_retries(cmd, env=None, label="Short"):
+              merged=os.environ.copy()
+              if env:
+                  merged.update(env)
+              for attempt in range(1,4):
+                  print(f"{label}: intento {attempt}/3", flush=True)
+                  result=subprocess.run(cmd, cwd=ROOT, env=merged, check=False)
+                  if result.returncode == 0:
+                      return
+                  if attempt < 3:
+                      print(f"{label}: fallo temporal; esperando 90 s sin cambiar Voz de Luz/Algenib.", flush=True)
+                      time.sleep(90)
+              raise SystemExit(f"No se pudo publicar {label} manteniendo la voz fija.")
+
+          regular, animals, animal_ids = counts()
+          print(f"Estado inicial ART: regulares={regular}/10, animales={animals}/2", flush=True)
+
+          while regular < 10:
+              run_with_retries([sys.executable, "scripts/publish_dios_fast.py"], label=f"Short regular {regular+1}/10")
+              regular, animals, animal_ids = counts()
+              print(f"Progreso ART: regulares={regular}/10, animales={animals}/2", flush=True)
+
+          for idx in ("1", "2"):
+              regular, animals, animal_ids = counts()
+              if idx in animal_ids:
+                  print(f"Short animal {idx} ya existe hoy; no se duplica.", flush=True)
+                  continue
+              run_with_retries(
+                  [sys.executable, "scripts/publish_dios_animal_short.py"],
+                  env={"DIOS_ANIMAL_SHORT_INDEX": idx},
+                  label=f"Short Animales y Biblia {idx}/2",
+              )
+
+          regular, animals, animal_ids = counts()
+          if regular < 10 or not {"1","2"}.issubset(animal_ids):
+              raise SystemExit(f"Objetivo incompleto: regulares={regular}/10, animal_ids={sorted(animal_ids)}")
+
+          current=HISTORY.read_text(encoding="utf-8").splitlines()
+          new_lines=current[len(baseline):]
+          OUT.write_text("".join(f"{line}\n" for line in new_lines if line.strip()), encoding="utf-8")
+          print(f"OBJETIVO CUMPLIDO EN RUNNER: {regular} regulares + {animals} animales; nuevos registros={len(new_lines)}", flush=True)
+          PY
+
+      - name: Persist all new upload records
+        if: success()
+        shell: bash
+        run: |
+          RECORDS="/tmp/dios-10-plus-2/new-records.jsonl"
+          test -s "$RECORDS" || exit 0
+          cp "$RECORDS" /tmp/dios-10-plus-2-records-copy.jsonl
+          git config user.name "youtube-ai-bot"
+          git config user.email "actions@users.noreply.github.com"
+          for attempt in 1 2 3 4 5; do
+            git fetch origin main
+            git reset --hard origin/main
+            mkdir -p state
+            touch state/history.jsonl
+            while IFS= read -r record; do
+              test -n "$record" || continue
+              grep -Fqx "$record" state/history.jsonl || printf '%s\n' "$record" >> state/history.jsonl
+            done < /tmp/dios-10-plus-2-records-copy.jsonl
+            git add state/history.jsonl
+            if git diff --cached --quiet; then exit 0; fi
+            git commit -m "chore: record Dios 10 plus 2 Shorts"
+            git push origin HEAD:main && exit 0
+          done
+          exit 1
+
+      - name: Upload diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dioshablahoyia-10-plus-2-${{ github.run_id }}
+          path: output/
+          if-no-files-found: ignore
+          retention-days: 2
+
+      - name: Open issue on strict failure
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh issue create \
+            --title "Dios Habla Hoy - fallo objetivo 10 + 2 Shorts" \
+            --body "No se completo 10 Shorts regulares + 2 Animales y Biblia manteniendo Voz de Luz/Algenib. Revisar Actions run $GITHUB_RUN_ID. No se habilito voz alternativa."
