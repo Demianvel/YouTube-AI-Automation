@@ -50,6 +50,7 @@ jobs:
       GEMINI_TEXT_MODEL: gemini-3.6-flash
       GEMINI_TTS_MODEL: gemini-3.1-flash-tts-preview
       GEMINI_TTS_VOICE: Algenib
+      GEMINI_TTS_MAX_ATTEMPTS: "4"
       SPIRITUAL_MALE_GEMINI_VOICE: Algenib
       SPIRITUAL_VOICE_PROFILE: voz_de_luz_serena_original_v1
       SPIRITUAL_VOICE_BRAND: Voz de Luz
@@ -100,16 +101,68 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
+
+      - name: Enforce exactly 10 uploaded Shorts per Argentina day
+        id: daily_cap
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          from datetime import datetime, timezone
+          from pathlib import Path
+          from zoneinfo import ZoneInfo
+
+          target = 10
+          zone = ZoneInfo("America/Argentina/Buenos_Aires")
+          today = datetime.now(zone).date()
+          history = Path("state/history.jsonl")
+          uploaded = 0
+
+          if history.exists():
+              for raw in history.read_text(encoding="utf-8").splitlines():
+                  try:
+                      row = json.loads(raw)
+                  except Exception:
+                      continue
+                  if row.get("channel") != "dioshablahoyia" or row.get("status") != "uploaded":
+                      continue
+                  stamp = str(row.get("created_at") or "").strip()
+                  if not stamp:
+                      continue
+                  try:
+                      moment = datetime.fromisoformat(stamp.replace("Z", "+00:00"))
+                  except ValueError:
+                      continue
+                  if moment.tzinfo is None:
+                      moment = moment.replace(tzinfo=timezone.utc)
+                  if moment.astimezone(zone).date() == today:
+                      uploaded += 1
+
+          should_publish = uploaded < target
+          print(f"Shorts subidos hoy en Argentina: {uploaded}/{target}")
+          if not should_publish:
+              print("Objetivo diario ya cumplido: se omite esta ejecucion para no gastar cuota TTS ni publicar un Short extra.")
+
+          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as handle:
+              handle.write(f"count={uploaded}\n")
+              handle.write(f"should_publish={'true' if should_publish else 'false'}\n")
+          PY
+
       - name: Install lightweight Dios runtime
+        if: steps.daily_cap.outputs.should_publish == 'true' || (github.event_name == 'workflow_dispatch' && inputs.dry_run)
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y -qq ffmpeg espeak-ng libsndfile1 fonts-dejavu-core git >/dev/null
           python -m pip install -q --upgrade pip
           pip install -q "google-genai>=2.3.0" "google-api-python-client>=2.170.0" "google-auth>=2.40.0" "google-auth-oauthlib>=1.2.2" "Pillow>=11.0.0" "requests>=2.32.0" "numpy<3,>=1.26" "soundfile>=0.13.1" "huggingface_hub<2,>=0.34.4" "gradio_client<3,>=1.11.0"
+
       - name: Verify fixed voice and fresh bank
+        if: steps.daily_cap.outputs.should_publish == 'true' || (github.event_name == 'workflow_dispatch' && inputs.dry_run)
         run: |
           python scripts/check_ready.py --generation-only
           test -n "$YOUTUBE_TOKEN_DIOSHABLAHOYIA"
@@ -122,7 +175,9 @@ jobs:
           test -f assets/dioshablahoyia/reference/jesus_reference_user_new_03.jpg
           test -f assets/dioshablahoyia/visual_reference/noah_ark_user_new_01.jpg
           python -m py_compile scripts/publish_dios_fast.py app/pipeline.py app/facebook_pages.py app/spiritual_reference_generation.py app/spiritual_image.py app/spiritual_tts.py app/spiritual_audio.py app/dios_visual_integrity.py
+
       - name: Generate fresh Short
+        if: steps.daily_cap.outputs.should_publish == 'true' || (github.event_name == 'workflow_dispatch' && inputs.dry_run)
         shell: bash
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.dry_run }}" = "true" ]; then
@@ -130,8 +185,9 @@ jobs:
           else
             python scripts/publish_dios_fast.py
           fi
+
       - name: Persist anti-duplicate history
-        if: success() && !(github.event_name == 'workflow_dispatch' && inputs.dry_run)
+        if: success() && steps.daily_cap.outputs.should_publish == 'true' && !(github.event_name == 'workflow_dispatch' && inputs.dry_run)
         shell: bash
         run: |
           git config user.name "youtube-ai-bot"
@@ -149,13 +205,15 @@ jobs:
             if git push origin HEAD:main; then exit 0; fi
           done
           exit 1
+
       - name: Upload generated artifact
-        if: always()
+        if: always() && (steps.daily_cap.outputs.should_publish == 'true' || (github.event_name == 'workflow_dispatch' && inputs.dry_run))
         uses: actions/upload-artifact@v4
         with:
           name: dioshablahoyia-short-${{ github.run_id }}
           path: output/
           retention-days: 2
+
       - name: Open issue on strict publishing failure
         if: failure()
         env:
