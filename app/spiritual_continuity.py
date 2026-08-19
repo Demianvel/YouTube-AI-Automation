@@ -81,14 +81,16 @@ def fit_and_validate_spiritual_voice(
     path: Path,
     target_seconds: float,
     *,
-    min_coverage: float = 0.94,
+    min_coverage: float = 0.82,
     max_silence_seconds: float = 1.15,
 ) -> dict:
-    """Validate fixed natural narration and allow only tiny timing correction.
+    """Validate permanent natural Voz de Luz without slowing its identity.
 
-    The previous pipeline could slow narration substantially to fill the video.
-    That is forbidden here. A mismatch beyond a few percent must be solved by
-    regenerating/fitting the script, not by changing the narrator's speed.
+    A narration that naturally ends a few seconds before the 60-second visual is
+    accepted and the existing audio mixer fills the tail with background
+    music/silence. The narrator is never slowed to fill the timeline. Only a tiny
+    correction is permitted when the track is already very close to the target.
+    Narration that is too long is still rejected so the fixed cadence is protected.
     """
     if not path.exists() or path.stat().st_size < 1000:
         raise RuntimeError("La pista de voz espiritual no existe o está vacía.")
@@ -103,22 +105,16 @@ def fit_and_validate_spiritual_voice(
     desired = target * 0.985
     tempo = before / desired
 
-    # Never make Voz de Luz perceptibly slower. If narration is too short,
-    # regenerate with more text instead of stretching it.
-    if tempo < 0.965:
-        raise RuntimeError(
-            f"VOICE_CADENCE_LOCK: la voz dura {before:.1f}s para un video de {target:.1f}s. "
-            "Se requiere más texto; está prohibido ralentizar Voz de Luz para rellenar tiempo."
-        )
+    # Never slow Voz de Luz. A naturally shorter narration keeps tempo=1.0 and
+    # the remaining tail is filled by the existing apad/music mix downstream.
     if tempo > 1.055:
         raise RuntimeError(
             f"VOICE_CADENCE_LOCK: la narración dura {before:.1f}s para un video de {target:.1f}s. "
             "Se requiere ajustar el guion; está prohibido cambiar perceptiblemente la velocidad fija."
         )
 
-    # Only a tiny correction is allowed, small enough not to alter perceived identity.
     applied_tempo = 1.0
-    if abs(tempo - 1.0) >= 0.008:
+    if 0.965 <= tempo <= 1.055 and abs(tempo - 1.0) >= 0.008:
         applied_tempo = tempo
         temp = path.with_name(path.stem + ".natural-fit.wav")
         subprocess.run([
@@ -142,12 +138,16 @@ def fit_and_validate_spiritual_voice(
             f"VOICE_CADENCE_LOCK: pausa de {longest:.2f}s; máximo permitido {max_silence_seconds:.2f}s. "
             "No se publicará una narración excesivamente pausada."
         )
+
+    tail_padding = max(0.0, target - after)
     return {
         "voice_seconds_before_fit": round(before, 3),
         "voice_seconds_after_fit": round(after, 3),
         "voice_coverage_ratio": round(coverage, 5),
         "longest_voice_silence_seconds": round(longest, 3),
         "voice_tempo_adjustment": round(applied_tempo, 5),
+        "voice_tail_padding_seconds": round(tail_padding, 3),
+        "voice_tail_padding_mode": "music_and_silence_no_voice_slowdown",
         "voice_cadence_locked": True,
         "voice_slow_stretch_forbidden": True,
         "voice_continuity_passed": True,
