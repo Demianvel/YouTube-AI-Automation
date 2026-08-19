@@ -4,7 +4,6 @@ import json
 import os
 import re
 import subprocess
-import time
 from pathlib import Path
 
 from app import pipeline
@@ -111,6 +110,15 @@ def _open_hf_circuit_if_quota(exc: Exception) -> None:
         print("HF ZeroGPU sin cuota: circuito abierto para no repetir esperas durante este Short.")
 
 
+def _text_only_reference(seed: int) -> Path:
+    """Return any repository marker path; FLUX text mode never reads its image bytes."""
+    refs = reference_generation._reference_files()
+    if not refs:
+        raise RuntimeError("No hay ningun marcador de referencia disponible para etiquetar la generacion text-to-image.")
+    safe = int(seed) & 0x7FFFFFFF
+    return refs[safe % len(refs)]
+
+
 def _fresh_bank_reference_guided(
     full_prompt: str,
     out: Path,
@@ -126,7 +134,20 @@ def _fresh_bank_reference_guided(
     # Noah's Ark has its own reference bank and must never be confused with the
     # substring 'ark' inside the word 'watermark'.
     if is_noah_prompt(subject):
-        chosen = choose_reference_for_prompt(subject, seed)
+        try:
+            chosen = choose_reference_for_prompt(subject, seed)
+        except Exception as ref_exc:
+            chosen = _text_only_reference(seed)
+            print(f"Referencia de Noe invalida ({ref_exc}); usando FLUX ZeroGPU en modo texto puro.")
+            provider = reference_generation._generate_text_zerogpu(
+                chosen,
+                subject + ", fresh photoreal cinematic Noah's Ark scene, vertical 9:16, realistic materials and animals, no text, no logo, no watermark",
+                out,
+                seed,
+                target_size,
+            )
+            return provider.replace("style-reference:", "story-text-only:"), f"text-only:{chosen.name}"
+
         noah_prompt = (
             "Use the supplied image only as a visual style and story reference for Noah's Ark. "
             "Create a clearly NEW photorealistic cinematic biblical scene with a different camera position, "
@@ -148,7 +169,26 @@ def _fresh_bank_reference_guided(
             return provider.replace("style-reference:", "story-style:"), chosen.name
 
     if is_jesus_prompt(subject):
-        chosen = choose_reference_for_prompt(subject, seed)
+        try:
+            chosen = choose_reference_for_prompt(subject, seed)
+        except Exception as ref_exc:
+            chosen = _text_only_reference(seed)
+            print(f"Referencias de Jesus invalidas ({ref_exc}); usando FLUX ZeroGPU en modo texto puro.")
+            jesus_prompt = (
+                subject
+                + ", original synthetic adult Jesus character, shoulder-length wavy dark-brown hair, groomed beard, "
+                  "warm compassionate expression, cream linen robe, premium photorealistic live-action cinema, "
+                  "natural anatomy and hands, vertical 9:16, no text, no captions, no logo, no watermark, no celebrity resemblance"
+            )
+            try:
+                provider = reference_generation._generate_text_zerogpu(
+                    chosen, jesus_prompt, out, seed, target_size
+                )
+                return provider.replace("style-reference:", "jesus-text-only:"), f"text-only:{chosen.name}"
+            except Exception as exc:
+                _open_hf_circuit_if_quota(exc)
+                raise
+
         previous_choose = reference_generation.choose_reference
         reference_generation.choose_reference = lambda _seed: chosen
         try:
@@ -162,7 +202,10 @@ def _fresh_bank_reference_guided(
     # Landscapes, Bible still lifes and symbolic cutaways are intentionally
     # generated without the generic Jesus identity boilerplate. This keeps the
     # Short visually varied instead of turning every scene into the same portrait.
-    reference = choose_new_jesus_reference(seed)
+    try:
+        reference = choose_new_jesus_reference(seed)
+    except Exception:
+        reference = _text_only_reference(seed)
     scenic_prompt = (
         subject
         + ", completely new premium photorealistic cinematic spiritual cutaway, realistic optics and natural light, "
@@ -220,23 +263,8 @@ def _fresh_download(prompt: str, out: Path, seed: int) -> str:
 
 
 def _quota_resilient_gemini_voice(path: Path, text: str) -> str:
-    """Keep Voz de Luz/Algenib fixed; wait once for Gemini's 429 window instead of changing voice."""
-    try:
-        return _ORIGINAL_GEMINI_VOICE(path, text)
-    except Exception as exc:
-        message = str(exc)
-        upper = message.upper()
-        if "429" not in upper and "QUOTA" not in upper and "TOO_MANY_REQUESTS" not in upper:
-            raise
-
-        match = re.search(r"retry in\s+([0-9]+(?:\.[0-9]+)?)s", message, flags=re.IGNORECASE)
-        suggested = float(match.group(1)) if match else 55.0
-        wait_seconds = max(12.0, min(75.0, suggested + 2.0))
-        print(
-            f"Gemini TTS alcanzo su ventana de cuota; esperando {wait_seconds:.1f}s y reintentando la MISMA Voz de Luz/Algenib."
-        )
-        time.sleep(wait_seconds)
-        return _ORIGINAL_GEMINI_VOICE(path, text)
+    """Delegate quota-aware retries to the permanent Voz de Luz TTS implementation."""
+    return _ORIGINAL_GEMINI_VOICE(path, text)
 
 
 pipeline.generate_metadata = _fast_local_metadata
