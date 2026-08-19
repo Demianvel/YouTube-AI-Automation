@@ -134,6 +134,25 @@ def _locked_gemini_voice() -> str:
     return MALE_GEMINI_VOICE_DEFAULT
 
 
+def _is_gemini_quota_error(exc: Exception) -> bool:
+    text = str(exc).lower()
+    return any(marker in text for marker in ("429", "quota", "resource_exhausted", "too_many_requests"))
+
+
+def _gemini_retry_seconds(exc: Exception, default: float = 65.0) -> float:
+    """Honor Gemini RetryInfo instead of hammering the same quota window."""
+    text = str(exc)
+    patterns = (
+        r"retry in\s+([0-9]+(?:\.[0-9]+)?)s",
+        r"retrydelay[^0-9]*([0-9]+(?:\.[0-9]+)?)s",
+    )
+    for pattern in patterns:
+        match = re.search(pattern, text, flags=re.IGNORECASE)
+        if match:
+            return max(15.0, min(120.0, float(match.group(1)) + 8.0))
+    return max(15.0, min(120.0, float(default)))
+
+
 def _gemini_spiritual_voice(path: Path, text: str) -> str:
     from google import genai
 
@@ -171,8 +190,14 @@ Speak naturally and continuously. Link phrases smoothly. Use normal human breath
 {text}
 """.strip()
 
+    try:
+        configured_attempts = int(os.getenv("GEMINI_TTS_MAX_ATTEMPTS", "4"))
+    except ValueError:
+        configured_attempts = 4
+    max_attempts = max(2, min(6, configured_attempts))
+
     last_error: Exception | None = None
-    for attempt in range(1, 4):
+    for attempt in range(1, max_attempts + 1):
         try:
             interaction = client.interactions.create(
                 model=model,
@@ -188,10 +213,26 @@ Speak naturally and continuously. Link phrases smoothly. Use normal human breath
             return f"{model}:{voice}:{SPIRITUAL_VOICE_PROFILE}:{mode}:{VOICE_LOCK_VERSION}"
         except Exception as exc:
             last_error = exc
-            if attempt < 3:
-                time.sleep(attempt * 2)
+            if attempt >= max_attempts:
+                break
 
-    raise RuntimeError(f"Gemini TTS fallo despues de 3 intentos: {last_error}")
+            if _is_gemini_quota_error(exc):
+                wait_seconds = _gemini_retry_seconds(exc)
+                print(
+                    "Gemini TTS marco limite de cuota; "
+                    f"esperando {wait_seconds:.1f}s antes del intento {attempt + 1}/{max_attempts} "
+                    f"con la MISMA {VOICE_BRAND_NAME}/{voice}."
+                )
+                time.sleep(wait_seconds)
+            else:
+                wait_seconds = min(15.0, 2.5 * attempt)
+                print(
+                    f"Gemini TTS fallo temporalmente ({exc}); reintento {attempt + 1}/{max_attempts} "
+                    f"en {wait_seconds:.1f}s sin cambiar la voz."
+                )
+                time.sleep(wait_seconds)
+
+    raise RuntimeError(f"Gemini TTS fallo despues de {max_attempts} intentos: {last_error}")
 
 
 def _kokoro_chunked_voice(path: Path, text: str) -> None:
