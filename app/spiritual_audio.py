@@ -50,13 +50,14 @@ def _enforce_voice_identity(used: str) -> None:
 def _fit_text_for_natural_short_voice(text: str, duration: int, seed: int) -> tuple[str, dict]:
     """Fit the script to the permanent natural Algenib cadence, never vice versa.
 
-    A 60 s Short targets roughly 130-141 words. If a draft is too short we add
-    safe original connective prose; if it is too long we retain complete phrases.
-    The voice itself is not slowed down to fill the timeline.
+    Empirical runs of Voz de Luz/Algenib include natural breaths and pauses, so a
+    60 s Short now targets roughly 117-126 spoken words. This keeps the narrator
+    natural and avoids perceptible time stretching. If a draft is too long we
+    retain complete phrases and the spiritual closing; the voice is never sped up.
     """
     clean = " ".join(str(text or "").split()).strip()
-    max_words = max(36, int(float(duration) * 2.35))
-    min_words = max(32, int(float(duration) * 2.16))
+    max_words = max(36, int(float(duration) * 2.10))
+    min_words = max(32, int(float(duration) * 1.95))
     original_words = len(clean.split())
 
     if original_words > max_words:
@@ -90,9 +91,8 @@ def _fit_text_for_natural_short_voice(text: str, duration: int, seed: int) -> tu
         "continuity_expansions": 0,
     }
     if len(clean.split()) < min_words:
-        clean, expansion = ensure_spoken_text(clean, duration, seed=seed, words_per_minute=132)
+        clean, expansion = ensure_spoken_text(clean, duration, seed=seed, words_per_minute=124)
 
-    # Safe final cap: preserve the fixed voice rate rather than accelerating it.
     words = clean.split()
     if len(words) > max_words:
         clean = " ".join(words[:max_words]).rstrip(" ,;:")
@@ -107,7 +107,7 @@ def _fit_text_for_natural_short_voice(text: str, duration: int, seed: int) -> tu
         "natural_voice_word_budget_min": min_words,
         "natural_voice_word_budget_max": max_words,
         "script_adjusted_for_fixed_voice_cadence": final_words != original_words,
-        "voice_rate_policy": "fixed_natural_134_142_wpm_no_slow_stretch",
+        "voice_rate_policy": "fixed_natural_algenib_empirical_117_126_words_per_60s_no_slow_stretch",
     }
 
 
