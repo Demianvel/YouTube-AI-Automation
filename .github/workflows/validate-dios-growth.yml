@@ -85,9 +85,18 @@ jobs:
         run: |
           python - <<'PY'
           from pathlib import Path
+          from PIL import Image
           from app.spiritual_image import _local_reference
           refs = sorted(Path('assets/dioshablahoyia/reference').glob('jesus_reference_*.jpg'))
-          assert len(refs) >= 3, len(refs)
+          valid = []
+          for ref in refs:
+              try:
+                  with Image.open(ref) as image:
+                      image.verify()
+                  valid.append(ref)
+              except Exception as exc:
+                  print(f'Referencia inválida ignorada: {ref} ({exc})')
+          assert len(valid) >= 3, [str(x) for x in valid]
           out = Path('/tmp/dios-local-fallback.jpg')
           provider = _local_reference(out, 20260815)
           assert out.exists() and out.stat().st_size > 20_000
@@ -99,7 +108,7 @@ jobs:
         run: |
           python - <<'PY'
           from app.spiritual_long_local_metadata import generate_local_long_metadata
-          for minutes in (10, 15, 20, 30):
+          for minutes in (10, 15, 25, 30):
               data = generate_local_long_metadata({"display_name":"Dios Habla Hoy IA"}, minutes)
               sections = data.get("sections") or []
               assert len(sections) == max(5, minutes // 2), (minutes, len(sections))
@@ -118,7 +127,7 @@ jobs:
         run: |
           grep -q 'MINUTES="10"' .github/workflows/dioshablahoyia-long.yml
           grep -q 'MINUTES="15"' .github/workflows/dioshablahoyia-long.yml
-          grep -q 'MINUTES="20"' .github/workflows/dioshablahoyia-long.yml
+          grep -q 'MINUTES="25"' .github/workflows/dioshablahoyia-long.yml
           grep -q 'MINUTES="30"' .github/workflows/dioshablahoyia-long.yml
           ! grep -q 'MINUTES="5"' .github/workflows/dioshablahoyia-long.yml
           grep -q '10 Shorts diarios' .github/workflows/dioshablahoyia-shorts-5min.yml
