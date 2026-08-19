@@ -1,1 +1,1 @@
-2026-08-19T15:40:00-03:00 | completar hoy 10 Shorts regulares + 2 Shorts Animales y Biblia; mantener Voz de Luz/Algenib fija; usar Hugging Face para visuales frescos; no duplicar IDs ya publicados hoy.
+2026-08-19T15:47:00-03:00 | reintentar hoy 10 Shorts regulares + 2 Shorts Animales y Biblia despues de corregir duracion de Voz de Luz y contador animal; mantener Algenib fija; Hugging Face primero; no duplicar videos ya publicados.
