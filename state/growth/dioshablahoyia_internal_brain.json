@@ -1,8 +1,8 @@
 {
   "version": "dios-internal-quality-cortex-v1",
-  "generated_at": "2026-08-20T11:44:49.059368+00:00",
-  "training_generation": 10,
-  "data_fingerprint": "b16a76ddd0035168ca8a8c282ca65e7fce95c296381301e9797db394ad6598c4",
+  "generated_at": "2026-08-20T13:12:40.417133+00:00",
+  "training_generation": 11,
+  "data_fingerprint": "ed8ee8a2624c62373d991bd2ce4bd2ecccd0c4260b181e311aa3997ae97ce994",
   "changed_since_previous": true,
   "training_mode": "local_only_zero_external_calls",
   "mission": {
@@ -23,9 +23,9 @@
     "publishing_must_continue": true
   },
   "memory": {
-    "uploaded_samples": 60,
-    "unique_references": 23,
-    "unique_families": 55,
+    "uploaded_samples": 61,
+    "unique_references": 24,
+    "unique_families": 56,
     "recent_emotional_terms": [
       [
         "paz",
@@ -37,7 +37,7 @@
       ],
       [
         "esperanza",
-        19
+        20
       ],
       [
         "confianza",
@@ -56,16 +56,16 @@
         6
       ],
       [
+        "fortaleza",
+        6
+      ],
+      [
         "acompaña",
         6
       ],
       [
-        "fortaleza",
-        5
-      ],
-      [
         "refugio",
-        4
+        5
       ],
       [
         "misericordia",
@@ -84,11 +84,11 @@
         1
       ],
       [
-        "valentia",
+        "valentía",
         1
       ],
       [
-        "valentía",
+        "valentia",
         1
       ],
       [
@@ -111,15 +111,15 @@
       ],
       [
         "enseñanza",
-        19
+        20
       ],
       [
         "decisión",
-        18
+        19
       ],
       [
         "aplicación",
-        14
+        15
       ],
       [
         "camino",
@@ -127,7 +127,7 @@
       ],
       [
         "recordá",
-        9
+        10
       ],
       [
         "enseña",
