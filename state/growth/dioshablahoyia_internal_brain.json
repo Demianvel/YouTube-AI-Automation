@@ -1,0 +1,270 @@
+{
+  "version": "dios-internal-quality-cortex-v1",
+  "generated_at": "2026-08-20T02:30:16.178198+00:00",
+  "training_generation": 1,
+  "data_fingerprint": "f4aabc4307c65202649c142fd167bbd4f88421880ba922a8efcb9ad88c75a589",
+  "changed_since_previous": true,
+  "training_mode": "local_only_zero_external_calls",
+  "mission": {
+    "purpose": "crear, publicar y mejorar contenido cristiano de alta calidad de forma constante",
+    "editorial_tone": "emotivo, esperanzador, entusiasta, humano, claro y reverente",
+    "quality_policy": {
+      "biblical_grounding": 1.0,
+      "emotional_resonance": 0.95,
+      "clear_teaching": 0.95,
+      "novelty": 0.9,
+      "human_warmth": 0.9,
+      "hopeful_energy": 0.88,
+      "quality_over_hype": 1.0,
+      "publish_consistently": 1.0
+    },
+    "never_fake_emotions_or_consciousness": true,
+    "never_sacrifice_quality_for_clickbait": true,
+    "publishing_must_continue": true
+  },
+  "memory": {
+    "uploaded_samples": 57,
+    "unique_references": 23,
+    "unique_families": 52,
+    "recent_emotional_terms": [
+      [
+        "corazón",
+        23
+      ],
+      [
+        "paz",
+        23
+      ],
+      [
+        "esperanza",
+        17
+      ],
+      [
+        "amor",
+        12
+      ],
+      [
+        "confianza",
+        11
+      ],
+      [
+        "descanso",
+        11
+      ],
+      [
+        "luz",
+        6
+      ],
+      [
+        "fortaleza",
+        5
+      ],
+      [
+        "refugio",
+        4
+      ],
+      [
+        "misericordia",
+        4
+      ],
+      [
+        "acompaña",
+        4
+      ],
+      [
+        "gratitud",
+        3
+      ],
+      [
+        "acompañar",
+        2
+      ],
+      [
+        "consuelo",
+        1
+      ],
+      [
+        "valentía",
+        1
+      ],
+      [
+        "valentia",
+        1
+      ],
+      [
+        "propósito",
+        1
+      ],
+      [
+        "corazon",
+        1
+      ]
+    ],
+    "recent_teaching_terms": [
+      [
+        "verdad",
+        17
+      ],
+      [
+        "enseñanza",
+        16
+      ],
+      [
+        "decisión",
+        15
+      ],
+      [
+        "aplicación",
+        11
+      ],
+      [
+        "camino",
+        10
+      ],
+      [
+        "recordá",
+        8
+      ],
+      [
+        "enseña",
+        5
+      ],
+      [
+        "sabiduría",
+        4
+      ]
+    ],
+    "most_used_references": [
+      [
+        "Filipenses 4:6-7",
+        14
+      ],
+      [
+        "Mateo 6:25-34",
+        5
+      ],
+      [
+        "Romanos 8:28",
+        3
+      ],
+      [
+        "Isaías 9",
+        3
+      ],
+      [
+        "Mateo 11:28-30",
+        3
+      ],
+      [
+        "Mateo 5:1-12",
+        3
+      ],
+      [
+        "Salmo 91",
+        2
+      ],
+      [
+        "Romanos 8:26-27",
+        2
+      ],
+      [
+        "Lucas 15:1-7",
+        2
+      ],
+      [
+        "Jonás 1-2",
+        2
+      ],
+      [
+        "1 Reyes 17:1-6",
+        2
+      ],
+      [
+        "Génesis 6-9",
+        2
+      ],
+      [
+        "Daniel 7:13-14",
+        1
+      ],
+      [
+        "Juan 14",
+        1
+      ],
+      [
+        "Isaías 40:28-31",
+        1
+      ]
+    ],
+    "most_used_families": [
+      [
+        "como orar cuando no sabes que decir",
+        2
+      ],
+      [
+        "gratitud y confianza en Dios",
+        2
+      ],
+      [
+        "vencer el mal haciendo el bien",
+        2
+      ],
+      [
+        "profecia mesianica de Isaias 9",
+        2
+      ],
+      [
+        "Salmo 91 como mensaje de confianza y refugio",
+        2
+      ],
+      [
+        "la parabola del buen samaritano",
+        1
+      ],
+      [
+        "vision del Hijo del Hombre en Daniel 7",
+        1
+      ],
+      [
+        "Juan 14 y la promesa de paz y esperanza",
+        1
+      ],
+      [
+        "Romanos 8 y la confianza en el obrar de Dios",
+        1
+      ],
+      [
+        "Jesus llama a los cansados a encontrar descanso",
+        1
+      ],
+      [
+        "como mantener la fe en tiempos dificiles",
+        1
+      ],
+      [
+        "oracion de la noche para descansar en paz",
+        1
+      ],
+      [
+        "perdon, misericordia y volver a empezar",
+        1
+      ],
+      [
+        "fortaleza espiritual cuando uno esta cansado",
+        1
+      ],
+      [
+        "la parabola del hijo prodigo",
+        1
+      ]
+    ]
+  },
+  "directives": {
+    "hook": "captar atención en segundos con una verdad o pregunta emotiva, sin engaño",
+    "body": "entregar una enseñanza bíblica concreta, comprensible y útil",
+    "emotion": "transmitir esperanza, cercanía, paz, fuerza y entusiasmo sereno",
+    "visual": "priorizar variedad, belleza, movimiento y coherencia con el mensaje",
+    "ending": "cerrar con una enseñanza memorable y CTA natural, no agresivo",
+    "learning": "crear -> publicar -> registrar -> comparar -> aprender -> variar -> mejorar"
+  }
+}
