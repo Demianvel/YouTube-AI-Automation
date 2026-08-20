@@ -1,7 +1,18 @@
-name: Dios Habla Hoy IA - Growth Engine External Refresh (manual)
+name: Dios Habla Hoy IA - Growth Engine External Refresh Weekend
 
 on:
   workflow_dispatch:
+  schedule:
+    # GitHub cron runs in UTC.
+    # Saturday 09:00 Argentina (UTC-3) = Saturday 12:00 UTC.
+    - cron: "0 12 * * 6"
+    # Sunday 21:00 Argentina (UTC-3) = Monday 00:00 UTC.
+    - cron: "0 0 * * 1"
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/dioshablahoyia-growth-engine.yml"
+      - "triggers/dioshablahoyia-growth-refresh-now.txt"
 
 permissions:
   contents: write
@@ -57,10 +68,10 @@ jobs:
           print("Growth Engine offline validation OK", score, reasons)
           PY
 
-      - name: Refresh niche outlier radar on explicit manual request
+      - name: Refresh niche outlier radar
         run: python scripts/growth_radar.py --channel dioshablahoyia
 
-      - name: Refresh first-party Analytics on explicit manual request
+      - name: Refresh first-party Analytics
         run: python scripts/growth_learn.py --channel dioshablahoyia --days 90
 
       - name: Persist externally refreshed learning state
@@ -74,6 +85,6 @@ jobs:
             echo "Growth profile/radar sin cambios"
             exit 0
           fi
-          git commit -m "chore: manually refresh Dios Habla Hoy growth profile"
+          git commit -m "chore: refresh Dios Habla Hoy weekend growth profile"
           git pull --rebase origin main
           git push origin HEAD:main
