@@ -2,6 +2,10 @@ name: Dios Habla Hoy IA - Guardia diaria 10 Shorts
 
 on:
   workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "triggers/dioshablahoyia-daily-guard-now.txt"
   schedule:
     # GitHub usa UTC. En Argentina (UTC-3): 01:10 = 22:10 del dia anterior;
     # 02:20 = 23:20 del dia anterior. Ambas pasadas cuentan por fecha local ART.
