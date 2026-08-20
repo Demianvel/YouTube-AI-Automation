@@ -1,8 +1,8 @@
 {
   "version": "dios-internal-quality-cortex-v1",
-  "generated_at": "2026-08-20T02:30:16.178198+00:00",
-  "training_generation": 1,
-  "data_fingerprint": "f4aabc4307c65202649c142fd167bbd4f88421880ba922a8efcb9ad88c75a589",
+  "generated_at": "2026-08-20T04:00:22.261318+00:00",
+  "training_generation": 2,
+  "data_fingerprint": "6bc8c31158f5d7daa5d2bc6fa603f018b157385c6d4e44e3c815d4b13da539a6",
   "changed_since_previous": true,
   "training_mode": "local_only_zero_external_calls",
   "mission": {
@@ -23,29 +23,29 @@
     "publishing_must_continue": true
   },
   "memory": {
-    "uploaded_samples": 57,
+    "uploaded_samples": 59,
     "unique_references": 23,
-    "unique_families": 52,
+    "unique_families": 54,
     "recent_emotional_terms": [
       [
-        "corazón",
-        23
+        "paz",
+        25
       ],
       [
-        "paz",
-        23
+        "corazón",
+        24
       ],
       [
         "esperanza",
-        17
+        18
+      ],
+      [
+        "confianza",
+        12
       ],
       [
         "amor",
         12
-      ],
-      [
-        "confianza",
-        11
       ],
       [
         "descanso",
@@ -53,6 +53,10 @@
       ],
       [
         "luz",
+        6
+      ],
+      [
+        "acompaña",
         6
       ],
       [
@@ -68,10 +72,6 @@
         4
       ],
       [
-        "acompaña",
-        4
-      ],
-      [
         "gratitud",
         3
       ],
@@ -84,11 +84,11 @@
         1
       ],
       [
-        "valentía",
+        "valentia",
         1
       ],
       [
-        "valentia",
+        "valentía",
         1
       ],
       [
@@ -103,27 +103,27 @@
     "recent_teaching_terms": [
       [
         "verdad",
-        17
+        19
       ],
       [
         "enseñanza",
-        16
+        18
       ],
       [
         "decisión",
-        15
+        17
       ],
       [
         "aplicación",
-        11
+        13
       ],
       [
         "camino",
-        10
+        12
       ],
       [
         "recordá",
-        8
+        9
       ],
       [
         "enseña",
@@ -160,6 +160,10 @@
         3
       ],
       [
+        "Juan 10:1-18",
+        3
+      ],
+      [
         "Salmo 91",
         2
       ],
@@ -189,10 +193,6 @@
       ],
       [
         "Juan 14",
-        1
-      ],
-      [
-        "Isaías 40:28-31",
         1
       ]
     ],
