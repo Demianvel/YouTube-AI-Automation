@@ -16,23 +16,36 @@ TZ = ZoneInfo("America/Argentina/Buenos_Aires")
 DAILY_TARGET = 10
 
 
-def today_uploaded_count() -> int:
+def _rows() -> list[dict]:
     if not HISTORY.exists():
-        return 0
-
-    today = datetime.now(TZ).date()
-    count = 0
+        return []
+    rows: list[dict] = []
     for raw in HISTORY.read_text(encoding="utf-8").splitlines():
         try:
             row = json.loads(raw)
-            if row.get("channel") != "dioshablahoyia":
-                continue
-            status = str(row.get("status") or "").lower()
-            if status != "uploaded" and not row.get("video_id"):
-                continue
-            stamp = str(row.get("created_at") or "").strip()
-            if not stamp:
-                continue
+        except Exception:
+            continue
+        if row.get("channel") != "dioshablahoyia":
+            continue
+        status = str(row.get("status") or "").lower()
+        if status != "uploaded" and not row.get("video_id"):
+            continue
+        rows.append(row)
+    return rows
+
+
+def _uploaded_ids() -> set[str]:
+    return {str(row.get("video_id")) for row in _rows() if str(row.get("video_id") or "").strip()}
+
+
+def today_uploaded_count() -> int:
+    today = datetime.now(TZ).date()
+    count = 0
+    for row in _rows():
+        stamp = str(row.get("created_at") or "").strip()
+        if not stamp:
+            continue
+        try:
             moment = datetime.fromisoformat(stamp.replace("Z", "+00:00"))
             if moment.tzinfo is None:
                 moment = moment.replace(tzinfo=ZoneInfo("UTC"))
@@ -54,22 +67,27 @@ def main() -> int:
     HISTORY.touch(exist_ok=True)
     NEW_RECORDS.parent.mkdir(parents=True, exist_ok=True)
 
-    baseline = HISTORY.read_text(encoding="utf-8").splitlines()
-    current = today_uploaded_count()
+    baseline_lines = HISTORY.read_text(encoding="utf-8").splitlines()
+    initial_ids = _uploaded_ids()
+    initial_today = today_uploaded_count()
+    initial_missing = max(0, DAILY_TARGET - initial_today)
     publisher = _publisher_script()
-    print(f"GUARDIA DIARIA: {current}/{DAILY_TARGET} Shorts subidos hoy en Argentina.")
+
+    print(f"GUARDIA DIARIA: {initial_today}/{DAILY_TARGET} Shorts subidos al iniciar en Argentina.")
+    print(f"Faltantes congelados para esta recuperacion: {initial_missing}")
     print(f"Publicador de esta pasada: {publisher}")
 
-    if current >= DAILY_TARGET:
+    if initial_missing <= 0:
         NEW_RECORDS.write_text("", encoding="utf-8")
         print("Objetivo diario cumplido. No se genera ni se publica contenido extra.")
         return 0
 
-    while current < DAILY_TARGET:
-        before = current
-        missing = DAILY_TARGET - before
+    successful_new = 0
+    while successful_new < initial_missing:
+        before_ids = _uploaded_ids()
+        remaining = initial_missing - successful_new
         print(
-            f"Faltan {missing} Shorts. Se intenta uno con Voz de Luz / Algenib obligatoria; "
+            f"Faltan {remaining} de esta recuperacion. Se intenta uno con Voz de Luz / Algenib obligatoria; "
             "nunca se permite otra voz.",
             flush=True,
         )
@@ -79,13 +97,21 @@ def main() -> int:
             cwd=ROOT,
             check=False,
         )
-        current = today_uploaded_count()
+        after_ids = _uploaded_ids()
+        newly_recorded = after_ids - before_ids
 
-        # If the upload was recorded even though a later non-critical step returned
-        # non-zero, never retry blindly: that could create a duplicate.
-        if current > before:
-            print(f"Short confirmado. Total del dia: {current}/{DAILY_TARGET}", flush=True)
-            if current < DAILY_TARGET:
+        # Confirmation is based on a genuinely new YouTube video id, not on the
+        # local calendar date. This lets a recovery that starts just before
+        # midnight finish exactly the number that were missing at launch.
+        if newly_recorded:
+            successful_new += len(newly_recorded)
+            ids_text = ", ".join(sorted(newly_recorded))
+            print(
+                f"Short confirmado por nuevo video_id ({ids_text}). "
+                f"Recuperados: {successful_new}/{initial_missing}",
+                flush=True,
+            )
+            if successful_new < initial_missing:
                 time.sleep(45 if publisher == "publish_dios_fast_local_emergency.py" else 75)
             continue
 
@@ -98,22 +124,27 @@ def main() -> int:
             break
 
         print(
-            "El publicador termino sin error pero el historial no aumento. Se detiene por seguridad para "
-            "evitar una subida duplicada.",
+            "El publicador termino sin error pero no aparecio un nuevo video_id. Se detiene por seguridad "
+            "para evitar una subida duplicada.",
             file=sys.stderr,
         )
         break
 
     all_lines = HISTORY.read_text(encoding="utf-8").splitlines()
-    new_lines = all_lines[len(baseline) :]
+    new_lines = all_lines[len(baseline_lines) :]
     NEW_RECORDS.write_text(
         "".join(f"{line}\n" for line in new_lines if line.strip()),
         encoding="utf-8",
     )
 
-    final_count = today_uploaded_count()
-    print(f"GUARDIA DIARIA FINAL: {final_count}/{DAILY_TARGET}")
-    return 0 if final_count >= DAILY_TARGET else 1
+    final_ids = _uploaded_ids()
+    confirmed_new = len(final_ids - initial_ids)
+    final_today = today_uploaded_count()
+    print(
+        f"GUARDIA DIARIA FINAL: nuevos confirmados={confirmed_new}/{initial_missing}; "
+        f"conteo de la fecha local actual={final_today}/{DAILY_TARGET}"
+    )
+    return 0 if confirmed_new >= initial_missing else 1
 
 
 if __name__ == "__main__":
