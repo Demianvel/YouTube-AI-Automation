@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 import subprocess
 import sys
 import time
@@ -42,6 +43,12 @@ def today_uploaded_count() -> int:
     return count
 
 
+def _publisher_script() -> str:
+    if os.getenv("DIOS_GUARD_LOCAL_ONLY", "").lower().strip() == "true":
+        return "publish_dios_fast_local_emergency.py"
+    return "publish_dios_fast.py"
+
+
 def main() -> int:
     HISTORY.parent.mkdir(parents=True, exist_ok=True)
     HISTORY.touch(exist_ok=True)
@@ -49,7 +56,9 @@ def main() -> int:
 
     baseline = HISTORY.read_text(encoding="utf-8").splitlines()
     current = today_uploaded_count()
+    publisher = _publisher_script()
     print(f"GUARDIA DIARIA: {current}/{DAILY_TARGET} Shorts subidos hoy en Argentina.")
+    print(f"Publicador de esta pasada: {publisher}")
 
     if current >= DAILY_TARGET:
         NEW_RECORDS.write_text("", encoding="utf-8")
@@ -66,7 +75,7 @@ def main() -> int:
         )
 
         result = subprocess.run(
-            [sys.executable, str(ROOT / "scripts" / "publish_dios_fast.py")],
+            [sys.executable, str(ROOT / "scripts" / publisher)],
             cwd=ROOT,
             check=False,
         )
@@ -77,7 +86,7 @@ def main() -> int:
         if current > before:
             print(f"Short confirmado. Total del dia: {current}/{DAILY_TARGET}", flush=True)
             if current < DAILY_TARGET:
-                time.sleep(75)
+                time.sleep(45 if publisher == "publish_dios_fast_local_emergency.py" else 75)
             continue
 
         if result.returncode != 0:
