@@ -71,7 +71,7 @@ def _provider_base_identity(provider: str) -> str:
 def _history_fingerprints(previous: list[dict]) -> tuple[set[str], list[str]]:
     exact: set[str] = set()
     perceptual: list[str] = []
-    for row in previous[-240:]:
+    for row in previous[-320:]:
         for value in row.get("visual_asset_sha256") or []:
             if str(value).strip():
                 exact.add(str(value).strip())
@@ -81,9 +81,10 @@ def _history_fingerprints(previous: list[dict]) -> tuple[set[str], list[str]]:
     return exact, perceptual
 
 
-def _history_local_bases(previous: list[dict], limit: int = 24) -> set[str]:
+def _history_local_bases(previous: list[dict]) -> set[str]:
+    """Block a local base image for the full available history, not a short window."""
     result: set[str] = set()
-    for row in previous[-limit:]:
+    for row in previous:
         providers = row.get("generated_visual_provider") or row.get("visual_providers") or []
         if isinstance(providers, str):
             providers = [providers]
@@ -109,14 +110,14 @@ def _read_persisted_rows() -> list[dict]:
                 continue
             if item.get("channel") == "dioshablahoyia":
                 rows.append(item)
-    return rows[-320:]
+    return rows[-500:]
 
 
 def _distance_threshold() -> int:
-    # The old value 7 allowed visibly similar crops of the same source. Keep a
-    # conservative floor of 11 bits while still allowing genuinely new images.
-    configured = max(0, int(os.getenv("SPIRITUAL_VISUAL_PHASH_MAX_DISTANCE", "11")))
-    return max(11, configured)
+    # 256-bit dHash: a higher floor rejects aggressively transformed crops that
+    # still look like the same photograph to a human viewer.
+    configured = max(0, int(os.getenv("SPIRITUAL_VISUAL_PHASH_MAX_DISTANCE", "18")))
+    return max(18, configured)
 
 
 def fresh_against_persisted_history(path: Path, current_dhash: list[str] | None = None) -> tuple[bool, dict[str, str], int]:
@@ -150,9 +151,8 @@ def validate_short_visuals(workdir: Path, previous: list[dict], metadata: dict) 
         providers = [providers]
     providers = [str(item) for item in providers]
 
-    # A new crop or color grade of the same source is still the same visual idea.
     current_base_sources: set[str] = set()
-    recent_local_bases = _history_local_bases(previous)
+    used_local_bases = _history_local_bases(previous)
     base_source_ids: list[str] = []
     for provider in providers:
         identity = _provider_base_identity(provider)
@@ -162,9 +162,9 @@ def validate_short_visuals(workdir: Path, previous: list[dict], metadata: dict) 
             raise RuntimeError(
                 f"FRESH_VISUAL_GUARD: una misma fuente base se intento reutilizar en dos escenas: {identity}"
             )
-        if strict and identity.startswith("local:") and identity in recent_local_bases:
+        if strict and identity.startswith("local:") and identity in used_local_bases:
             raise RuntimeError(
-                f"FRESH_VISUAL_GUARD: referencia local demasiado reciente; no alcanza con cambiar recorte/zoom: {identity}"
+                f"FRESH_VISUAL_GUARD: referencia local ya usada anteriormente; recorte/zoom no la vuelve nueva: {identity}"
             )
         current_base_sources.add(identity)
         base_source_ids.append(identity)
@@ -189,7 +189,7 @@ def validate_short_visuals(workdir: Path, previous: list[dict], metadata: dict) 
         nearest = min(near_recent, near_current)
         if strict and nearest <= threshold:
             raise RuntimeError(
-                f"FRESH_VISUAL_GUARD: {path.name} es demasiado parecida a una imagen reciente "
+                f"FRESH_VISUAL_GUARD: {path.name} es demasiado parecida a una imagen anterior "
                 f"(distancia perceptual {nearest} <= {threshold})."
             )
 
@@ -214,11 +214,12 @@ def validate_short_visuals(workdir: Path, previous: list[dict], metadata: dict) 
     metadata["visual_asset_sha256"] = sha_values
     metadata["visual_asset_dhash"] = dhash_values
     metadata["visual_freshness_verified"] = True
-    metadata["visual_fingerprint_mode"] = "sha256_plus_256bit_dhash_plus_base_source_v3"
+    metadata["visual_fingerprint_mode"] = "sha256_plus_256bit_dhash_plus_permanent_base_source_v4"
     metadata["visual_perceptual_distance_threshold"] = threshold
     metadata["visual_perceptual_nearest_distances"] = perceptual_distances
     metadata["visual_base_source_ids"] = base_source_ids
     metadata["visual_unique_base_source_count"] = len(current_base_sources)
     metadata["visual_local_variant_verified"] = bool(local_providers)
     metadata["visual_local_scene_count"] = len(local_providers)
+    metadata["visual_local_base_reuse_forbidden"] = True
     return metadata
