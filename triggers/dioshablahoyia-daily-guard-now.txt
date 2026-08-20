@@ -1,1 +1,1 @@
-2026-08-19 23:45 ART | ejecutar guardia diaria ahora; completar solo faltantes hasta 10; Voz de Luz Algenib fija; sin duplicados
+2026-08-19 23:49 ART | ejecutar guardia diaria corregida ahora; completar solo faltantes hasta 10; Voz de Luz Algenib fija; aceptar solo variantes visuales locales ineditas verificadas; sin duplicados
