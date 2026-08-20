@@ -1,1 +1,1 @@
-2026-08-19 21:38 ART | verify run #292 fix: if Hugging Face is out of ZeroGPU/inference credits, allow only an unseen local reference+variant combination; keep Voz de Luz Algenib fixed and preserve anti-duplicate history
+2026-08-19 21:40 ART | rerun after final #292 fix: HF quota fallback may use only unseen local reference+variant combinations, including no duplicate variant inside the same Short; Voz de Luz Algenib remains immutable
