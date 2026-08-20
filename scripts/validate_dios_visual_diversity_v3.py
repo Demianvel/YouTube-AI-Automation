@@ -1,16 +1,19 @@
 from __future__ import annotations
 
 import json
+import sys
 import tempfile
 from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
 
 from PIL import Image, ImageDraw
 
 from app.dios_visual_integrity import validate_short_visuals
 from app.spiritual_visual_motion import MOTION_PROFILE_NAMES, motion_profile
 from app.visual_variety_v3 import attach_visual_pack_v3
-
-ROOT = Path(__file__).resolve().parents[1]
 
 
 def _sample_meta() -> dict:
