@@ -34,7 +34,7 @@ jobs:
       GEMINI_TEXT_MODEL: gemini-3.6-flash
       GEMINI_TTS_MODEL: gemini-3.1-flash-tts-preview
       GEMINI_TTS_VOICE: Algenib
-      GEMINI_TTS_MAX_ATTEMPTS: "2"
+      GEMINI_TTS_MAX_ATTEMPTS: "4"
       SPIRITUAL_MALE_GEMINI_VOICE: Algenib
       SPIRITUAL_VOICE_PROFILE: voz_de_luz_serena_original_v1
       SPIRITUAL_VOICE_BRAND: Voz de Luz
@@ -105,6 +105,7 @@ jobs:
           test -n "$YOUTUBE_TOKEN_DIOSHABLAHOYIA"
           test -n "$GEMINI_API_KEY"
           test "$GEMINI_TTS_VOICE" = "Algenib"
+          test "$GEMINI_TTS_MAX_ATTEMPTS" = "4"
           test "$SPIRITUAL_MALE_GEMINI_VOICE" = "Algenib"
           test "$SPIRITUAL_VOICE_LOCKED" = "true"
           test "$SPIRITUAL_REQUIRE_PRIMARY_VOICE" = "true"
