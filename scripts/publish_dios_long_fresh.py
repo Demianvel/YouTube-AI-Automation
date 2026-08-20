@@ -9,6 +9,8 @@ from pathlib import Path
 from app import spiritual_long_pipeline as base
 from app.spiritual_long_fresh_visual import download_fresh_long_visual
 from app.spiritual_long_resilient_runner import run
+from app.spiritual_long_visual_variety import apply_long_visual_diversity
+from app.spiritual_visual_motion import render_still_motion
 
 ROOT = Path(__file__).resolve().parents[1]
 LONG_HISTORY = ROOT / "state" / "dioshablahoyia_long_history.jsonl"
@@ -26,12 +28,7 @@ def _probe_duration(path: Path) -> float:
 
 
 def _natural_long_voice_fit(path: Path, target_seconds: float) -> None:
-    """Never slow Voz de Luz to fill a long-form timeline.
-
-    A slightly shorter natural narration is padded by the long-form mixer with
-    the music bed. If narration is longer, only a very small acceleration is
-    allowed. Severe mismatches fail instead of changing the narrator character.
-    """
+    """Never slow Voz de Luz to fill a long-form timeline."""
     target = float(target_seconds)
     if target <= 1 or not path.exists():
         return
@@ -47,7 +44,6 @@ def _natural_long_voice_fit(path: Path, target_seconds: float) -> None:
         )
 
     if current <= target * 1.005:
-        # Never slow a shorter natural narration. The final mixer pads the tail.
         return
 
     tempo = current / (target * 0.995)
@@ -98,15 +94,32 @@ def _enrich_last_history(result: dict) -> None:
     last["visual_asset_sha256"] = sha_values
     last["visual_asset_dhash"] = dhash_values
     last["visual_freshness_verified"] = bool(sha_values or providers)
-    last["visual_fingerprint_mode"] = "sha256_plus_256bit_dhash"
+    last["visual_fingerprint_mode"] = "sha256_plus_256bit_dhash_plus_semantic_motion_v3"
     last["voice_identity_locked"] = True
     last["voice_profile"] = "voz_de_luz_serena_original_v1"
     last["voice_expected_provider"] = "Gemini TTS/Algenib"
     last["voice_lock_version"] = VOICE_LOCK_VERSION
     last["voice_cadence_locked"] = True
     last["voice_slow_stretch_forbidden"] = True
+    last["long_visual_diversity_version"] = "2026.08.20-semantic-motion-v3"
     raw_lines[-1] = json.dumps(last, ensure_ascii=False)
     LONG_HISTORY.write_text("\n".join(raw_lines) + "\n", encoding="utf-8")
+
+
+def _fresh_long_motion(source: Path, out: Path, duration: int, index: int) -> None:
+    label = render_still_motion(
+        source,
+        out,
+        duration,
+        index,
+        width=1920,
+        height=1080,
+        fps=30,
+        preset="medium",
+        crf=19,
+        salt="dios-long-v3",
+    )
+    print(f"Movimiento cinematografico largo seccion {index + 1}: {label}")
 
 
 def main() -> None:
@@ -117,14 +130,24 @@ def main() -> None:
 
     original_download = base._download_image
     original_fit = base.fit_voice_to_duration
+    original_generate = base._generate_metadata
+    original_motion = base._image_motion
+
+    def _diverse_metadata(channel: dict, minutes: int) -> dict:
+        return apply_long_visual_diversity(original_generate(channel, minutes))
+
     base._download_image = download_fresh_long_visual
     base.fit_voice_to_duration = _natural_long_voice_fit
+    base._generate_metadata = _diverse_metadata
+    base._image_motion = _fresh_long_motion
     try:
         result = run(args.minutes, publish=args.publish)
         _enrich_last_history(result)
     finally:
         base._download_image = original_download
         base.fit_voice_to_duration = original_fit
+        base._generate_metadata = original_generate
+        base._image_motion = original_motion
     print(json.dumps(result, ensure_ascii=False))
 
 
