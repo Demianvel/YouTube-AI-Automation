@@ -1,0 +1,108 @@
+name: Validate Alien NPU Brain
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [main]
+    paths:
+      - "app/alien_npu_brain.py"
+      - "app/npu_market_radar.py"
+      - "app/fast_spiritual_metadata.py"
+      - "scripts/npu_brain_learn.py"
+      - "scripts/npu_market_radar.py"
+      - "config/npu_market_radar.json"
+      - ".github/workflows/dioshablahoyia-alien-npu.yml"
+      - ".github/workflows/validate-alien-npu.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      PYTHONPATH: .
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install lightweight dependencies
+        run: pip install -q google-api-python-client google-auth
+
+      - name: Compile NPU modules
+        run: |
+          python -m py_compile \
+            app/alien_npu_brain.py \
+            app/npu_market_radar.py \
+            app/fast_spiritual_metadata.py \
+            scripts/npu_brain_learn.py \
+            scripts/npu_market_radar.py
+
+      - name: Validate NPU architecture and fail-open behavior
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          from app.alien_npu_brain import build_brain_state, score_theme, rerank_themes
+          from app.fast_spiritual_metadata import THEMES, build_fast_metadata
+          from app.youtube_growth_engine import ranked_theme_indices
+          from app.npu_market_radar import _score_video
+
+          growth = {
+              "version": "test-growth",
+              "data_quality": {"videos_scored": 42, "analytics_api_available": True, "warnings": []},
+              "top_outliers": [
+                  {"video_id":"winner", "title":"Paz en la tormenta", "content_family":"Marcos 4 y Jesus calma la tormenta", "bible_reference":"Marcos 4:39-40", "growth_score":94, "outlier_ratio":2.8, "engagement":96, "satisfaction":92},
+                  {"video_id":"birds", "title":"Dios cuida las aves", "content_family":"Mateo 6 y aves", "bible_reference":"Mateo 6:31-34", "growth_score":90, "outlier_ratio":2.1, "engagement":91, "satisfaction":93},
+              ],
+              "reference_weights": [{"key":"Marcos 4:39-40", "mean_score":94}, {"key":"Mateo 6:31-34", "mean_score":90}],
+              "family_weights": [{"key":"Marcos 4 y Jesus calma la tormenta", "mean_score":93}],
+              "keyword_weights": [{"key":"tormenta", "mean_score":94}, {"key":"paz", "mean_score":92}, {"key":"aves", "mean_score":88}],
+          }
+          niche = {"keyword_weights": [{"key":"tormenta", "mean_score":86}, {"key":"oración", "mean_score":82}]}
+          market = {"niches": [
+              {"niche":"fe_cristiana", "query":"Dios Jesus Biblia oración reflexión", "opportunity_score":73, "keywords":["oración","reflexión","esperanza"]},
+              {"niche":"finanzas_personales", "query":"finanzas personales", "opportunity_score":95, "keywords":["inversión","dinero"]},
+          ]}
+          brain = build_brain_state(growth, niche_radar=niche, market_radar=market)
+          assert brain["architecture"]["literal_consciousness"] is False
+          assert brain["architecture"]["literal_quantum_hardware"] is False
+          assert brain["architecture"]["fail_open"] is True
+          assert brain["architecture"]["no_viral_guarantee"] is True
+          assert brain["brain_confidence"] > 50
+          assert abs(sum(brain["weights"].values()) - 1.0) < 0.01
+
+          previous = [{"status":"uploaded", "bible_reference":"Salmo 23:1-4", "content_family":"Salmo 23"}]
+          decision = score_theme(THEMES[19], previous, state=brain)
+          assert 0 <= decision.score <= 100
+          assert 0 <= decision.confidence <= 100
+          assert decision.lobes["channel_fit"] >= 60
+          baseline = ranked_theme_indices(THEMES, previous, 12345, profile=growth)
+          ranked = rerank_themes(THEMES, previous, 12345, baseline, state=brain)
+          assert len(ranked) == len(THEMES)
+          assert all(0 <= score <= 100 for _, score, _ in ranked)
+
+          # Market scoring is an opportunity proxy, not revenue/RPM.
+          market_score = _score_video(
+              {"views":10000,"likes":800,"comments":100,"published_at":"2026-08-19T00:00:00Z"},
+              subscribers=5000,
+              median_vph=20,
+          )
+          assert 0 <= market_score["demand_score"] <= 100
+
+          cfg = json.loads(Path("config/npu_market_radar.json").read_text(encoding="utf-8"))
+          assert len(cfg["queries"]) <= int(cfg["policy"]["max_daily_search_calls"])
+          assert cfg["policy"]["never_auto_switch_channel_niche"] is True
+          assert cfg["policy"]["never_claim_actual_rpm_without_first_party_data"] is True
+
+          # No persisted NPU state in a clean checkout must never stop metadata.
+          base = {"scenes": [{"visual_prompt":"test"} for _ in range(6)]}
+          result = build_fast_metadata(base, {"scenes_per_short":6}, [])
+          assert result["title"] and result["bible_reference"]
+          assert len(result["scenes"]) == 6
+          print("Alien NPU offline validation OK", decision.score, decision.confidence)
+          PY
