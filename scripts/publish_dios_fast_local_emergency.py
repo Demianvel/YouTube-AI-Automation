@@ -3,50 +3,49 @@ from __future__ import annotations
 from pathlib import Path
 
 from app import pipeline, spiritual_image, youtube as youtube_module
-from app.spiritual_free_media import download_fresh_free_image
+from app.spiritual_fresh_reference_bank import is_jesus_prompt, subject_prompt
 import scripts.publish_dios_fast as fast
 
 
-def _local_first_download(prompt: str, out: Path, seed: int) -> str:
-    """Emergency zero-HF path: fresh local variants first, then unused free media."""
-    local_errors: list[str] = []
-    for attempt in range(36):
-        retry_seed = int(seed) + attempt * 104729
-        try:
-            provider = spiritual_image._local_reference(out, retry_seed)
-            accepted = fast._accept_local_variant(provider)
-            if accepted:
-                return accepted
-            local_errors.append(f"variante ya usada: {provider}")
-        except Exception as exc:
-            local_errors.append(str(exc))
+def _zero_hf_diverse_download(prompt: str, out: Path, seed: int) -> str:
+    """Zero-HF emergency path: fresh source first, never six crops of the same Jesus photo."""
+    jesus_scene = is_jesus_prompt(subject_prompt(prompt))
+    free_prompt = fast._symbolic_prompt_for_jesus(prompt) if jesus_scene else prompt
 
-    free_errors: list[str] = []
-    for attempt in range(12):
-        retry_seed = int(seed) + 4_000_003 + attempt * 104729
-        try:
-            provider = download_fresh_free_image(prompt, out, retry_seed)
-            if fast._source_was_used(provider):
-                free_errors.append(f"fuente ya usada: {fast._remote_source_marker(provider)}")
-                continue
-            return provider + ":fresh_nonrepeat_emergency_fallback"
-        except Exception as exc:
-            free_errors.append(str(exc))
+    try:
+        provider = fast._fresh_free_media(free_prompt, out, seed, attempts=28)
+        print(f"Zero-HF diversity v3: fuente nueva para escena: {provider}")
+        return provider + ":zero_hf_diverse_first"
+    except Exception as free_exc:
+        print(f"Zero-HF: no se encontro fuente libre nueva ({free_exc}).")
+
+    # A local Jesus reference is allowed only for an actual Jesus scene, once per
+    # Short, and only if its base image has not appeared in recent channel history.
+    if jesus_scene:
+        errors: list[str] = []
+        for attempt in range(36):
+            retry_seed = int(seed) + (attempt + 1) * 130363
+            try:
+                provider = spiritual_image._local_reference(out, retry_seed)
+                accepted = fast._accept_local_variant(provider)
+                if accepted:
+                    print(f"Zero-HF diversity v3: fallback local excepcional: {accepted}")
+                    return accepted + ":zero_hf_last_resort"
+                errors.append(f"base/variante reciente: {provider}")
+            except Exception as exc:
+                errors.append(str(exc))
+        raise RuntimeError(
+            "ZERO_HF_FRESH_VISUAL_EXHAUSTED: se nego reutilizar retratos locales recientes. "
+            + " | ".join(errors[-5:])
+        )
 
     raise RuntimeError(
-        "EMERGENCY_FRESH_VISUAL_EXHAUSTED: no se encontro variante local o fuente libre inedita. "
-        f"local={' | '.join(local_errors[-5:])}; free={' | '.join(free_errors[-5:])}"
+        "ZERO_HF_FRESH_VISUAL_EXHAUSTED: para una escena no-Jesus se rechazo reemplazarla con el mismo retrato local."
     )
 
 
 def _natural_algenib_voice_guard(channel: dict, metadata: dict, video_path: Path) -> None:
-    """Use the same natural continuity policy already approved upstream.
-
-    The permanent narrator remains Gemini/Algenib. A naturally shorter narration
-    may cover >=82% of a 60s Short and leave the tail to music/silence; the voice
-    is never slowed or replaced. This wrapper changes only the stale final
-    continuity threshold in the emergency path.
-    """
+    """Use the approved natural continuity policy without changing Voz de Luz/Algenib."""
     if not youtube_module._is_spiritual_channel(channel):
         return
 
@@ -75,10 +74,10 @@ def _natural_algenib_voice_guard(channel: dict, metadata: dict, video_path: Path
     metadata["voice_continuity_upload_threshold"] = 0.82
 
 
-# publish_dios_fast already installs metadata, voice and animation patches on import.
-# Override only the image path and the stale final continuity threshold for this
-# zero-HF emergency route. Voice provider/identity remains locked by the workflow.
-spiritual_image._download = _local_first_download
+# publish_dios_fast installs semantic rotation, voice and motion patches on import.
+# Override only acquisition for zero-HF mode and the already-approved continuity
+# threshold. This route never spends HF quota and does not recycle portrait crops.
+spiritual_image._download = _zero_hf_diverse_download
 youtube_module._enforce_spiritual_voice_guard = _natural_algenib_voice_guard
 
 
