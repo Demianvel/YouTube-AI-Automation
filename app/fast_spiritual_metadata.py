@@ -6,6 +6,8 @@ import re
 import time
 from difflib import SequenceMatcher
 
+from .youtube_growth_engine import load_growth_profile, ranked_theme_indices
+
 
 THEMES = (
     ("Salmo 23 y el Buen Pastor", "Salmo 23:1-4", "Dios guía incluso cuando el camino atraviesa un valle", "dar el siguiente paso con calma y pedir dirección"),
@@ -136,14 +138,30 @@ def build_fast_metadata(base_metadata: dict, channel: dict, previous: list[dict]
     marker = os.getenv("GITHUB_RUN_ID", "") or os.getenv("GITHUB_RUN_NUMBER", "") or str(time.time_ns())
     seed = int(hashlib.sha256(marker.encode("utf-8")).hexdigest()[:16], 16)
 
+    profile = load_growth_profile()
+    ranked = ranked_theme_indices(THEMES, previous, seed, profile=profile)
+    explore = bool(profile) and (seed % 1000) < 250
+    if explore:
+        # Exploration deliberately tests fresh topics. This protects the channel
+        # from overfitting to yesterday's winner while still honoring dedupe gates.
+        theme_order = [((seed + offset) % len(THEMES), 50.0, ["exploración controlada 25%"]) for offset in range(len(THEMES))]
+        growth_mode = "explore"
+    else:
+        theme_order = ranked
+        growth_mode = "learned_rank" if profile else "neutral_fallback"
+
     chosen = None
-    for offset in range(len(THEMES)):
-        theme = THEMES[(seed + offset) % len(THEMES)]
+    chosen_growth_score = 50.0
+    chosen_growth_reasons: list[str] = []
+    for position, (theme_index, growth_score, growth_reasons) in enumerate(theme_order):
+        theme = THEMES[theme_index]
         for style_offset in range(len(INTRO_STYLES)):
-            style = (seed + offset + style_offset) % len(INTRO_STYLES)
+            style = (seed + position + style_offset) % len(INTRO_STYLES)
             candidate = _candidate(theme, style, count)
             if _passes_recent(candidate, previous):
                 chosen = candidate
+                chosen_growth_score = float(growth_score)
+                chosen_growth_reasons = list(growth_reasons)
                 break
         if chosen is not None:
             break
@@ -151,6 +169,8 @@ def build_fast_metadata(base_metadata: dict, channel: dict, previous: list[dict]
     if chosen is None:
         theme = THEMES[seed % len(THEMES)]
         chosen = _candidate(theme, (seed // len(THEMES)) % len(INTRO_STYLES), count)
+        growth_mode = "dedupe_emergency_fallback"
+        chosen_growth_reasons = ["todos los candidatos rankeados chocaron con dedupe reciente"]
 
     rows = list(base_metadata.get("scenes") or [])
     while len(rows) < count:
@@ -169,5 +189,9 @@ def build_fast_metadata(base_metadata: dict, channel: dict, previous: list[dict]
         "la esperanza y la confianza en Dios en la vida cotidiana."
     )
     base_metadata["cta"] = "Si esta palabra te ayudó, guardala para volver a escucharla cuando la necesites."
-    base_metadata["metadata_provider"] = "local_unique_biblical:prechecked_against_history:v3"
+    base_metadata["metadata_provider"] = "local_unique_biblical:growth_ranked:prechecked_against_history:v4"
+    base_metadata["growth_engine_version"] = str(profile.get("version") or "neutral")
+    base_metadata["growth_selection_mode"] = growth_mode
+    base_metadata["growth_candidate_score"] = round(chosen_growth_score, 2)
+    base_metadata["growth_selection_reasons"] = chosen_growth_reasons[:5]
     return base_metadata
