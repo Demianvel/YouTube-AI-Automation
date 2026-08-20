@@ -1,8 +1,8 @@
 {
   "version": "dios-internal-quality-cortex-v1",
-  "generated_at": "2026-08-20T10:49:09.224476+00:00",
-  "training_generation": 9,
-  "data_fingerprint": "760d1060b475119d3ef1a33d139aa80c66f8afdc7d04c12b25b08019480cb6b8",
+  "generated_at": "2026-08-20T11:44:49.059368+00:00",
+  "training_generation": 10,
+  "data_fingerprint": "b16a76ddd0035168ca8a8c282ca65e7fce95c296381301e9797db394ad6598c4",
   "changed_since_previous": true,
   "training_mode": "local_only_zero_external_calls",
   "mission": {
@@ -23,9 +23,9 @@
     "publishing_must_continue": true
   },
   "memory": {
-    "uploaded_samples": 59,
+    "uploaded_samples": 60,
     "unique_references": 23,
-    "unique_families": 54,
+    "unique_families": 55,
     "recent_emotional_terms": [
       [
         "paz",
@@ -37,7 +37,7 @@
       ],
       [
         "esperanza",
-        18
+        19
       ],
       [
         "confianza",
@@ -84,11 +84,11 @@
         1
       ],
       [
-        "valentía",
+        "valentia",
         1
       ],
       [
-        "valentia",
+        "valentía",
         1
       ],
       [
@@ -98,24 +98,28 @@
       [
         "corazon",
         1
+      ],
+      [
+        "alegría",
+        1
       ]
     ],
     "recent_teaching_terms": [
       [
         "verdad",
-        19
+        20
       ],
       [
         "enseñanza",
-        18
+        19
       ],
       [
         "decisión",
-        17
+        18
       ],
       [
         "aplicación",
-        13
+        14
       ],
       [
         "camino",
@@ -176,6 +180,10 @@
         2
       ],
       [
+        "Isaías 41:10",
+        2
+      ],
+      [
         "Jonás 1-2",
         2
       ],
@@ -189,10 +197,6 @@
       ],
       [
         "Daniel 7:13-14",
-        1
-      ],
-      [
-        "Juan 14",
         1
       ]
     ],
