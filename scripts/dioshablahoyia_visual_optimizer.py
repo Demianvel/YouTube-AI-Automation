@@ -36,22 +36,21 @@ def build_plan() -> dict:
     scored.sort(reverse=True)
     order = [family for _, family in scored]
 
-    # Creation is always present; Norway appears every day but changes its exact scene.
-    for required in ("creation_and_nature", "norway"):
-        if required in order:
-            order.remove(required)
-        order.insert(0 if required == "norway" else 1, required)
-
+    # No visual family is mandatory every day. Brand anchors such as Norway and
+    # Jesus remain available but rotate with other families so the feed does not
+    # look like the same video with a different crop.
     weekday = datetime.now(timezone.utc).weekday()
     featured_story = "Noah's Ark" if weekday in {1, 4} else "rotating biblical story"
     return {
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "date": day,
         "family_order": order,
-        "featured_location": "Norway",
+        "featured_location": order[0] if order else "rotating spiritual landscapes",
         "featured_norway_regions": ["Lofoten", "Geirangerfjord", "Tromso", "Senja"],
         "featured_biblical_story": featured_story,
-        "policy": "daily deterministic rotation informed by aggregate channel signals; no autonomous model retraining",
+        "forced_daily_visual_family": None,
+        "semantic_rotation_required": True,
+        "policy": "daily deterministic rotation informed by aggregate channel signals; no family is forced every day; no autonomous model retraining",
         "models": config.get("image_models") or [],
         "optional_video_models": config.get("optional_video_models") or [],
     }
