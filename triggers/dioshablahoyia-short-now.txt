@@ -1,1 +1,1 @@
-2026-08-18 23:55 ART | verify run #259 fix: respect daily 10-Short cap, keep Voz de Luz Algenib fixed, use quota-aware retries only when publication is still required
+2026-08-19 21:38 ART | verify run #292 fix: if Hugging Face is out of ZeroGPU/inference credits, allow only an unseen local reference+variant combination; keep Voz de Luz Algenib fixed and preserve anti-duplicate history
