@@ -2,8 +2,11 @@ name: Dios Habla Hoy IA - Radar de tendencias
 
 on:
   schedule:
-    # 06:20 Argentina (UTC-3): refresh before the main publishing day.
-    - cron: "20 9 * * *"
+    # External YouTube/niche refresh is allowed only in the two weekend windows.
+    # Saturday 09:00 Argentina (UTC-3) = Saturday 12:00 UTC.
+    - cron: "0 12 * * 6"
+    # Sunday 21:00 Argentina (UTC-3) = Monday 00:00 UTC.
+    - cron: "0 0 * * 1"
   workflow_dispatch:
 
 permissions:
