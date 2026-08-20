@@ -1,8 +1,8 @@
 {
   "version": "dios-internal-quality-cortex-v1",
-  "generated_at": "2026-08-20T16:52:47.274104+00:00",
-  "training_generation": 15,
-  "data_fingerprint": "34eda75889ca7dbc784dc9cb8a882080b7579199ce7efc6f8d6c3866b3d230bd",
+  "generated_at": "2026-08-20T17:47:07.270536+00:00",
+  "training_generation": 16,
+  "data_fingerprint": "26c0f0f96dbbd1867804dfb34952c5d708256f8a801fe1fec8b2b89d1f60e4c3",
   "changed_since_previous": true,
   "training_mode": "local_only_zero_external_calls",
   "mission": {
@@ -84,11 +84,11 @@
         1
       ],
       [
-        "valentia",
+        "valentía",
         1
       ],
       [
-        "valentía",
+        "valentia",
         1
       ],
       [
