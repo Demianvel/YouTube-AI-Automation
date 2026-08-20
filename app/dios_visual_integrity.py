@@ -35,7 +35,7 @@ def _dhash(path: Path) -> str:
     for row in range(16):
         offset = row * 17
         for col in range(16):
-            bits.append(1 if pixels[offset + col] > pixels[offset + col + 1) else 0)
+            bits.append(1 if pixels[offset + col] > pixels[offset + col + 1] else 0)
     value = 0
     for bit in bits:
         value = (value << 1) | bit
