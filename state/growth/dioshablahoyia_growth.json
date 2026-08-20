@@ -1,0 +1,972 @@
+{
+  "version": "dios-growth-engine-v1",
+  "generated_at": "2026-08-20T01:54:48.776561+00:00",
+  "channel": "dioshablahoyia",
+  "fail_open": true,
+  "publishing_must_continue": true,
+  "algorithm_policy": {
+    "objective": "optimize for audience appeal, engagement and satisfaction without claiming guaranteed virality",
+    "signals": [
+      "views_per_hour_vs_recent_channel_baseline",
+      "engaged_views_when_available",
+      "average_view_percentage_when_available",
+      "likes_comments_shares",
+      "subscribers_gained_when_available",
+      "recency_and_topic_novelty"
+    ],
+    "exploration_rate": 0.25,
+    "tags_are_low_priority": true
+  },
+  "data_quality": {
+    "analytics_api_available": true,
+    "videos_scored": 41,
+    "median_recent_views_per_hour": 9.0018,
+    "warnings": []
+  },
+  "top_outliers": [
+    {
+      "video_id": "zj91XdjPY4I",
+      "title": "Cuando el corazón necesita descanso | Mateo 6:25-34",
+      "published_at": "2026-08-17T11:03:14Z",
+      "bible_reference": "Mateo 6:25-34",
+      "content_family": "los gorriones y el cuidado de Dios, Mateo 10:29-31",
+      "views": 1498,
+      "views_per_hour": 23.8309,
+      "outlier_ratio": 2.6474,
+      "appeal": 82.88,
+      "engagement": 100.0,
+      "satisfaction": 100.0,
+      "freshness": 88.27,
+      "growth_score": 92.84
+    },
+    {
+      "video_id": "ojZOrbP3gy0",
+      "title": "La Paz que Transforma Tu Corazón | Juan 14:27",
+      "published_at": "2026-08-15T12:59:43Z",
+      "bible_reference": "Juan 14",
+      "content_family": "Juan 14 y la promesa de paz y esperanza",
+      "views": 2500,
+      "views_per_hour": 22.953,
+      "outlier_ratio": 2.5498,
+      "appeal": 81.73,
+      "engagement": 100.0,
+      "satisfaction": 100.0,
+      "freshness": 80.56,
+      "growth_score": 91.66
+    },
+    {
+      "video_id": "jM0EqTK82X0",
+      "title": "No estás solo en esta etapa | Mensaje de fe",
+      "published_at": "2026-08-17T10:55:39Z",
+      "bible_reference": "Mateo 6:25-34",
+      "content_family": "los pajaros y la confianza en Dios, reflexion sobre Mateo 6:25-34",
+      "views": 1324,
+      "views_per_hour": 21.0205,
+      "outlier_ratio": 2.3352,
+      "appeal": 78.92,
+      "engagement": 100.0,
+      "satisfaction": 100.0,
+      "freshness": 88.25,
+      "growth_score": 91.45
+    },
+    {
+      "video_id": "3ihXxti-yks",
+      "title": "Dios Está Guiando Tu Camino | Romanos 8:28",
+      "published_at": "2026-08-15T13:01:43Z",
+      "bible_reference": "Romanos 8:28",
+      "content_family": "Romanos 8 y la confianza en el obrar de Dios",
+      "views": 2417,
+      "views_per_hour": 22.1977,
+      "outlier_ratio": 2.4659,
+      "appeal": 80.68,
+      "engagement": 100.0,
+      "satisfaction": 100.0,
+      "freshness": 80.57,
+      "growth_score": 91.29
+    },
+    {
+      "video_id": "oI-0Itw-Cqs",
+      "title": "Cuando el corazón necesita descanso | Salmo 23",
+      "published_at": "2026-08-17T02:16:46Z",
+      "bible_reference": "Salmo 23",
+      "content_family": "Salmo 23 y caminar acompañado por Dios",
+      "views": 1283,
+      "views_per_hour": 17.9105,
+      "outlier_ratio": 1.9897,
+      "appeal": 73.46,
+      "engagement": 100.0,
+      "satisfaction": 100.0,
+      "freshness": 86.75,
+      "growth_score": 89.39
+    },
+    {
+      "video_id": "MN5tVRfnVr8",
+      "title": "Cuando el corazón necesita descanso | Filipenses 4:6-7",
+      "published_at": "2026-08-16T16:57:56Z",
+      "bible_reference": "Filipenses 4:6-7",
+      "content_family": "Josue 1:9 y avanzar con valentia y confianza en Dios",
+      "views": 1406,
+      "views_per_hour": 17.3692,
+      "outlier_ratio": 1.9295,
+      "appeal": 72.37,
+      "engagement": 100.0,
+      "satisfaction": 100.0,
+      "freshness": 85.16,
+      "growth_score": 88.85
+    },
+    {
+      "video_id": "0OxyzsShXjI",
+      "title": "Cómo sostener la fe cuando el camino se hace difícil",
+      "published_at": "2026-08-16T17:09:34Z",
+      "bible_reference": "Isaías 41:10",
+      "content_family": "Isaias 41:10 y no caminar dominado por el miedo",
+      "views": 1397,
+      "views_per_hour": 17.2994,
+      "outlier_ratio": 1.9218,
+      "appeal": 72.23,
+      "engagement": 100.0,
+      "satisfaction": 100.0,
+      "freshness": 85.2,
+      "growth_score": 88.8
+    },
+    {
+      "video_id": "HfEIMJqEcoM",
+      "title": "Cuando necesitás paz: Miqueas 5:2",
+      "published_at": "2026-08-16T15:39:01Z",
+      "bible_reference": "Miqueas 5:2",
+      "content_family": "profecia mesianica de Miqueas 5",
+      "views": 1387,
+      "views_per_hour": 16.8605,
+      "outlier_ratio": 1.873,
+      "appeal": 71.31,
+      "engagement": 100.0,
+      "satisfaction": 100.0,
+      "freshness": 84.94,
+      "growth_score": 88.45
+    },
+    {
+      "video_id": "UtaVsnPb6Bk",
+      "title": "Respirá y recordá esta verdad bíblica | Jonás 1-2",
+      "published_at": "2026-08-17T13:52:32Z",
+      "bible_reference": "Jonás 1-2",
+      "content_family": "Jonas y el gran pez como relato de obediencia y misericordia, Jonas 1 y 2",
+      "views": 978,
+      "views_per_hour": 16.2897,
+      "outlier_ratio": 1.8096,
+      "appeal": 70.07,
+      "engagement": 100.0,
+      "satisfaction": 100.0,
+      "freshness": 88.77,
+      "growth_score": 88.4
+    },
+    {
+      "video_id": "WeFXU-ZSIB8",
+      "title": "La paz de Dios en medio de la incertidumbre",
+      "published_at": "2026-08-17T14:09:16Z",
+      "bible_reference": "1 Reyes 17:1-6",
+      "content_family": "Elias y los cuervos como relato del cuidado de Dios, 1 Reyes 17",
+      "views": 972,
+      "views_per_hour": 16.2653,
+      "outlier_ratio": 1.8069,
+      "appeal": 70.02,
+      "engagement": 100.0,
+      "satisfaction": 100.0,
+      "freshness": 88.82,
+      "growth_score": 88.39
+    },
+    {
+      "video_id": "LonimrbtbOY",
+      "title": "Respirá y recordá esta verdad bíblica | Mateo 6:25-34",
+      "published_at": "2026-08-17T15:24:44Z",
+      "bible_reference": "Mateo 6:25-34",
+      "content_family": "Mateo 6 y vivir un dia a la vez",
+      "views": 919,
+      "views_per_hour": 15.709,
+      "outlier_ratio": 1.7451,
+      "appeal": 68.76,
+      "engagement": 100.0,
+      "satisfaction": 100.0,
+      "freshness": 89.04,
+      "growth_score": 87.97
+    },
+    {
+      "video_id": "n0EVrDDw0yw",
+      "title": "Cuando necesitás paz: Isaías 9",
+      "published_at": "2026-08-16T15:31:24Z",
+      "bible_reference": "Isaías 9",
+      "content_family": "profecia mesianica de Isaias 9",
+      "views": 1242,
+      "views_per_hour": 15.0746,
+      "outlier_ratio": 1.6746,
+      "appeal": 67.25,
+      "engagement": 100.0,
+      "satisfaction": 100.0,
+      "freshness": 84.92,
+      "growth_score": 87.03
+    },
+    {
+      "video_id": "rH4uwy19zwg",
+      "title": "¿Quién es Tu Prójimo? La Lección de Amor de Jesús",
+      "published_at": "2026-08-15T02:20:32Z",
+      "bible_reference": "",
+      "content_family": "la parabola del buen samaritano",
+      "views": 1836,
+      "views_per_hour": 15.3549,
+      "outlier_ratio": 1.7058,
+      "appeal": 67.93,
+      "engagement": 100.0,
+      "satisfaction": 100.0,
+      "freshness": 78.88,
+      "growth_score": 86.66
+    },
+    {
+      "video_id": "uDvCSFc3R3s",
+      "title": "Cuando necesitás paz: Mateo 5:1-12",
+      "published_at": "2026-08-16T15:19:57Z",
+      "bible_reference": "Mateo 5:1-12",
+      "content_family": "las bienaventuranzas y el Reino de Dios",
+      "views": 1202,
+      "views_per_hour": 14.5554,
+      "outlier_ratio": 1.617,
+      "appeal": 65.97,
+      "engagement": 100.0,
+      "satisfaction": 100.0,
+      "freshness": 84.89,
+      "growth_score": 86.58
+    },
+    {
+      "video_id": "NtM9-kPO8tw",
+      "title": "Una palabra de esperanza para el día de hoy",
+      "published_at": "2026-08-16T16:31:02Z",
+      "bible_reference": "Filipenses 4:6-7",
+      "content_family": "1 Pedro 5:7 y entregar las preocupaciones a Dios",
+      "views": 1162,
+      "views_per_hour": 14.2758,
+      "outlier_ratio": 1.5859,
+      "appeal": 65.26,
+      "engagement": 100.0,
+      "satisfaction": 100.0,
+      "freshness": 85.09,
+      "growth_score": 86.35
+    }
+  ],
+  "reference_weights": [
+    {
+      "key": "Juan 14",
+      "samples": 1,
+      "mean_score": 91.66,
+      "best_score": 91.66
+    },
+    {
+      "key": "Romanos 8:28",
+      "samples": 1,
+      "mean_score": 91.29,
+      "best_score": 91.29
+    },
+    {
+      "key": "Salmo 23",
+      "samples": 1,
+      "mean_score": 89.39,
+      "best_score": 89.39
+    },
+    {
+      "key": "Isaías 41:10",
+      "samples": 1,
+      "mean_score": 88.8,
+      "best_score": 88.8
+    },
+    {
+      "key": "Miqueas 5:2",
+      "samples": 1,
+      "mean_score": 88.45,
+      "best_score": 88.45
+    },
+    {
+      "key": "Jonás 1-2",
+      "samples": 1,
+      "mean_score": 88.4,
+      "best_score": 88.4
+    },
+    {
+      "key": "1 Reyes 17:1-6",
+      "samples": 1,
+      "mean_score": 88.39,
+      "best_score": 88.39
+    },
+    {
+      "key": "Isaías 9",
+      "samples": 1,
+      "mean_score": 87.03,
+      "best_score": 87.03
+    },
+    {
+      "key": "Mateo 11:28-30",
+      "samples": 1,
+      "mean_score": 83.39,
+      "best_score": 83.39
+    },
+    {
+      "key": "Mateo 3:13-17",
+      "samples": 1,
+      "mean_score": 83.33,
+      "best_score": 83.33
+    },
+    {
+      "key": "Mateo 6:25-34",
+      "samples": 5,
+      "mean_score": 80.52,
+      "best_score": 92.84
+    },
+    {
+      "key": "Isaías 40:28-31",
+      "samples": 1,
+      "mean_score": 80.45,
+      "best_score": 80.45
+    },
+    {
+      "key": "Mateo 5:1-12",
+      "samples": 2,
+      "mean_score": 79.84,
+      "best_score": 86.58
+    },
+    {
+      "key": "Salmo 91",
+      "samples": 2,
+      "mean_score": 76.51,
+      "best_score": 79.7
+    },
+    {
+      "key": "Lucas 15:1-7",
+      "samples": 2,
+      "mean_score": 74.69,
+      "best_score": 85.52
+    },
+    {
+      "key": "Filipenses 4:6-7",
+      "samples": 9,
+      "mean_score": 65.69,
+      "best_score": 88.85
+    },
+    {
+      "key": "Juan 10:1-18",
+      "samples": 1,
+      "mean_score": 53.17,
+      "best_score": 53.17
+    },
+    {
+      "key": "Juan 14:27",
+      "samples": 1,
+      "mean_score": 50.56,
+      "best_score": 50.56
+    },
+    {
+      "key": "Daniel 7:13-14",
+      "samples": 1,
+      "mean_score": 48.53,
+      "best_score": 48.53
+    },
+    {
+      "key": "Romanos 8:26-27",
+      "samples": 1,
+      "mean_score": 39.43,
+      "best_score": 39.43
+    }
+  ],
+  "family_weights": [
+    {
+      "key": "los gorriones y el cuidado de Dios, Mateo 10:29-31",
+      "samples": 1,
+      "mean_score": 92.84,
+      "best_score": 92.84
+    },
+    {
+      "key": "Juan 14 y la promesa de paz y esperanza",
+      "samples": 1,
+      "mean_score": 91.66,
+      "best_score": 91.66
+    },
+    {
+      "key": "los pajaros y la confianza en Dios, reflexion sobre Mateo 6:25-34",
+      "samples": 1,
+      "mean_score": 91.45,
+      "best_score": 91.45
+    },
+    {
+      "key": "Romanos 8 y la confianza en el obrar de Dios",
+      "samples": 1,
+      "mean_score": 91.29,
+      "best_score": 91.29
+    },
+    {
+      "key": "Salmo 23 y caminar acompañado por Dios",
+      "samples": 1,
+      "mean_score": 89.39,
+      "best_score": 89.39
+    },
+    {
+      "key": "Josue 1:9 y avanzar con valentia y confianza en Dios",
+      "samples": 1,
+      "mean_score": 88.85,
+      "best_score": 88.85
+    },
+    {
+      "key": "Isaias 41:10 y no caminar dominado por el miedo",
+      "samples": 1,
+      "mean_score": 88.8,
+      "best_score": 88.8
+    },
+    {
+      "key": "profecia mesianica de Miqueas 5",
+      "samples": 1,
+      "mean_score": 88.45,
+      "best_score": 88.45
+    },
+    {
+      "key": "Jonas y el gran pez como relato de obediencia y misericordia, Jonas 1 y 2",
+      "samples": 1,
+      "mean_score": 88.4,
+      "best_score": 88.4
+    },
+    {
+      "key": "Elias y los cuervos como relato del cuidado de Dios, 1 Reyes 17",
+      "samples": 1,
+      "mean_score": 88.39,
+      "best_score": 88.39
+    },
+    {
+      "key": "Mateo 6 y vivir un dia a la vez",
+      "samples": 1,
+      "mean_score": 87.97,
+      "best_score": 87.97
+    },
+    {
+      "key": "profecia mesianica de Isaias 9",
+      "samples": 1,
+      "mean_score": 87.03,
+      "best_score": 87.03
+    },
+    {
+      "key": "la parabola del buen samaritano",
+      "samples": 1,
+      "mean_score": 86.66,
+      "best_score": 86.66
+    },
+    {
+      "key": "las bienaventuranzas y el Reino de Dios",
+      "samples": 1,
+      "mean_score": 86.58,
+      "best_score": 86.58
+    },
+    {
+      "key": "1 Pedro 5:7 y entregar las preocupaciones a Dios",
+      "samples": 1,
+      "mean_score": 86.35,
+      "best_score": 86.35
+    },
+    {
+      "key": "perdon, misericordia y volver a empezar",
+      "samples": 1,
+      "mean_score": 85.52,
+      "best_score": 85.52
+    },
+    {
+      "key": "Jesus llama a los cansados a encontrar descanso",
+      "samples": 1,
+      "mean_score": 83.39,
+      "best_score": 83.39
+    },
+    {
+      "key": "la paloma como simbolo en el bautismo de Jesus, Mateo 3",
+      "samples": 1,
+      "mean_score": 83.33,
+      "best_score": 83.33
+    },
+    {
+      "key": "oracion de la noche para descansar en paz",
+      "samples": 1,
+      "mean_score": 81.84,
+      "best_score": 81.84
+    },
+    {
+      "key": "fortaleza espiritual cuando uno esta cansado",
+      "samples": 1,
+      "mean_score": 80.45,
+      "best_score": 80.45
+    }
+  ],
+  "keyword_weights": [
+    {
+      "key": "gorriones",
+      "samples": 1,
+      "mean_score": 92.84,
+      "best_score": 92.84
+    },
+    {
+      "key": "constante",
+      "samples": 1,
+      "mean_score": 92.84,
+      "best_score": 92.84
+    },
+    {
+      "key": "personal",
+      "samples": 1,
+      "mean_score": 92.84,
+      "best_score": 92.84
+    },
+    {
+      "key": "todo",
+      "samples": 1,
+      "mean_score": 91.66,
+      "best_score": 91.66
+    },
+    {
+      "key": "sobrepasa",
+      "samples": 1,
+      "mean_score": 91.66,
+      "best_score": 91.66
+    },
+    {
+      "key": "entendimiento",
+      "samples": 1,
+      "mean_score": 91.66,
+      "best_score": 91.66
+    },
+    {
+      "key": "transforma",
+      "samples": 1,
+      "mean_score": 91.66,
+      "best_score": 91.66
+    },
+    {
+      "key": "sobre",
+      "samples": 1,
+      "mean_score": 91.45,
+      "best_score": 91.45
+    },
+    {
+      "key": "estás",
+      "samples": 1,
+      "mean_score": 91.45,
+      "best_score": 91.45
+    },
+    {
+      "key": "pajaros",
+      "samples": 1,
+      "mean_score": 91.45,
+      "best_score": 91.45
+    },
+    {
+      "key": "cielo",
+      "samples": 1,
+      "mean_score": 91.45,
+      "best_score": 91.45
+    },
+    {
+      "key": "solo",
+      "samples": 1,
+      "mean_score": 91.45,
+      "best_score": 91.45
+    },
+    {
+      "key": "aves",
+      "samples": 1,
+      "mean_score": 91.45,
+      "best_score": 91.45
+    },
+    {
+      "key": "etapa",
+      "samples": 1,
+      "mean_score": 91.45,
+      "best_score": 91.45
+    },
+    {
+      "key": "está",
+      "samples": 1,
+      "mean_score": 91.29,
+      "best_score": 91.29
+    },
+    {
+      "key": "quienes",
+      "samples": 1,
+      "mean_score": 91.29,
+      "best_score": 91.29
+    },
+    {
+      "key": "dispone",
+      "samples": 1,
+      "mean_score": 91.29,
+      "best_score": 91.29
+    },
+    {
+      "key": "guiando",
+      "samples": 1,
+      "mean_score": 91.29,
+      "best_score": 91.29
+    },
+    {
+      "key": "todas",
+      "samples": 1,
+      "mean_score": 91.29,
+      "best_score": 91.29
+    },
+    {
+      "key": "obrar",
+      "samples": 1,
+      "mean_score": 91.29,
+      "best_score": 91.29
+    },
+    {
+      "key": "aman",
+      "samples": 1,
+      "mean_score": 91.29,
+      "best_score": 91.29
+    },
+    {
+      "key": "cosas",
+      "samples": 1,
+      "mean_score": 91.29,
+      "best_score": 91.29
+    },
+    {
+      "key": "cuidado",
+      "samples": 2,
+      "mean_score": 90.62,
+      "best_score": 92.84
+    },
+    {
+      "key": "acompañado",
+      "samples": 1,
+      "mean_score": 89.39,
+      "best_score": 89.39
+    },
+    {
+      "key": "superar",
+      "samples": 1,
+      "mean_score": 88.85,
+      "best_score": 88.85
+    },
+    {
+      "key": "josué",
+      "samples": 1,
+      "mean_score": 88.85,
+      "best_score": 88.85
+    },
+    {
+      "key": "primer",
+      "samples": 1,
+      "mean_score": 88.85,
+      "best_score": 88.85
+    },
+    {
+      "key": "avanzar",
+      "samples": 1,
+      "mean_score": 88.85,
+      "best_score": 88.85
+    },
+    {
+      "key": "desconocido",
+      "samples": 1,
+      "mean_score": 88.85,
+      "best_score": 88.85
+    },
+    {
+      "key": "necesita",
+      "samples": 3,
+      "mean_score": 85.5,
+      "best_score": 92.84,
+      "niche_supported": true
+    },
+    {
+      "key": "espiritual",
+      "samples": 0,
+      "mean_score": 55.54,
+      "best_score": 77.69,
+      "niche_only": true
+    },
+    {
+      "key": "veem",
+      "samples": 0,
+      "mean_score": 55.54,
+      "best_score": 77.69,
+      "niche_only": true
+    },
+    {
+      "key": "responde",
+      "samples": 0,
+      "mean_score": 55.54,
+      "best_score": 77.69,
+      "niche_only": true
+    },
+    {
+      "key": "animais",
+      "samples": 0,
+      "mean_score": 54.85,
+      "best_score": 74.26,
+      "niche_only": true
+    },
+    {
+      "key": "mundo",
+      "samples": 0,
+      "mean_score": 54.37,
+      "best_score": 71.87,
+      "niche_only": true
+    },
+    {
+      "key": "ano",
+      "samples": 0,
+      "mean_score": 54.17,
+      "best_score": 70.83,
+      "niche_only": true
+    },
+    {
+      "key": "noé",
+      "samples": 0,
+      "mean_score": 54.17,
+      "best_score": 70.83,
+      "niche_only": true
+    },
+    {
+      "key": "mais",
+      "samples": 0,
+      "mean_score": 54.17,
+      "best_score": 70.83,
+      "niche_only": true
+    },
+    {
+      "key": "arca",
+      "samples": 0,
+      "mean_score": 54.17,
+      "best_score": 70.83,
+      "niche_only": true
+    },
+    {
+      "key": "alimentou",
+      "samples": 0,
+      "mean_score": 54.17,
+      "best_score": 70.83,
+      "niche_only": true
+    }
+  ],
+  "niche_radar": {
+    "available": true,
+    "version": "dios-niche-radar-v1",
+    "generated_at": "2026-08-20T01:54:46.418499+00:00",
+    "videos_scanned": 50,
+    "queries": [
+      "oración a Dios",
+      "Jesús Biblia reflexión",
+      "versículo de hoy",
+      "fe esperanza Dios",
+      "animales Biblia Dios"
+    ],
+    "top_outliers": [
+      {
+        "video_id": "rKj2JTCb5vI",
+        "query": "animales Biblia Dios",
+        "channel_id": "UCKEM87jzVqdIfAdTr0xNBfA",
+        "title": "OS ANIMAIS VEEM O MUNDO ESPIRITUAL? - A BÍBLIA RESPONDE",
+        "channel_title": "Pastor Antônio Júnior",
+        "published_at": "2026-08-18T18:25:22Z",
+        "duration": "PT18M44S",
+        "views": 88638,
+        "likes": 12549,
+        "comments": 577,
+        "subscribers": 16200000,
+        "channel_views": 3259275059,
+        "video_count": 9827,
+        "views_per_hour": 2814.788,
+        "like_rate": 0.14158,
+        "comment_rate": 0.00651,
+        "views_to_subscribers": 0.0055,
+        "niche_outlier_score": 77.69
+      },
+      {
+        "video_id": "uhk44kYyVjE",
+        "query": "animales Biblia Dios",
+        "channel_id": "UCzk3UtJZT1k2RNnu75HxRzA",
+        "title": "Como Noé alimentou tantos animais na arca por mais de um ano de dilúvio? #Deus #biblia #noé",
+        "channel_title": "Universo Bíblico",
+        "published_at": "2026-08-18T19:25:20Z",
+        "duration": "PT1M11S",
+        "views": 20837,
+        "likes": 1991,
+        "comments": 425,
+        "subscribers": 60500,
+        "channel_views": 14470477,
+        "video_count": 169,
+        "views_per_hour": 683.389,
+        "like_rate": 0.09555,
+        "comment_rate": 0.0204,
+        "views_to_subscribers": 0.3444,
+        "niche_outlier_score": 70.83
+      },
+      {
+        "video_id": "WE6_UgkSgrc",
+        "query": "versículo de hoy",
+        "channel_id": "UCL29HGrIjvqoJ438j5KU5dw",
+        "title": "versículo de la Biblia de hoy en la noche que dice así en Isaías 54:10 #reflexion",
+        "channel_title": "Kevin Montaño",
+        "published_at": "2026-08-20T00:15:11Z",
+        "duration": "PT1M33S",
+        "views": 812,
+        "likes": 248,
+        "comments": 23,
+        "subscribers": 248000,
+        "channel_views": 13035504,
+        "video_count": 1736,
+        "views_per_hour": 489.204,
+        "like_rate": 0.30542,
+        "comment_rate": 0.02833,
+        "views_to_subscribers": 0.0033,
+        "niche_outlier_score": 67.19
+      },
+      {
+        "video_id": "U8eGKnSD-6M",
+        "query": "Jesús Biblia reflexión",
+        "channel_id": "UCKOIasbG3-8-kGNM-Pe-IXA",
+        "title": "espalhe o evangelho 🙏🏼✝️ amém? #jesus #amor #Deus #fé #reflexão #biblia #shortvideo #shorts #fyp #fy",
+        "channel_title": "Filho De Deus",
+        "published_at": "2026-08-19T23:44:19Z",
+        "duration": "PT23S",
+        "views": 1009,
+        "likes": 218,
+        "comments": 10,
+        "subscribers": 50300,
+        "channel_views": 9576942,
+        "video_count": 971,
+        "views_per_hour": 464.061,
+        "like_rate": 0.21606,
+        "comment_rate": 0.00991,
+        "views_to_subscribers": 0.0201,
+        "niche_outlier_score": 66.96
+      },
+      {
+        "video_id": "Tgwvev8ltZQ",
+        "query": "fe esperanza Dios",
+        "channel_id": "UC6bHmNSSsHzyn9Orp0TEf6Q",
+        "title": "No Entiendo El Plan De Dios, Pero Confío | Fe Y Esperanza",
+        "channel_title": "SpartanRise97",
+        "published_at": "2026-08-19T23:30:09Z",
+        "duration": "PT6S",
+        "views": 687,
+        "likes": 50,
+        "comments": 1,
+        "subscribers": 28,
+        "channel_views": 28535,
+        "video_count": 23,
+        "views_per_hour": 285.016,
+        "like_rate": 0.07278,
+        "comment_rate": 0.00146,
+        "views_to_subscribers": 6.87,
+        "niche_outlier_score": 66.54
+      },
+      {
+        "video_id": "VlFe1sbnMZg",
+        "query": "Jesús Biblia reflexión",
+        "channel_id": "UCKOIasbG3-8-kGNM-Pe-IXA",
+        "title": "espalhe o evangelho 🙏🏼✝️ amém? #jesus #amor #Deus #fé #reflexão #biblia #shortvideo #shorts #fyp #fy",
+        "channel_title": "Filho De Deus",
+        "published_at": "2026-08-19T23:43:42Z",
+        "duration": "PT29S",
+        "views": 911,
+        "likes": 160,
+        "comments": 6,
+        "subscribers": 50300,
+        "channel_views": 9576942,
+        "video_count": 971,
+        "views_per_hour": 417.018,
+        "like_rate": 0.17563,
+        "comment_rate": 0.00659,
+        "views_to_subscribers": 0.0181,
+        "niche_outlier_score": 66.31
+      },
+      {
+        "video_id": "-QTFcnggcg4",
+        "query": "versículo de hoy",
+        "channel_id": "UCTVpTlEM8KI20Inn0hJvbyA",
+        "title": "El versículo bíblico que el mundo entero necesita escuchar hoy#Shorts #Biblia #Jesús#VersículoDelDía",
+        "channel_title": "mitico",
+        "published_at": "2026-08-19T22:11:25Z",
+        "duration": "PT10S",
+        "views": 1379,
+        "likes": 147,
+        "comments": 8,
+        "subscribers": 13600,
+        "channel_views": 1773436,
+        "video_count": 409,
+        "views_per_hour": 370.438,
+        "like_rate": 0.1066,
+        "comment_rate": 0.0058,
+        "views_to_subscribers": 0.1014,
+        "niche_outlier_score": 66.05
+      },
+      {
+        "video_id": "nA6QqrxCJ-E",
+        "query": "versículo de hoy",
+        "channel_id": "UCl7OXTuz-5ZWtLVmZfNnoIQ",
+        "title": "El versículo de hoy @DavidBarreth #jesus #amor #fe #dios",
+        "channel_title": "Fuerza Imparable ",
+        "published_at": "2026-08-19T20:03:19Z",
+        "duration": "PT53S",
+        "views": 2301,
+        "likes": 532,
+        "comments": 11,
+        "subscribers": 211000,
+        "channel_views": 40094024,
+        "video_count": 467,
+        "views_per_hour": 392.822,
+        "like_rate": 0.2312,
+        "comment_rate": 0.00478,
+        "views_to_subscribers": 0.0109,
+        "niche_outlier_score": 65.92
+      },
+      {
+        "video_id": "OA-ihNEmLuI",
+        "query": "Jesús Biblia reflexión",
+        "channel_id": "UCnvdlc3vZR-5KnW4Qa5rIrw",
+        "title": "🙌 El Señor es mi Pastor: Nada me faltará | Reflexión Corta de Fe | Salmo 23:1",
+        "channel_title": "Cuando Dios Habla",
+        "published_at": "2026-08-19T23:11:17Z",
+        "duration": "PT4S",
+        "views": 815,
+        "likes": 57,
+        "comments": 3,
+        "subscribers": 251,
+        "channel_views": 12711,
+        "video_count": 9,
+        "views_per_hour": 299.1,
+        "like_rate": 0.06994,
+        "comment_rate": 0.00368,
+        "views_to_subscribers": 3.247,
+        "niche_outlier_score": 64.74
+      },
+      {
+        "video_id": "WrZWhT59jlU",
+        "query": "versículo de hoy",
+        "channel_id": "UC9ZU3zqC_ApYXPNqB6QxJFQ",
+        "title": "📖 Versículo de hoy | La misericordia de Dios es eterna 🤍🙏",
+        "channel_title": "Satoru Fe",
+        "published_at": "2026-08-19T23:00:08Z",
+        "duration": "PT48S",
+        "views": 742,
+        "likes": 112,
+        "comments": 5,
+        "subscribers": 119000,
+        "channel_views": 7188621,
+        "video_count": 757,
+        "views_per_hour": 254.924,
+        "like_rate": 0.15094,
+        "comment_rate": 0.00674,
+        "views_to_subscribers": 0.0062,
+        "niche_outlier_score": 63.3
+      }
+    ],
+    "policy": {
+      "extract_topics_only": true,
+      "never_copy_titles": true,
+      "never_copy_scripts": true,
+      "never_block_publishing": true
+    },
+    "weight_in_decisions": 0.2
+  }
+}
