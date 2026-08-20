@@ -1,6 +1,6 @@
 {
   "version": "dios-growth-engine-v1",
-  "generated_at": "2026-08-20T02:42:58.513667+00:00",
+  "generated_at": "2026-08-20T02:43:14.920930+00:00",
   "channel": "dioshablahoyia",
   "fail_open": true,
   "publishing_must_continue": true,
@@ -20,7 +20,7 @@
   "data_quality": {
     "analytics_api_available": true,
     "videos_scored": 41,
-    "median_recent_views_per_hour": 8.9194,
+    "median_recent_views_per_hour": 8.919,
     "warnings": []
   },
   "top_outliers": [
@@ -31,8 +31,8 @@
       "bible_reference": "Mateo 6:25-34",
       "content_family": "los gorriones y el cuidado de Dios, Mateo 10:29-31",
       "views": 1498,
-      "views_per_hour": 23.5304,
-      "outlier_ratio": 2.6381,
+      "views_per_hour": 23.5287,
+      "outlier_ratio": 2.638,
       "appeal": 82.77,
       "engagement": 100.0,
       "satisfaction": 100.0,
@@ -46,8 +46,8 @@
       "bible_reference": "Juan 14",
       "content_family": "Juan 14 y la promesa de paz y esperanza",
       "views": 2500,
-      "views_per_hour": 22.7851,
-      "outlier_ratio": 2.5545,
+      "views_per_hour": 22.7841,
+      "outlier_ratio": 2.5546,
       "appeal": 81.79,
       "engagement": 100.0,
       "satisfaction": 100.0,
@@ -61,8 +61,8 @@
       "bible_reference": "Mateo 6:25-34",
       "content_family": "los pajaros y la confianza en Dios, reflexion sobre Mateo 6:25-34",
       "views": 1324,
-      "views_per_hour": 20.756,
-      "outlier_ratio": 2.3271,
+      "views_per_hour": 20.7545,
+      "outlier_ratio": 2.327,
       "appeal": 78.8,
       "engagement": 100.0,
       "satisfaction": 100.0,
@@ -76,7 +76,7 @@
       "bible_reference": "Romanos 8:28",
       "content_family": "Romanos 8 y la confianza en el obrar de Dios",
       "views": 2417,
-      "views_per_hour": 22.0353,
+      "views_per_hour": 22.0344,
       "outlier_ratio": 2.4705,
       "appeal": 80.74,
       "engagement": 100.0,
@@ -91,7 +91,7 @@
       "bible_reference": "Salmo 23",
       "content_family": "Salmo 23 y caminar acompañado por Dios",
       "views": 1283,
-      "views_per_hour": 17.712,
+      "views_per_hour": 17.7109,
       "outlier_ratio": 1.9858,
       "appeal": 73.39,
       "engagement": 100.0,
@@ -106,7 +106,7 @@
       "bible_reference": "Filipenses 4:6-7",
       "content_family": "Josue 1:9 y avanzar con valentia y confianza en Dios",
       "views": 1406,
-      "views_per_hour": 17.1986,
+      "views_per_hour": 17.1977,
       "outlier_ratio": 1.9282,
       "appeal": 72.35,
       "engagement": 100.0,
@@ -121,7 +121,7 @@
       "bible_reference": "Isaías 41:10",
       "content_family": "Isaias 41:10 y no caminar dominado por el miedo",
       "views": 1397,
-      "views_per_hour": 17.1292,
+      "views_per_hour": 17.1282,
       "outlier_ratio": 1.9204,
       "appeal": 72.2,
       "engagement": 100.0,
@@ -136,12 +136,12 @@
       "bible_reference": "Miqueas 5:2",
       "content_family": "profecia mesianica de Miqueas 5",
       "views": 1387,
-      "views_per_hour": 16.6976,
+      "views_per_hour": 16.6967,
       "outlier_ratio": 1.872,
       "appeal": 71.29,
       "engagement": 100.0,
       "satisfaction": 100.0,
-      "freshness": 84.81,
+      "freshness": 84.8,
       "growth_score": 88.43
     },
     {
@@ -151,9 +151,9 @@
       "bible_reference": "Jonás 1-2",
       "content_family": "Jonas y el gran pez como relato de obediencia y misericordia, Jonas 1 y 2",
       "views": 978,
-      "views_per_hour": 16.0748,
+      "views_per_hour": 16.0736,
       "outlier_ratio": 1.8022,
-      "appeal": 69.93,
+      "appeal": 69.92,
       "engagement": 100.0,
       "satisfaction": 100.0,
       "freshness": 88.63,
@@ -166,7 +166,7 @@
       "bible_reference": "1 Reyes 17:1-6",
       "content_family": "Elias y los cuervos como relato del cuidado de Dios, 1 Reyes 17",
       "views": 972,
-      "views_per_hour": 16.0497,
+      "views_per_hour": 16.0485,
       "outlier_ratio": 1.7994,
       "appeal": 69.87,
       "engagement": 100.0,
@@ -181,8 +181,8 @@
       "bible_reference": "Mateo 6:25-34",
       "content_family": "Mateo 6 y vivir un dia a la vez",
       "views": 919,
-      "views_per_hour": 15.4964,
-      "outlier_ratio": 1.7374,
+      "views_per_hour": 15.4952,
+      "outlier_ratio": 1.7373,
       "appeal": 68.6,
       "engagement": 100.0,
       "satisfaction": 100.0,
@@ -196,7 +196,7 @@
       "bible_reference": "Isaías 9",
       "content_family": "profecia mesianica de Isaias 9",
       "views": 1242,
-      "views_per_hour": 14.9292,
+      "views_per_hour": 14.9283,
       "outlier_ratio": 1.6738,
       "appeal": 67.24,
       "engagement": 100.0,
@@ -211,7 +211,7 @@
       "bible_reference": "",
       "content_family": "la parabola del buen samaritano",
       "views": 1836,
-      "views_per_hour": 15.2525,
+      "views_per_hour": 15.2519,
       "outlier_ratio": 1.71,
       "appeal": 68.02,
       "engagement": 100.0,
@@ -226,7 +226,7 @@
       "bible_reference": "Mateo 5:1-12",
       "content_family": "las bienaventuranzas y el Reino de Dios",
       "views": 1202,
-      "views_per_hour": 14.4153,
+      "views_per_hour": 14.4145,
       "outlier_ratio": 1.6162,
       "appeal": 65.95,
       "engagement": 100.0,
@@ -241,7 +241,7 @@
       "bible_reference": "Filipenses 4:6-7",
       "content_family": "1 Pedro 5:7 y entregar las preocupaciones a Dios",
       "views": 1162,
-      "views_per_hour": 14.1364,
+      "views_per_hour": 14.1356,
       "outlier_ratio": 1.5849,
       "appeal": 65.24,
       "engagement": 100.0,
@@ -496,12 +496,6 @@
   ],
   "keyword_weights": [
     {
-      "key": "gorriones",
-      "samples": 1,
-      "mean_score": 92.78,
-      "best_score": 92.78
-    },
-    {
       "key": "constante",
       "samples": 1,
       "mean_score": 92.78,
@@ -514,19 +508,13 @@
       "best_score": 92.78
     },
     {
-      "key": "transforma",
+      "key": "gorriones",
       "samples": 1,
-      "mean_score": 91.67,
-      "best_score": 91.67
+      "mean_score": 92.78,
+      "best_score": 92.78
     },
     {
       "key": "sobrepasa",
-      "samples": 1,
-      "mean_score": 91.67,
-      "best_score": 91.67
-    },
-    {
-      "key": "entendimiento",
       "samples": 1,
       "mean_score": 91.67,
       "best_score": 91.67
@@ -538,25 +526,19 @@
       "best_score": 91.67
     },
     {
-      "key": "pajaros",
+      "key": "entendimiento",
       "samples": 1,
-      "mean_score": 91.39,
-      "best_score": 91.39
+      "mean_score": 91.67,
+      "best_score": 91.67
+    },
+    {
+      "key": "transforma",
+      "samples": 1,
+      "mean_score": 91.67,
+      "best_score": 91.67
     },
     {
       "key": "solo",
-      "samples": 1,
-      "mean_score": 91.39,
-      "best_score": 91.39
-    },
-    {
-      "key": "sobre",
-      "samples": 1,
-      "mean_score": 91.39,
-      "best_score": 91.39
-    },
-    {
-      "key": "etapa",
       "samples": 1,
       "mean_score": 91.39,
       "best_score": 91.39
@@ -568,7 +550,13 @@
       "best_score": 91.39
     },
     {
-      "key": "estás",
+      "key": "pajaros",
+      "samples": 1,
+      "mean_score": 91.39,
+      "best_score": 91.39
+    },
+    {
+      "key": "etapa",
       "samples": 1,
       "mean_score": 91.39,
       "best_score": 91.39
@@ -580,7 +568,19 @@
       "best_score": 91.39
     },
     {
-      "key": "dispone",
+      "key": "sobre",
+      "samples": 1,
+      "mean_score": 91.39,
+      "best_score": 91.39
+    },
+    {
+      "key": "estás",
+      "samples": 1,
+      "mean_score": 91.39,
+      "best_score": 91.39
+    },
+    {
+      "key": "todas",
       "samples": 1,
       "mean_score": 91.3,
       "best_score": 91.3
@@ -592,7 +592,25 @@
       "best_score": 91.3
     },
     {
+      "key": "dispone",
+      "samples": 1,
+      "mean_score": 91.3,
+      "best_score": 91.3
+    },
+    {
       "key": "quienes",
+      "samples": 1,
+      "mean_score": 91.3,
+      "best_score": 91.3
+    },
+    {
+      "key": "guiando",
+      "samples": 1,
+      "mean_score": 91.3,
+      "best_score": 91.3
+    },
+    {
+      "key": "aman",
       "samples": 1,
       "mean_score": 91.3,
       "best_score": 91.3
@@ -610,24 +628,6 @@
       "best_score": 91.3
     },
     {
-      "key": "todas",
-      "samples": 1,
-      "mean_score": 91.3,
-      "best_score": 91.3
-    },
-    {
-      "key": "aman",
-      "samples": 1,
-      "mean_score": 91.3,
-      "best_score": 91.3
-    },
-    {
-      "key": "guiando",
-      "samples": 1,
-      "mean_score": 91.3,
-      "best_score": 91.3
-    },
-    {
       "key": "cuidado",
       "samples": 2,
       "mean_score": 90.55,
@@ -640,19 +640,7 @@
       "best_score": 89.35
     },
     {
-      "key": "primer",
-      "samples": 1,
-      "mean_score": 88.82,
-      "best_score": 88.82
-    },
-    {
       "key": "sabiendo",
-      "samples": 1,
-      "mean_score": 88.82,
-      "best_score": 88.82
-    },
-    {
-      "key": "valentia",
       "samples": 1,
       "mean_score": 88.82,
       "best_score": 88.82
@@ -664,7 +652,19 @@
       "best_score": 88.82
     },
     {
+      "key": "primer",
+      "samples": 1,
+      "mean_score": 88.82,
+      "best_score": 88.82
+    },
+    {
       "key": "camina",
+      "samples": 1,
+      "mean_score": 88.82,
+      "best_score": 88.82
+    },
+    {
+      "key": "contigo",
       "samples": 1,
       "mean_score": 88.82,
       "best_score": 88.82
