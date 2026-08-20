@@ -40,8 +40,10 @@ def _digest(source: Path, salt: str = "") -> int:
 
 
 def motion_profile(source: Path, index: int = 0, salt: str = "") -> tuple[int, str]:
-    """Choose a deterministic profile without repeating adjacent scene motions."""
-    base = _digest(source, f"motion-v4|{salt}") % len(MOTION_PROFILE_NAMES)
+    """Choose a per-video sequence whose first 18 scene motions cannot repeat."""
+    del source
+    marker = f"motion-v4|{salt}".encode("utf-8")
+    base = int(hashlib.sha256(marker).hexdigest()[:16], 16) % len(MOTION_PROFILE_NAMES)
     profile = (base + max(0, int(index)) * 5) % len(MOTION_PROFILE_NAMES)
     return profile, MOTION_PROFILE_NAMES[profile]
 
