@@ -1,1 +1,1 @@
-2026-08-19T10:18:00-03:00 | completar hoy hasta exactamente 10 Shorts; subir solo los faltantes, sin duplicados, mantener permanentemente Voz de Luz Algenib y visuales frescos
+2026-08-19T22:48:23-03:00 | daily guard: current history below 10; completar solo los Shorts faltantes hasta exactamente 10, sin duplicados, mantener permanentemente Voz de Luz / Algenib, nunca usar voz fallback
