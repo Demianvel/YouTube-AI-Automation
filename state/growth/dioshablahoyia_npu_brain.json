@@ -1,0 +1,114 @@
+{
+  "version": "alien-npu-brain-v1",
+  "generated_at": "2026-08-20T02:10:00+00:00",
+  "architecture": {
+    "type": "multi-cortex ensemble with quantum-inspired softmax exploration",
+    "literal_consciousness": false,
+    "literal_quantum_hardware": false,
+    "fail_open": true,
+    "publishing_must_continue": true,
+    "no_viral_guarantee": true
+  },
+  "weights": {
+    "audience_resonance": 0.28,
+    "retention_satisfaction": 0.23,
+    "trend_momentum": 0.14,
+    "outlier_similarity": 0.14,
+    "novelty": 0.09,
+    "channel_fit": 0.09,
+    "market_opportunity": 0.03
+  },
+  "brain_confidence": 87.0,
+  "data_quality": {
+    "videos_scored": 41,
+    "analytics_api_available": true,
+    "warnings": [],
+    "niche_radar_available": false,
+    "market_radar_available": false
+  },
+  "memory": {
+    "top_outliers": [
+      {
+        "video_id": "zj91XdjPY4I",
+        "title": "Cuando el corazón necesita descanso | Mateo 6:25-34",
+        "bible_reference": "Mateo 6:25-34",
+        "content_family": "los gorriones y el cuidado de Dios, Mateo 10:29-31",
+        "growth_score": 92.84,
+        "outlier_ratio": 2.6474,
+        "engagement": 100.0,
+        "satisfaction": 100.0
+      },
+      {
+        "video_id": "ojZOrbP3gy0",
+        "title": "La Paz que Transforma Tu Corazón | Juan 14:27",
+        "bible_reference": "Juan 14",
+        "content_family": "Juan 14 y la promesa de paz y esperanza",
+        "growth_score": 91.66,
+        "outlier_ratio": 2.5498,
+        "engagement": 100.0,
+        "satisfaction": 100.0
+      },
+      {
+        "video_id": "jM0EqTK82X0",
+        "title": "No estás solo en esta etapa | Mensaje de fe",
+        "bible_reference": "Mateo 6:25-34",
+        "content_family": "los pajaros y la confianza en Dios, reflexion sobre Mateo 6:25-34",
+        "growth_score": 91.45,
+        "outlier_ratio": 2.3352,
+        "engagement": 100.0,
+        "satisfaction": 100.0
+      },
+      {
+        "video_id": "3ihXxti-yks",
+        "title": "Dios Está Guiando Tu Camino | Romanos 8:28",
+        "bible_reference": "Romanos 8:28",
+        "content_family": "Romanos 8 y la confianza en el obrar de Dios",
+        "growth_score": 91.29,
+        "outlier_ratio": 2.4659,
+        "engagement": 100.0,
+        "satisfaction": 100.0
+      },
+      {
+        "video_id": "oI-0Itw-Cqs",
+        "title": "Cuando el corazón necesita descanso | Salmo 23",
+        "bible_reference": "Salmo 23",
+        "content_family": "Salmo 23 y caminar acompañado por Dios",
+        "growth_score": 89.39,
+        "outlier_ratio": 1.9897,
+        "engagement": 100.0,
+        "satisfaction": 100.0
+      }
+    ],
+    "reference_weights": [
+      {"key": "Juan 14", "samples": 1, "mean_score": 91.66, "best_score": 91.66},
+      {"key": "Romanos 8:28", "samples": 1, "mean_score": 91.29, "best_score": 91.29},
+      {"key": "Salmo 23", "samples": 1, "mean_score": 89.39, "best_score": 89.39},
+      {"key": "Isaías 41:10", "samples": 1, "mean_score": 88.8, "best_score": 88.8},
+      {"key": "Mateo 6:25-34", "samples": 5, "mean_score": 80.52, "best_score": 92.84},
+      {"key": "Filipenses 4:6-7", "samples": 9, "mean_score": 65.69, "best_score": 88.85}
+    ],
+    "family_weights": [
+      {"key": "los gorriones y el cuidado de Dios, Mateo 10:29-31", "samples": 1, "mean_score": 92.84, "best_score": 92.84},
+      {"key": "Juan 14 y la promesa de paz y esperanza", "samples": 1, "mean_score": 91.66, "best_score": 91.66},
+      {"key": "Romanos 8 y la confianza en el obrar de Dios", "samples": 1, "mean_score": 91.29, "best_score": 91.29},
+      {"key": "Salmo 23 y caminar acompañado por Dios", "samples": 1, "mean_score": 89.39, "best_score": 89.39}
+    ],
+    "keyword_weights": [
+      {"key": "gorriones", "samples": 1, "mean_score": 92.84, "best_score": 92.84},
+      {"key": "paz", "samples": 1, "mean_score": 91.66, "best_score": 91.66},
+      {"key": "confianza", "samples": 2, "mean_score": 91.37, "best_score": 91.45},
+      {"key": "camino", "samples": 2, "mean_score": 90.34, "best_score": 91.29},
+      {"key": "descanso", "samples": 3, "mean_score": 87.3, "best_score": 92.84}
+    ],
+    "niche_keyword_weights": [],
+    "market_niches": []
+  },
+  "decision_policy": {
+    "first_party_data_priority": true,
+    "external_market_max_weight": 0.05,
+    "channel_fit_guard": true,
+    "novelty_guard": true,
+    "exploration_rate": 0.2,
+    "truthful_probability_language": true
+  }
+}
