@@ -1,0 +1,19 @@
+{
+  "lookback_days": 7,
+  "max_results_per_query": 10,
+  "region_code": "AR",
+  "relevance_language": "es",
+  "queries": [
+    "oración a Dios",
+    "Jesús Biblia reflexión",
+    "versículo de hoy",
+    "fe esperanza Dios",
+    "animales Biblia Dios"
+  ],
+  "policy": {
+    "extract_topics_only": true,
+    "never_copy_titles": true,
+    "never_copy_scripts": true,
+    "never_block_publishing": true
+  }
+}
