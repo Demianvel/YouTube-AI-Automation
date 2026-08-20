@@ -1,4 +1,5 @@
 name: Dios Habla Hoy IA - Alien NPU Brain
+# activation: first live NPU memory build after validated merge
 
 on:
   workflow_dispatch:
