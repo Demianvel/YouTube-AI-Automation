@@ -1,1 +1,1 @@
-2026-08-19 23:58 ART | publicar ahora los 3 faltantes; zero-HF; Voz de Luz Algenib fija; continuidad natural >=82%; conservar objetivo inicial aunque cruce medianoche; sin duplicados
+2026-08-20 03:40 ART | guardia de recuperacion: el dia local tiene 2 Shorts confirmados y faltan 8 para llegar exactamente a 10. Completar solo los faltantes; zero-HF/local visual emergency; Voz de Luz / Algenib fija; SPIRITUAL_REQUIRE_PRIMARY_VOICE=true; TTS_FALLBACK_KOKORO=false; sin duplicados; aprendizaje fail-open y nunca bloquear publicacion.
