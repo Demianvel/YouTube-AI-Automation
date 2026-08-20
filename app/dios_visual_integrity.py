@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import re
 from pathlib import Path
 
 from PIL import Image
@@ -53,10 +54,24 @@ def fingerprint_image(path: Path) -> dict[str, str]:
     return {"sha256": _sha256(path), "dhash": _dhash(path)}
 
 
+def _provider_base_identity(provider: str) -> str:
+    text = str(provider or "")
+    local = re.search(r"reference:([^/|]+\.jpg)", text)
+    if local and "local_project_jesus_reference" in text:
+        return f"local:{local.group(1)}"
+    pexels = re.search(r"\bid=([0-9]+)", text)
+    if pexels and text.startswith("Pexels"):
+        return f"pexels:{pexels.group(1)}"
+    source = re.search(r"\bsource=([^ |]+)", text)
+    if source:
+        return f"source:{source.group(1)}"
+    return ""
+
+
 def _history_fingerprints(previous: list[dict]) -> tuple[set[str], list[str]]:
     exact: set[str] = set()
     perceptual: list[str] = []
-    for row in previous[-160:]:
+    for row in previous[-240:]:
         for value in row.get("visual_asset_sha256") or []:
             if str(value).strip():
                 exact.add(str(value).strip())
@@ -64,6 +79,19 @@ def _history_fingerprints(previous: list[dict]) -> tuple[set[str], list[str]]:
             if str(value).strip():
                 perceptual.append(str(value).strip())
     return exact, perceptual
+
+
+def _history_local_bases(previous: list[dict], limit: int = 24) -> set[str]:
+    result: set[str] = set()
+    for row in previous[-limit:]:
+        providers = row.get("generated_visual_provider") or row.get("visual_providers") or []
+        if isinstance(providers, str):
+            providers = [providers]
+        for provider in providers:
+            identity = _provider_base_identity(str(provider))
+            if identity.startswith("local:"):
+                result.add(identity)
+    return result
 
 
 def _read_persisted_rows() -> list[dict]:
@@ -81,14 +109,21 @@ def _read_persisted_rows() -> list[dict]:
                 continue
             if item.get("channel") == "dioshablahoyia":
                 rows.append(item)
-    return rows[-200:]
+    return rows[-320:]
+
+
+def _distance_threshold() -> int:
+    # The old value 7 allowed visibly similar crops of the same source. Keep a
+    # conservative floor of 11 bits while still allowing genuinely new images.
+    configured = max(0, int(os.getenv("SPIRITUAL_VISUAL_PHASH_MAX_DISTANCE", "11")))
+    return max(11, configured)
 
 
 def fresh_against_persisted_history(path: Path, current_dhash: list[str] | None = None) -> tuple[bool, dict[str, str], int]:
     signature = fingerprint_image(path)
     previous_exact, previous_perceptual = _history_fingerprints(_read_persisted_rows())
     current_dhash = current_dhash or []
-    threshold = max(0, int(os.getenv("SPIRITUAL_VISUAL_PHASH_MAX_DISTANCE", "7")))
+    threshold = _distance_threshold()
 
     if signature["sha256"] in previous_exact:
         return False, signature, 0
@@ -100,13 +135,7 @@ def fresh_against_persisted_history(path: Path, current_dhash: list[str] | None 
 
 
 def validate_short_visuals(workdir: Path, previous: list[dict], metadata: dict) -> dict:
-    """Block exact or near-duplicate stills before a Dios Short can be uploaded.
-
-    A locally derived image is allowed only when it is explicitly marked as a
-    generated variant and the SHA-256 + perceptual checks below prove that the
-    final rendered asset is fresh. The unmodified local reference itself remains
-    forbidden as a final visual.
-    """
+    """Reject exact, perceptual and base-source repetition before a Dios upload."""
     strict = _env_true("SPIRITUAL_REQUIRE_FRESH_VISUAL", True)
     images = sorted(workdir.glob("spiritual_generated_*.jpg"))
     if not images:
@@ -116,12 +145,37 @@ def validate_short_visuals(workdir: Path, previous: list[dict], metadata: dict) 
         metadata["visual_fingerprint_mode"] = "video_or_nonstill_path"
         return metadata
 
+    providers = metadata.get("generated_visual_provider") or []
+    if isinstance(providers, str):
+        providers = [providers]
+    providers = [str(item) for item in providers]
+
+    # A new crop or color grade of the same source is still the same visual idea.
+    current_base_sources: set[str] = set()
+    recent_local_bases = _history_local_bases(previous)
+    base_source_ids: list[str] = []
+    for provider in providers:
+        identity = _provider_base_identity(provider)
+        if not identity:
+            continue
+        if identity in current_base_sources:
+            raise RuntimeError(
+                f"FRESH_VISUAL_GUARD: una misma fuente base se intento reutilizar en dos escenas: {identity}"
+            )
+        if strict and identity.startswith("local:") and identity in recent_local_bases:
+            raise RuntimeError(
+                f"FRESH_VISUAL_GUARD: referencia local demasiado reciente; no alcanza con cambiar recorte/zoom: {identity}"
+            )
+        current_base_sources.add(identity)
+        base_source_ids.append(identity)
+
     previous_exact, previous_perceptual = _history_fingerprints(previous)
     current_exact: set[str] = set()
     current_perceptual: list[str] = []
     sha_values: list[str] = []
     dhash_values: list[str] = []
-    threshold = max(0, int(os.getenv("SPIRITUAL_VISUAL_PHASH_MAX_DISTANCE", "7")))
+    perceptual_distances: list[int] = []
+    threshold = _distance_threshold()
 
     for path in images:
         exact = _sha256(path)
@@ -132,22 +186,25 @@ def validate_short_visuals(workdir: Path, previous: list[dict], metadata: dict) 
 
         near_recent = min((_hamming_hex(perceptual, old) for old in previous_perceptual), default=10_000)
         near_current = min((_hamming_hex(perceptual, old) for old in current_perceptual), default=10_000)
-        if strict and min(near_recent, near_current) <= threshold:
+        nearest = min(near_recent, near_current)
+        if strict and nearest <= threshold:
             raise RuntimeError(
                 f"FRESH_VISUAL_GUARD: {path.name} es demasiado parecida a una imagen reciente "
-                f"(distancia perceptual {min(near_recent, near_current)} <= {threshold})."
+                f"(distancia perceptual {nearest} <= {threshold})."
             )
 
         current_exact.add(exact)
         current_perceptual.append(perceptual)
         sha_values.append(exact)
         dhash_values.append(perceptual)
+        perceptual_distances.append(nearest)
 
-    providers = metadata.get("generated_visual_provider") or []
-    if isinstance(providers, str):
-        providers = [providers]
-    local_providers = [str(item) for item in providers if "local_project_jesus_reference" in str(item)]
+    local_providers = [item for item in providers if "local_project_jesus_reference" in item]
     if strict:
+        if len(local_providers) > 1:
+            raise RuntimeError(
+                "FRESH_VISUAL_GUARD: un Short no puede usar mas de una escena derivada del banco local de Jesus."
+            )
         for provider in local_providers:
             if "variant_" not in provider:
                 raise RuntimeError(
@@ -157,7 +214,11 @@ def validate_short_visuals(workdir: Path, previous: list[dict], metadata: dict) 
     metadata["visual_asset_sha256"] = sha_values
     metadata["visual_asset_dhash"] = dhash_values
     metadata["visual_freshness_verified"] = True
-    metadata["visual_fingerprint_mode"] = "sha256_plus_256bit_dhash"
+    metadata["visual_fingerprint_mode"] = "sha256_plus_256bit_dhash_plus_base_source_v3"
     metadata["visual_perceptual_distance_threshold"] = threshold
+    metadata["visual_perceptual_nearest_distances"] = perceptual_distances
+    metadata["visual_base_source_ids"] = base_source_ids
+    metadata["visual_unique_base_source_count"] = len(current_base_sources)
     metadata["visual_local_variant_verified"] = bool(local_providers)
+    metadata["visual_local_scene_count"] = len(local_providers)
     return metadata
