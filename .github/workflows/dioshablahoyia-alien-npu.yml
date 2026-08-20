@@ -1,17 +1,19 @@
-name: Dios Habla Hoy IA - Alien NPU Brain
-# activation: first live NPU memory build after validated merge
+name: Dios Habla Hoy IA - Alien NPU Brain 24x7
 
 on:
   workflow_dispatch:
   schedule:
-    - cron: "23 */2 * * *"
+    # One learning cycle every hour, every day of the year.
+    - cron: "17 * * * *"
   push:
     branches: [main]
     paths:
       - "app/alien_npu_brain.py"
       - "app/npu_market_radar.py"
+      - "app/npu_seo_cortex.py"
       - "scripts/npu_brain_learn.py"
       - "scripts/npu_market_radar.py"
+      - "scripts/npu_seo_train.py"
       - "config/npu_market_radar.json"
       - ".github/workflows/dioshablahoyia-alien-npu.yml"
 
@@ -42,24 +44,47 @@ jobs:
       - name: Install NPU dependencies
         run: pip install -q google-api-python-client google-auth
 
-      - name: Compile brain before learning
+      - name: Compile 24x7 brain before learning
         run: |
           python -m py_compile \
             app/alien_npu_brain.py \
             app/npu_market_radar.py \
+            app/npu_seo_cortex.py \
             app/fast_spiritual_metadata.py \
             scripts/npu_brain_learn.py \
-            scripts/npu_market_radar.py
+            scripts/npu_market_radar.py \
+            scripts/npu_seo_train.py
 
       - name: Refresh broad YouTube market radar once per Argentina day
         continue-on-error: true
         run: python scripts/npu_market_radar.py --channel dioshablahoyia
 
-      - name: Rebuild Alien NPU memory from latest Growth Engine state
+      - name: Train SEO cortex from first-party winners and cached trends
+        continue-on-error: true
+        run: python scripts/npu_seo_train.py
+
+      - name: Rebuild Alien NPU memory from Growth + SEO + trend state
         continue-on-error: true
         run: python scripts/npu_brain_learn.py
 
-      - name: Persist NPU memory without touching publishing history
+      - name: Verify fail-open publishing policy
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          brain_path = Path('state/growth/dioshablahoyia_npu_brain.json')
+          if not brain_path.exists():
+              print('NPU memory unavailable; fail-open keeps the publishing stack unchanged.')
+              raise SystemExit(0)
+          brain = json.loads(brain_path.read_text(encoding='utf-8'))
+          arch = brain.get('architecture') or {}
+          assert arch.get('fail_open') is True
+          assert arch.get('publishing_must_continue') is True
+          assert arch.get('no_viral_guarantee') is True
+          print('24x7 NPU policy OK:', brain.get('version'), brain.get('brain_confidence'))
+          PY
+
+      - name: Persist hourly learning memory without touching publishing history
         shell: bash
         run: |
           set -euo pipefail
@@ -67,11 +92,12 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -- \
             state/growth/dioshablahoyia_npu_brain.json \
+            state/growth/dioshablahoyia_seo_brain.json \
             state/growth/youtube_market_radar.json 2>/dev/null || true
           if git diff --cached --quiet; then
-            echo "NPU memory sin cambios"
+            echo "NPU/SEO memory sin cambios"
             exit 0
           fi
-          git commit -m "chore: evolve Alien NPU brain memory"
+          git commit -m "chore: hourly Alien NPU + SEO learning cycle"
           git pull --rebase origin main
           git push origin HEAD:main
