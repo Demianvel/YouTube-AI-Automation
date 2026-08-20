@@ -29,6 +29,7 @@ jobs:
       TZ: America/Argentina/Buenos_Aires
       CHANNEL: dioshablahoyia
       CONTENT_MODE: voice
+      DIOS_GUARD_LOCAL_ONLY: "true"
       GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
       GEMINI_TEXT_MODEL: gemini-3.6-flash
       GEMINI_TTS_MODEL: gemini-3.1-flash-tts-preview
@@ -58,19 +59,14 @@ jobs:
       HF_VIDEO_ENABLED: "false"
       HF_REQUIRE_TEXT_TO_VIDEO: "false"
       HF_VIDEO_STRICT: "false"
-      HF_REFERENCE_IMAGE_ENABLED: "true"
-      HF_REFERENCE_EDITOR_ENABLED: "true"
-      HF_REFERENCE_ZERO_SPACE: black-forest-labs/FLUX.1-Kontext-Dev
-      HF_TEXT_ZERO_ENABLED: "true"
-      HF_TEXT_ZERO_SPACE: black-forest-labs/FLUX.1-schnell
-      HF_REFERENCE_ZERO_SPACE_FIRST: "true"
-      HF_ZERO_AUTH_RETRY: "true"
-      HF_REMOTE_CIRCUIT_BREAKER: "true"
+      HF_REFERENCE_IMAGE_ENABLED: "false"
+      HF_REFERENCE_EDITOR_ENABLED: "false"
+      HF_TEXT_ZERO_ENABLED: "false"
       HF_INFERENCE_PROVIDER_ENABLED: "false"
-      HF_ZERO_TOKEN: ${{ secrets.HF_TOKEN }}
+      HF_ZERO_TOKEN: ""
       HF_TOKEN: ""
       SPIRITUAL_REFERENCE_AVOID_RECENT: "100"
-      DIOS_FAST_LOCAL_VISUAL_MODE: "false"
+      DIOS_FAST_LOCAL_VISUAL_MODE: "true"
       PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
       MUSIC_PROVIDER: local
       YOUTUBE_TOKEN_DIOSHABLAHOYIA: ${{ secrets.YOUTUBE_TOKEN_DIOSHABLAHOYIA }}
@@ -104,7 +100,7 @@ jobs:
             "huggingface_hub<2,>=0.34.4" \
             "gradio_client<3,>=1.11.0"
 
-      - name: Verify immutable Voz de Luz guardrails
+      - name: Verify immutable Voz de Luz and zero-HF emergency guardrails
         run: |
           test -n "$YOUTUBE_TOKEN_DIOSHABLAHOYIA"
           test -n "$GEMINI_API_KEY"
@@ -113,9 +109,14 @@ jobs:
           test "$SPIRITUAL_VOICE_LOCKED" = "true"
           test "$SPIRITUAL_REQUIRE_PRIMARY_VOICE" = "true"
           test "$TTS_FALLBACK_KOKORO" = "false"
+          test "$DIOS_GUARD_LOCAL_ONLY" = "true"
+          test -z "$HF_TOKEN"
+          test -z "$HF_ZERO_TOKEN"
           python -m py_compile \
             scripts/dioshablahoyia_daily_guard.py \
             scripts/publish_dios_fast.py \
+            scripts/publish_dios_fast_local_emergency.py \
+            app/dios_visual_integrity.py \
             app/spiritual_tts.py \
             app/spiritual_audio.py \
             app/pipeline.py \
