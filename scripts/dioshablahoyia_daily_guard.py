@@ -62,6 +62,16 @@ def _publisher_script() -> str:
     return "publish_dios_fast.py"
 
 
+def _recovery_limit(initial_today: int) -> int:
+    raw = os.getenv("DIOS_GUARD_RECOVERY_LIMIT", "").strip()
+    if raw:
+        try:
+            return max(0, int(raw))
+        except ValueError as exc:
+            raise RuntimeError(f"DIOS_GUARD_RECOVERY_LIMIT invalido: {raw}") from exc
+    return max(0, DAILY_TARGET - initial_today)
+
+
 def main() -> int:
     HISTORY.parent.mkdir(parents=True, exist_ok=True)
     HISTORY.touch(exist_ok=True)
@@ -70,16 +80,16 @@ def main() -> int:
     baseline_lines = HISTORY.read_text(encoding="utf-8").splitlines()
     initial_ids = _uploaded_ids()
     initial_today = today_uploaded_count()
-    initial_missing = max(0, DAILY_TARGET - initial_today)
+    initial_missing = _recovery_limit(initial_today)
     publisher = _publisher_script()
 
     print(f"GUARDIA DIARIA: {initial_today}/{DAILY_TARGET} Shorts subidos al iniciar en Argentina.")
-    print(f"Faltantes congelados para esta recuperacion: {initial_missing}")
+    print(f"Objetivo congelado para esta recuperacion: {initial_missing} nuevas subidas maximas.")
     print(f"Publicador de esta pasada: {publisher}")
 
     if initial_missing <= 0:
         NEW_RECORDS.write_text("", encoding="utf-8")
-        print("Objetivo diario cumplido. No se genera ni se publica contenido extra.")
+        print("No hay subidas pendientes para esta recuperacion.")
         return 0
 
     successful_new = 0
@@ -100,11 +110,11 @@ def main() -> int:
         after_ids = _uploaded_ids()
         newly_recorded = after_ids - before_ids
 
-        # Confirmation is based on a genuinely new YouTube video id, not on the
-        # local calendar date. This lets a recovery that starts just before
-        # midnight finish exactly the number that were missing at launch.
         if newly_recorded:
-            successful_new += len(newly_recorded)
+            # A single publisher invocation should create one video. Clamp the
+            # accounting to the remaining hard limit as a safety net.
+            accepted = min(len(newly_recorded), remaining)
+            successful_new += accepted
             ids_text = ", ".join(sorted(newly_recorded))
             print(
                 f"Short confirmado por nuevo video_id ({ids_text}). "
@@ -118,7 +128,7 @@ def main() -> int:
         if result.returncode != 0:
             print(
                 "La publicacion fallo antes de quedar registrada. Se detiene esta pasada para no gastar "
-                "cuota ni duplicar; el siguiente control automatico volvera a verificar los faltantes.",
+                "cuota ni duplicar.",
                 file=sys.stderr,
             )
             break
@@ -141,8 +151,8 @@ def main() -> int:
     confirmed_new = len(final_ids - initial_ids)
     final_today = today_uploaded_count()
     print(
-        f"GUARDIA DIARIA FINAL: nuevos confirmados={confirmed_new}/{initial_missing}; "
-        f"conteo de la fecha local actual={final_today}/{DAILY_TARGET}"
+        f"GUARDIA FINAL: nuevos confirmados={confirmed_new}/{initial_missing}; "
+        f"conteo fecha local actual={final_today}/{DAILY_TARGET}"
     )
     return 0 if confirmed_new >= initial_missing else 1
 
