@@ -229,23 +229,45 @@ _ORIGINAL_DOWNLOAD = spiritual_image._download
 _ORIGINAL_GEMINI_VOICE = spiritual_tts._gemini_spiritual_voice
 
 
+def _accept_local_variant(provider: str) -> str | None:
+    if not provider.startswith("local_project_jesus_reference"):
+        return None
+    if _local_variant_was_used(provider):
+        return None
+    _LOCAL_VARIANTS_THIS_RUN.add(provider)
+    print(f"HF sin cuota: usando variante local INEDITA y controlada: {provider}")
+    return provider + ":fresh_local_variant_nonrepeat"
+
+
 def _fresh_download(prompt: str, out: Path, seed: int) -> str:
-    """HF first; then unseen local variant; then previously unused free-media URL."""
+    """HF first; then probe unseen local variants; then unused free-media URL."""
     original_provider = ""
     original_error: Exception | None = None
     try:
         original_provider = _ORIGINAL_DOWNLOAD(prompt, out, seed)
         if not original_provider.startswith("local_project_jesus_reference"):
             return original_provider
-        if not _local_variant_was_used(original_provider):
-            _LOCAL_VARIANTS_THIS_RUN.add(original_provider)
-            print(f"HF sin cuota: usando variante local INEDITA y controlada: {original_provider}")
-            return original_provider + ":fresh_local_variant_nonrepeat"
-        print("La variante local exacta ya fue publicada o usada en este Short; buscando una fuente nueva.")
+        accepted = _accept_local_variant(original_provider)
+        if accepted:
+            return accepted
+        print("La primera variante local ya fue publicada o usada en este Short; probando otras variantes locales.")
     except Exception as exc:
         original_error = exc
-        print(f"Generador Hugging Face principal no disponible ({exc}); buscando respaldo libre NUEVO.")
+        print(f"Generador Hugging Face principal no disponible ({exc}); probando fallback local inedito.")
 
+    local_errors: list[str] = []
+    for attempt in range(1, 18):
+        retry_seed = int(seed) + attempt * 104729
+        try:
+            provider = spiritual_image._local_reference(out, retry_seed)
+            accepted = _accept_local_variant(provider)
+            if accepted:
+                return accepted
+            local_errors.append(f"variante ya usada: {provider}")
+        except Exception as local_exc:
+            local_errors.append(str(local_exc))
+
+    print("No se encontro una variante local inedita en los intentos; buscando respaldo libre NUEVO.")
     free_errors: list[str] = []
     for attempt in range(8):
         retry_seed = int(seed) + (attempt * 104729)
@@ -263,7 +285,8 @@ def _fresh_download(prompt: str, out: Path, seed: int) -> str:
     if strict:
         raise RuntimeError(
             "Se rechazo publicar una escena visual repetida. "
-            f"HF/local={original_provider or original_error}; fresh-free={' | '.join(free_errors[-4:])}"
+            f"HF/local={original_provider or original_error}; local-alt={' | '.join(local_errors[-4:])}; "
+            f"fresh-free={' | '.join(free_errors[-4:])}"
         )
     if original_provider:
         return original_provider
