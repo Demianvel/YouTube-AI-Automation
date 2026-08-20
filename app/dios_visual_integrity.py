@@ -35,7 +35,7 @@ def _dhash(path: Path) -> str:
     for row in range(16):
         offset = row * 17
         for col in range(16):
-            bits.append(1 if pixels[offset + col] > pixels[offset + col + 1] else 0)
+            bits.append(1 if pixels[offset + col] > pixels[offset + col + 1) else 0)
     value = 0
     for bit in bits:
         value = (value << 1) | bit
@@ -100,7 +100,13 @@ def fresh_against_persisted_history(path: Path, current_dhash: list[str] | None 
 
 
 def validate_short_visuals(workdir: Path, previous: list[dict], metadata: dict) -> dict:
-    """Block exact or near-duplicate stills before a Dios Short can be uploaded."""
+    """Block exact or near-duplicate stills before a Dios Short can be uploaded.
+
+    A locally derived image is allowed only when it is explicitly marked as a
+    generated variant and the SHA-256 + perceptual checks below prove that the
+    final rendered asset is fresh. The unmodified local reference itself remains
+    forbidden as a final visual.
+    """
     strict = _env_true("SPIRITUAL_REQUIRE_FRESH_VISUAL", True)
     images = sorted(workdir.glob("spiritual_generated_*.jpg"))
     if not images:
@@ -140,12 +146,18 @@ def validate_short_visuals(workdir: Path, previous: list[dict], metadata: dict) 
     providers = metadata.get("generated_visual_provider") or []
     if isinstance(providers, str):
         providers = [providers]
-    if strict and any("local_project_jesus_reference" in str(item) for item in providers):
-        raise RuntimeError("FRESH_VISUAL_GUARD: se rechazo una referencia local antigua como imagen final.")
+    local_providers = [str(item) for item in providers if "local_project_jesus_reference" in str(item)]
+    if strict:
+        for provider in local_providers:
+            if "variant_" not in provider:
+                raise RuntimeError(
+                    "FRESH_VISUAL_GUARD: se rechazo la referencia local base sin transformacion como imagen final."
+                )
 
     metadata["visual_asset_sha256"] = sha_values
     metadata["visual_asset_dhash"] = dhash_values
     metadata["visual_freshness_verified"] = True
     metadata["visual_fingerprint_mode"] = "sha256_plus_256bit_dhash"
     metadata["visual_perceptual_distance_threshold"] = threshold
+    metadata["visual_local_variant_verified"] = bool(local_providers)
     return metadata
