@@ -8,7 +8,10 @@ on:
     branches: [main]
     paths:
       - "app/youtube_growth_engine.py"
+      - "app/youtube_niche_radar.py"
       - "scripts/growth_learn.py"
+      - "scripts/growth_radar.py"
+      - "config/dioshablahoyia_growth_radar.json"
       - ".github/workflows/dioshablahoyia-growth-engine.yml"
 
 permissions:
@@ -21,7 +24,7 @@ concurrency:
 jobs:
   learn:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
     env:
       PYTHONPATH: .
       TZ: America/Argentina/Buenos_Aires
@@ -40,7 +43,7 @@ jobs:
 
       - name: Validate Growth Engine offline
         run: |
-          python -m py_compile app/youtube_growth_engine.py app/fast_spiritual_metadata.py scripts/growth_learn.py
+          python -m py_compile app/youtube_growth_engine.py app/youtube_niche_radar.py app/fast_spiritual_metadata.py scripts/growth_learn.py scripts/growth_radar.py
           python - <<'PY'
           from app.youtube_growth_engine import build_growth_profile, candidate_growth_score
           snapshot = {
@@ -65,19 +68,21 @@ jobs:
           print("Growth Engine offline validation OK", score, reasons)
           PY
 
+      - name: Refresh niche outlier radar once per Argentina day
+        run: python scripts/growth_radar.py --channel dioshablahoyia
+
       - name: Learn from current channel performance
         run: python scripts/growth_learn.py --channel dioshablahoyia --days 90
 
-      - name: Persist learned profile without touching publishing state
+      - name: Persist learning state without touching publishing history
         shell: bash
         run: |
           set -euo pipefail
-          test -f state/growth/dioshablahoyia_growth.json || exit 0
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -- state/growth/dioshablahoyia_growth.json
+          git add -- state/growth/dioshablahoyia_growth.json state/growth/dioshablahoyia_niche_radar.json 2>/dev/null || true
           if git diff --cached --quiet; then
-            echo "Growth profile sin cambios"
+            echo "Growth profile/radar sin cambios"
             exit 0
           fi
           git commit -m "chore: learn Dios Habla Hoy growth profile"
