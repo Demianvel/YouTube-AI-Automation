@@ -1,0 +1,1 @@
+2026-08-19T23:40:00-03:00 | Ejecutar refresco externo ahora. Mantener schedule automatico: sabado 09:00 Argentina y domingo 21:00 Argentina. El NPU local continua 24x7 sin cuotas externas.
