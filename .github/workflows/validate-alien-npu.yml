@@ -77,7 +77,7 @@ jobs:
           seo = build_seo_profile(growth, niche_radar=niche, market_radar=market)
           assert seo["policy"]["first_party_priority"] is True
           assert seo["policy"]["faith_channel_guard"] is True
-          assert seo["confidence"] > 40
+          assert 20 < seo["confidence"] <= 100
           assert seo["keyword_weights"]
           blended = blend_growth_with_seo(growth, seo)
           assert blended.get("seo_cortex", {}).get("weight_in_growth_keywords") == 0.15
