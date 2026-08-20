@@ -1,8 +1,8 @@
 {
   "version": "dios-internal-quality-cortex-v1",
-  "generated_at": "2026-08-20T17:47:07.270536+00:00",
-  "training_generation": 16,
-  "data_fingerprint": "26c0f0f96dbbd1867804dfb34952c5d708256f8a801fe1fec8b2b89d1f60e4c3",
+  "generated_at": "2026-08-20T19:01:33.304445+00:00",
+  "training_generation": 17,
+  "data_fingerprint": "b977374b66fd02f9f2525d914e3c08f2db7a12c9b12d001ff61e993e8f90d66b",
   "changed_since_previous": true,
   "training_mode": "local_only_zero_external_calls",
   "mission": {
@@ -23,9 +23,9 @@
     "publishing_must_continue": true
   },
   "memory": {
-    "uploaded_samples": 61,
+    "uploaded_samples": 62,
     "unique_references": 24,
-    "unique_families": 56,
+    "unique_families": 57,
     "recent_emotional_terms": [
       [
         "paz",
@@ -37,7 +37,7 @@
       ],
       [
         "esperanza",
-        20
+        21
       ],
       [
         "confianza",
@@ -49,7 +49,7 @@
       ],
       [
         "descanso",
-        11
+        12
       ],
       [
         "luz",
@@ -80,6 +80,10 @@
         2
       ],
       [
+        "corazon",
+        2
+      ],
+      [
         "consuelo",
         1
       ],
@@ -96,30 +100,26 @@
         1
       ],
       [
-        "corazon",
-        1
-      ],
-      [
         "alegría",
         1
       ]
     ],
     "recent_teaching_terms": [
       [
+        "enseñanza",
+        21
+      ],
+      [
         "verdad",
         20
       ],
       [
-        "enseñanza",
+        "decisión",
         20
       ],
       [
-        "decisión",
-        19
-      ],
-      [
         "aplicación",
-        15
+        16
       ],
       [
         "camino",
@@ -141,7 +141,7 @@
     "most_used_references": [
       [
         "Filipenses 4:6-7",
-        14
+        15
       ],
       [
         "Mateo 6:25-34",
