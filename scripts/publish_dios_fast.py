@@ -99,6 +99,14 @@ def _source_was_used(provider: str) -> bool:
     return source in _history_provider_text()
 
 
+def _local_variant_was_used(provider: str) -> bool:
+    """Reject only the exact repository reference+variant combination already published."""
+    marker = str(provider).strip()
+    if not marker:
+        return False
+    return marker in _history_provider_text()
+
+
 def _hf_quota_error(exc: Exception) -> bool:
     text = str(exc).lower()
     return any(marker in text for marker in ("zerogpu quota", "quota", "402", "429", "seconds requested", "too_many_requests"))
@@ -226,14 +234,17 @@ _ORIGINAL_GEMINI_VOICE = spiritual_tts._gemini_spiritual_voice
 
 
 def _fresh_download(prompt: str, out: Path, seed: int) -> str:
-    """HF first; reject every old local image and every previously used free-media URL."""
+    """HF first; then unseen local variant; then previously unused free-media URL."""
     original_provider = ""
     original_error: Exception | None = None
     try:
         original_provider = _ORIGINAL_DOWNLOAD(prompt, out, seed)
         if not original_provider.startswith("local_project_jesus_reference"):
             return original_provider
-        print("Referencia local repetible rechazada; se exige una imagen nueva.")
+        if not _local_variant_was_used(original_provider):
+            print(f"HF sin cuota: usando variante local INEDITA y controlada: {original_provider}")
+            return original_provider + ":fresh_local_variant_nonrepeat"
+        print("La variante local exacta ya fue publicada; buscando una fuente nueva.")
     except Exception as exc:
         original_error = exc
         print(f"Generador Hugging Face principal no disponible ({exc}); buscando respaldo libre NUEVO.")
