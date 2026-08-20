@@ -87,8 +87,14 @@ jobs:
 
           workflow = Path('.github/workflows/dioshablahoyia-alien-npu.yml').read_text(encoding='utf-8')
           assert 'cron: "17 * * * *"' in workflow
-          for forbidden in ('YOUTUBE_TOKEN_', 'google-api-python-client', 'npu_market_radar.py --channel', 'growth_radar.py --channel'):
-              assert forbidden not in workflow
+          forbidden = (
+              'YOUTUBE' + '_TOKEN_',
+              'google-api-' + 'python-client',
+              'npu_market_' + 'radar.py --channel',
+              'growth_' + 'radar.py --channel',
+          )
+          for value in forbidden:
+              assert value not in workflow
 
           growth_workflow = Path('.github/workflows/dioshablahoyia-growth-engine.yml').read_text(encoding='utf-8')
           assert 'workflow_dispatch:' in growth_workflow
