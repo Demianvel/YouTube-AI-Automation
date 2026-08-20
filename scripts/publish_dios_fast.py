@@ -3,7 +3,6 @@ from __future__ import annotations
 import json
 import os
 import re
-import subprocess
 from pathlib import Path
 
 from app import pipeline
@@ -20,11 +19,13 @@ from app.spiritual_fresh_reference_bank import (
     is_noah_prompt,
     subject_prompt,
 )
-from app.visual_variety_v2 import attach_visual_pack_v2
+from app.spiritual_visual_motion import render_still_motion
+from app.visual_variety_v3 import attach_visual_pack_v3
 
 ROOT = Path(__file__).resolve().parents[1]
 HISTORY_FILE = ROOT / "state" / "history.jsonl"
 _LOCAL_VARIANTS_THIS_RUN: set[str] = set()
+_LOCAL_BASES_THIS_RUN: set[str] = set()
 
 
 def _fast_local_metadata(channel: dict, previous: list[dict], retries: int = 5) -> dict:
@@ -38,49 +39,38 @@ def _fast_local_metadata(channel: dict, previous: list[dict], retries: int = 5) 
 
 
 def _fast_animate(source: Path, out: Path, duration: int, index: int) -> None:
-    fps = 24
-    frames = max(1, duration * fps)
-    zoom_rate = 0.00072 + (index % 4) * 0.00006
-    x_modes = (
-        "iw/2-(iw/zoom/2)",
-        "min(iw-iw/zoom,(iw-iw/zoom)*on/max(1,duration*24))",
-        "max(0,(iw-iw/zoom)*(1-on/max(1,duration*24)))",
+    label = render_still_motion(
+        source,
+        out,
+        duration,
+        index,
+        width=1080,
+        height=1920,
+        fps=24,
+        preset="veryfast",
+        crf=20,
+        salt="dios-short-v3",
     )
-    y_modes = (
-        "ih/2-(ih/zoom/2)",
-        "min(ih-ih/zoom,(ih-ih/zoom)*on/max(1,duration*24))",
-        "max(0,(ih-ih/zoom)*(1-on/max(1,duration*24)))",
-    )
-    x_expr = x_modes[index % len(x_modes)]
-    y_expr = y_modes[(index // 2) % len(y_modes)]
-    vf = (
-        "scale=1620:2880:force_original_aspect_ratio=increase,"
-        "crop=1620:2880,"
-        f"zoompan=z='min(zoom+{zoom_rate:.5f},1.085)':x='{x_expr}':y='{y_expr}':d={frames}:s=1080x1920:fps={fps},"
-        "setsar=1,eq=contrast=1.02:saturation=1.04:brightness=0.003"
-    )
-    subprocess.run(
-        [
-            "ffmpeg", "-y", "-loglevel", "error", "-loop", "1", "-i", str(source),
-            "-t", str(duration), "-vf", vf, "-an", "-c:v", "libx264", "-preset", "veryfast",
-            "-crf", "20", "-pix_fmt", "yuv420p", "-movflags", "+faststart", str(out),
-        ],
-        check=True,
-    )
+    print(f"Movimiento cinematografico escena {index + 1}: {label}")
 
 
-def _history_provider_text(limit: int = 160) -> str:
+def _history_rows(limit: int = 200) -> list[dict]:
     if not HISTORY_FILE.exists():
-        return ""
-    chunks: list[str] = []
-    rows = HISTORY_FILE.read_text(encoding="utf-8").splitlines()[-limit:]
-    for raw in rows:
+        return []
+    rows: list[dict] = []
+    for raw in HISTORY_FILE.read_text(encoding="utf-8").splitlines()[-limit:]:
         try:
             row = json.loads(raw)
         except Exception:
             continue
-        if row.get("channel") != "dioshablahoyia":
-            continue
+        if row.get("channel") == "dioshablahoyia":
+            rows.append(row)
+    return rows
+
+
+def _history_provider_text(limit: int = 200) -> str:
+    chunks: list[str] = []
+    for row in _history_rows(limit):
         providers = row.get("generated_visual_provider") or []
         if isinstance(providers, str):
             providers = [providers]
@@ -89,19 +79,49 @@ def _history_provider_text(limit: int = 160) -> str:
 
 
 def _remote_source_marker(provider: str) -> str:
-    match = re.search(r"\bsource=([^ |]+)", str(provider))
-    return match.group(1).strip() if match else ""
+    text = str(provider or "")
+    source = re.search(r"\bsource=([^ |]+)", text)
+    if source:
+        return f"source:{source.group(1).strip()}"
+    pexels = re.search(r"\bid=([0-9]+)", text)
+    if pexels and text.startswith("Pexels"):
+        return f"pexels:{pexels.group(1)}"
+    local = re.search(r"reference:([^/|]+\.jpg)", text)
+    if local and "local_project_jesus_reference" in text:
+        return f"local-reference:{local.group(1)}"
+    return ""
 
 
 def _source_was_used(provider: str) -> bool:
-    source = _remote_source_marker(provider)
-    if not source:
+    marker = _remote_source_marker(provider)
+    if not marker:
         return False
-    return source in _history_provider_text()
+    history = _history_provider_text()
+    raw_marker = marker.split(":", 1)[1] if ":" in marker else marker
+    return raw_marker in history
+
+
+def _local_base_marker(provider: str) -> str:
+    match = re.search(r"reference:([^/|]+\.jpg)", str(provider or ""))
+    return match.group(1) if match else ""
+
+
+def _local_base_recently_used(provider: str, video_window: int = 18) -> bool:
+    base = _local_base_marker(provider)
+    if not base:
+        return True
+    if base in _LOCAL_BASES_THIS_RUN:
+        return True
+    for row in _history_rows(video_window):
+        providers = row.get("generated_visual_provider") or []
+        if isinstance(providers, str):
+            providers = [providers]
+        if any(base in str(item) for item in providers):
+            return True
+    return False
 
 
 def _local_variant_was_used(provider: str) -> bool:
-    """Reject the exact repository reference+variant in history or this process."""
     marker = str(provider).strip()
     if not marker:
         return False
@@ -120,7 +140,6 @@ def _open_hf_circuit_if_quota(exc: Exception) -> None:
 
 
 def _text_only_reference(seed: int) -> Path:
-    """Return any repository marker path; FLUX text mode never reads its image bytes."""
     refs = reference_generation._reference_files()
     if not refs:
         raise RuntimeError("No hay ningun marcador de referencia disponible para etiquetar la generacion text-to-image.")
@@ -134,7 +153,6 @@ def _fresh_bank_reference_guided(
     seed: int,
     target_size: tuple[int, int] = (1080, 1920),
 ) -> tuple[str, str]:
-    """New GitHub references for Jesus/Noah; clean FLUX text generation for scenery."""
     if getattr(reference_generation, "_REMOTE_CIRCUIT_OPEN", False):
         raise RuntimeError("HF free-image circuit abierto para esta ejecucion; fallback inmediato.")
 
@@ -232,61 +250,86 @@ _ORIGINAL_GEMINI_VOICE = spiritual_tts._gemini_spiritual_voice
 def _accept_local_variant(provider: str) -> str | None:
     if not provider.startswith("local_project_jesus_reference"):
         return None
-    if _local_variant_was_used(provider):
+    if _local_variant_was_used(provider) or _local_base_recently_used(provider):
         return None
+    base = _local_base_marker(provider)
     _LOCAL_VARIANTS_THIS_RUN.add(provider)
-    print(f"HF sin cuota: usando variante local INEDITA y controlada: {provider}")
-    return provider + ":fresh_local_variant_nonrepeat"
+    if base:
+        _LOCAL_BASES_THIS_RUN.add(base)
+    print(f"Fallback local excepcional: referencia base NO usada recientemente: {provider}")
+    return provider + ":fresh_local_variant_nonrepeat:last_resort_only"
+
+
+def _fresh_free_media(prompt: str, out: Path, seed: int, attempts: int = 18) -> str:
+    errors: list[str] = []
+    for attempt in range(attempts):
+        retry_seed = int(seed) + (attempt + 1) * 104729
+        try:
+            provider = download_fresh_free_image(prompt, out, retry_seed)
+            if _source_was_used(provider):
+                errors.append(f"fuente ya usada: {_remote_source_marker(provider)}")
+                continue
+            return provider + ":fresh_source_nonrepeat_v3"
+        except Exception as exc:
+            errors.append(str(exc))
+    raise RuntimeError("No se encontro fuente visual gratuita nueva: " + " | ".join(errors[-5:]))
+
+
+def _symbolic_prompt_for_jesus(prompt: str) -> str:
+    return (
+        "symbolic Christian faith cutaway instead of a repeated portrait: open Bible, simple wooden cross, olive branches, "
+        "living water, sunrise through clouds, peaceful biblical landscape, premium photoreal cinematic composition, "
+        "no human portrait, no text, no logo, no watermark. Context: " + str(prompt)
+    )
 
 
 def _fresh_download(prompt: str, out: Path, seed: int) -> str:
-    """HF first; then probe unseen local variants; then unused free-media URL."""
+    """Generate first; when GPU is unavailable, prefer a genuinely new source over recycling a base portrait."""
     original_provider = ""
     original_error: Exception | None = None
     try:
         original_provider = _ORIGINAL_DOWNLOAD(prompt, out, seed)
         if not original_provider.startswith("local_project_jesus_reference"):
             return original_provider
-        accepted = _accept_local_variant(original_provider)
-        if accepted:
-            return accepted
-        print("La primera variante local ya fue publicada o usada en este Short; probando otras variantes locales.")
+        print("El generador principal devolvio una referencia local; no se acepta automaticamente porque visualmente puede repetirse.")
     except Exception as exc:
         original_error = exc
-        print(f"Generador Hugging Face principal no disponible ({exc}); probando fallback local inedito.")
+        print(f"Generador principal no disponible ({exc}); activando diversidad visual de respaldo v3.")
 
-    local_errors: list[str] = []
-    for attempt in range(1, 18):
-        retry_seed = int(seed) + attempt * 104729
-        try:
-            provider = spiritual_image._local_reference(out, retry_seed)
-            accepted = _accept_local_variant(provider)
-            if accepted:
-                return accepted
-            local_errors.append(f"variante ya usada: {provider}")
-        except Exception as local_exc:
-            local_errors.append(str(local_exc))
+    jesus_scene = is_jesus_prompt(subject_prompt(prompt))
 
-    print("No se encontro una variante local inedita en los intentos; buscando respaldo libre NUEVO.")
-    free_errors: list[str] = []
-    for attempt in range(8):
-        retry_seed = int(seed) + (attempt * 104729)
-        try:
-            provider = download_fresh_free_image(prompt, out, retry_seed)
-            if _source_was_used(provider):
-                free_errors.append(f"fuente ya usada: {_remote_source_marker(provider)}")
-                print("Fuente libre ya utilizada en un Short anterior; buscando otra.")
-                continue
-            return provider + ":fresh_nonrepeat_fallback"
-        except Exception as fresh_exc:
-            free_errors.append(str(fresh_exc))
+    # For scenic/symbolic scenes, a fresh remote CC0/Pexels source is much more
+    # diverse than another crop of the same Jesus portrait.
+    free_prompt = _symbolic_prompt_for_jesus(prompt) if jesus_scene else prompt
+    try:
+        return _fresh_free_media(free_prompt, out, seed, attempts=20)
+    except Exception as free_exc:
+        print(f"No se encontro fuente libre nueva ({free_exc}).")
+
+    # Only a Jesus-specific scene may use a local Jesus base, only once per Short,
+    # and only when that base did not appear in the recent channel history.
+    if jesus_scene:
+        local_errors: list[str] = []
+        for attempt in range(1, 30):
+            retry_seed = int(seed) + attempt * 130363
+            try:
+                provider = spiritual_image._local_reference(out, retry_seed)
+                accepted = _accept_local_variant(provider)
+                if accepted:
+                    return accepted
+                local_errors.append(f"base/variante reciente: {provider}")
+            except Exception as local_exc:
+                local_errors.append(str(local_exc))
+        raise RuntimeError(
+            "Se rechazo repetir el retrato local de Jesus. "
+            f"primary={original_provider or original_error}; local={' | '.join(local_errors[-5:])}"
+        )
 
     strict = os.getenv("SPIRITUAL_REQUIRE_FRESH_VISUAL", "true").lower().strip() == "true"
     if strict:
         raise RuntimeError(
-            "Se rechazo publicar una escena visual repetida. "
-            f"HF/local={original_provider or original_error}; local-alt={' | '.join(local_errors[-4:])}; "
-            f"fresh-free={' | '.join(free_errors[-4:])}"
+            "Se rechazo sustituir una escena de paisaje/simbolo por un retrato local repetitivo. "
+            f"primary={original_provider or original_error}"
         )
     if original_provider:
         return original_provider
@@ -294,12 +337,11 @@ def _fresh_download(prompt: str, out: Path, seed: int) -> str:
 
 
 def _quota_resilient_gemini_voice(path: Path, text: str) -> str:
-    """Delegate quota-aware retries to the permanent Voz de Luz TTS implementation."""
     return _ORIGINAL_GEMINI_VOICE(path, text)
 
 
 pipeline.generate_metadata = _fast_local_metadata
-pipeline.attach_visual_pack = attach_visual_pack_v2
+pipeline.attach_visual_pack = attach_visual_pack_v3
 spiritual_image.generate_reference_guided_image = _fresh_bank_reference_guided
 spiritual_image._download = _fresh_download
 spiritual_image._animate = _fast_animate
