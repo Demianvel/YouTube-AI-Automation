@@ -24,6 +24,7 @@ from app.visual_variety_v2 import attach_visual_pack_v2
 
 ROOT = Path(__file__).resolve().parents[1]
 HISTORY_FILE = ROOT / "state" / "history.jsonl"
+_LOCAL_VARIANTS_THIS_RUN: set[str] = set()
 
 
 def _fast_local_metadata(channel: dict, previous: list[dict], retries: int = 5) -> dict:
@@ -100,11 +101,11 @@ def _source_was_used(provider: str) -> bool:
 
 
 def _local_variant_was_used(provider: str) -> bool:
-    """Reject only the exact repository reference+variant combination already published."""
+    """Reject the exact repository reference+variant in history or this process."""
     marker = str(provider).strip()
     if not marker:
         return False
-    return marker in _history_provider_text()
+    return marker in _LOCAL_VARIANTS_THIS_RUN or marker in _history_provider_text()
 
 
 def _hf_quota_error(exc: Exception) -> bool:
@@ -139,8 +140,6 @@ def _fresh_bank_reference_guided(
 
     subject = subject_prompt(full_prompt)
 
-    # Noah's Ark has its own reference bank and must never be confused with the
-    # substring 'ark' inside the word 'watermark'.
     if is_noah_prompt(subject):
         try:
             chosen = choose_reference_for_prompt(subject, seed)
@@ -207,9 +206,6 @@ def _fresh_bank_reference_guided(
         finally:
             reference_generation.choose_reference = previous_choose
 
-    # Landscapes, Bible still lifes and symbolic cutaways are intentionally
-    # generated without the generic Jesus identity boilerplate. This keeps the
-    # Short visually varied instead of turning every scene into the same portrait.
     try:
         reference = choose_new_jesus_reference(seed)
     except Exception:
@@ -242,9 +238,10 @@ def _fresh_download(prompt: str, out: Path, seed: int) -> str:
         if not original_provider.startswith("local_project_jesus_reference"):
             return original_provider
         if not _local_variant_was_used(original_provider):
+            _LOCAL_VARIANTS_THIS_RUN.add(original_provider)
             print(f"HF sin cuota: usando variante local INEDITA y controlada: {original_provider}")
             return original_provider + ":fresh_local_variant_nonrepeat"
-        print("La variante local exacta ya fue publicada; buscando una fuente nueva.")
+        print("La variante local exacta ya fue publicada o usada en este Short; buscando una fuente nueva.")
     except Exception as exc:
         original_error = exc
         print(f"Generador Hugging Face principal no disponible ({exc}); buscando respaldo libre NUEVO.")
