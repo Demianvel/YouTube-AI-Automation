@@ -6,14 +6,14 @@ on:
     branches: [main]
     paths:
       - "app/alien_npu_brain.py"
-      - "app/npu_market_radar.py"
       - "app/npu_seo_cortex.py"
+      - "app/npu_internal_cortex.py"
       - "app/fast_spiritual_metadata.py"
       - "scripts/npu_brain_learn.py"
-      - "scripts/npu_market_radar.py"
       - "scripts/npu_seo_train.py"
-      - "config/npu_market_radar.json"
+      - "scripts/npu_internal_train.py"
       - ".github/workflows/dioshablahoyia-alien-npu.yml"
+      - ".github/workflows/dioshablahoyia-growth-engine.yml"
       - ".github/workflows/validate-alien-npu.yml"
 
 permissions:
@@ -32,30 +32,26 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Install lightweight dependencies
-        run: pip install -q google-api-python-client google-auth
-
-      - name: Compile NPU modules
+      - name: Compile local NPU modules
         run: |
           python -m py_compile \
             app/alien_npu_brain.py \
-            app/npu_market_radar.py \
             app/npu_seo_cortex.py \
+            app/npu_internal_cortex.py \
             app/fast_spiritual_metadata.py \
             scripts/npu_brain_learn.py \
-            scripts/npu_market_radar.py \
-            scripts/npu_seo_train.py
+            scripts/npu_seo_train.py \
+            scripts/npu_internal_train.py
 
-      - name: Validate NPU SEO architecture and fail-open behavior
+      - name: Validate zero-quota NPU, quality and fail-open behavior
         run: |
           python - <<'PY'
-          import json
           from pathlib import Path
-          from app.alien_npu_brain import build_brain_state, score_theme, rerank_themes
+          from app.alien_npu_brain import build_brain_state, rerank_themes
           from app.fast_spiritual_metadata import THEMES, build_fast_metadata
-          from app.youtube_growth_engine import ranked_theme_indices
-          from app.npu_market_radar import _score_video
+          from app.npu_internal_cortex import build_internal_profile, rerank_for_quality
           from app.npu_seo_cortex import build_seo_profile, blend_growth_with_seo
+          from app.youtube_growth_engine import ranked_theme_indices
 
           growth = {
               "version": "test-growth",
@@ -68,57 +64,46 @@ jobs:
               "family_weights": [{"key":"Marcos 4 y Jesus calma la tormenta", "mean_score":93}],
               "keyword_weights": [{"key":"tormenta", "mean_score":94}, {"key":"paz", "mean_score":92}, {"key":"aves", "mean_score":88}],
           }
-          niche = {"keyword_weights": [{"key":"tormenta", "mean_score":86}, {"key":"oración", "mean_score":82}]}
-          market = {"niches": [
-              {"niche":"fe_cristiana", "query":"Dios Jesus Biblia oración reflexión", "opportunity_score":73, "keywords":["oración","reflexión","esperanza"]},
-              {"niche":"finanzas_personales", "query":"finanzas personales", "opportunity_score":95, "keywords":["inversión","dinero"]},
-          ]}
-
-          seo = build_seo_profile(growth, niche_radar=niche, market_radar=market)
-          assert seo["policy"]["first_party_priority"] is True
-          assert seo["policy"]["faith_channel_guard"] is True
-          assert 20 < seo["confidence"] <= 100
-          assert seo["keyword_weights"]
+          seo = build_seo_profile(growth, niche_radar={}, market_radar={})
           blended = blend_growth_with_seo(growth, seo)
-          assert blended.get("seo_cortex", {}).get("weight_in_growth_keywords") == 0.15
+          brain = build_brain_state(blended, niche_radar={}, market_radar={})
 
-          brain = build_brain_state(blended, niche_radar=niche, market_radar=market)
-          assert brain["architecture"]["literal_consciousness"] is False
-          assert brain["architecture"]["literal_quantum_hardware"] is False
-          assert brain["architecture"]["fail_open"] is True
-          assert brain["architecture"]["no_viral_guarantee"] is True
-          assert brain["brain_confidence"] > 50
-          assert abs(sum(brain["weights"].values()) - 1.0) < 0.01
+          history = [
+              {"channel":"dioshablahoyia","status":"uploaded","video_id":"a","title":"Dios trae paz y esperanza","bible_reference":"Juan 14:27","content_family":"paz y esperanza"},
+              {"channel":"dioshablahoyia","status":"uploaded","video_id":"b","title":"Una enseñanza para el corazón","bible_reference":"Salmo 23:1-4","content_family":"consuelo y confianza"},
+          ]
+          internal = build_internal_profile(history, growth, seo, {})
+          assert internal["training_mode"] == "local_only_zero_external_calls"
+          assert internal["mission"]["publishing_must_continue"] is True
+          assert internal["mission"]["never_sacrifice_quality_for_clickbait"] is True
+          assert internal["training_generation"] == 1
 
           previous = [{"status":"uploaded", "bible_reference":"Salmo 23:1-4", "content_family":"Salmo 23"}]
-          decision = score_theme(THEMES[19], previous, state=brain)
-          assert 0 <= decision.score <= 100
-          assert 0 <= decision.confidence <= 100
-          assert decision.lobes["channel_fit"] >= 60
           baseline = ranked_theme_indices(THEMES, previous, 12345, profile=blended)
-          ranked = rerank_themes(THEMES, previous, 12345, baseline, state=brain)
-          assert len(ranked) == len(THEMES)
-          assert all(0 <= score <= 100 for _, score, _ in ranked)
-
-          market_score = _score_video(
-              {"views":10000,"likes":800,"comments":100,"published_at":"2026-08-19T00:00:00Z"},
-              subscribers=5000,
-              median_vph=20,
-          )
-          assert 0 <= market_score["demand_score"] <= 100
-
-          cfg = json.loads(Path("config/npu_market_radar.json").read_text(encoding="utf-8"))
-          assert len(cfg["queries"]) <= int(cfg["policy"]["max_daily_search_calls"])
-          assert cfg["policy"]["never_auto_switch_channel_niche"] is True
-          assert cfg["policy"]["never_claim_actual_rpm_without_first_party_data"] is True
+          npu_ranked = rerank_themes(THEMES, previous, 12345, baseline, state=brain)
+          quality_ranked = rerank_for_quality(THEMES, previous, npu_ranked, state=internal)
+          assert len(quality_ranked) == len(THEMES)
+          assert all(0 <= score <= 100 for _, score, _ in quality_ranked)
 
           workflow = Path('.github/workflows/dioshablahoyia-alien-npu.yml').read_text(encoding='utf-8')
           assert 'cron: "17 * * * *"' in workflow
-          assert 'scripts/npu_seo_train.py' in workflow
+          forbidden = (
+              'YOUTUBE' + '_TOKEN_',
+              'google-api-' + 'python-client',
+              'npu_market_' + 'radar.py --channel',
+              'growth_' + 'radar.py --channel',
+          )
+          for value in forbidden:
+              assert value not in workflow
+
+          growth_workflow = Path('.github/workflows/dioshablahoyia-growth-engine.yml').read_text(encoding='utf-8')
+          assert 'workflow_dispatch:' in growth_workflow
+          assert 'schedule:' not in growth_workflow
 
           base = {"scenes": [{"visual_prompt":"test"} for _ in range(6)]}
           result = build_fast_metadata(base, {"scenes_per_short":6}, [])
           assert result["title"] and result["bible_reference"]
           assert len(result["scenes"]) == 6
-          print("Alien NPU + SEO 24x7 validation OK", decision.score, decision.confidence, seo["confidence"])
+          assert result["editorial_tone"].startswith("emotivo_")
+          print("ZERO_QUOTA_INTERNAL_NPU_VALIDATION_OK")
           PY

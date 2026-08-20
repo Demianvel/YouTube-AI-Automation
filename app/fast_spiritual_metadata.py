@@ -7,6 +7,7 @@ import time
 from difflib import SequenceMatcher
 
 from .alien_npu_brain import load_brain_state, rerank_themes
+from .npu_internal_cortex import load_internal_profile, rerank_for_quality
 from .youtube_growth_engine import load_growth_profile, ranked_theme_indices
 
 
@@ -55,6 +56,9 @@ INTRO_STYLES = (
     "Hay momentos en que una sola verdad puede ordenar el corazón:",
     "Si hoy sentís que llevás demasiado peso, recordá esto:",
     "Una enseñanza antigua puede hablar con mucha claridad a lo que vivís hoy:",
+    "Si necesitás una palabra que vuelva a encender la esperanza, escuchá esto:",
+    "Hay una verdad bíblica que puede cambiar la manera en que mirás este día:",
+    "No pases de largo esta enseñanza: puede tocar justo lo que estás viviendo:",
 )
 
 BRIDGE_STYLES = (
@@ -64,6 +68,7 @@ BRIDGE_STYLES = (
     "La confianza no exige entender cada detalle antes de avanzar; sí invita a caminar con integridad.",
     "Muchas veces la respuesta comienza cuando dejamos de intentar resolverlo todo al mismo tiempo.",
     "Esta enseñanza no promete una vida sin problemas, pero sí cambia la manera de enfrentarlos.",
+    "La esperanza bíblica no es pasiva: nos anima a levantarnos, aprender y dar el próximo paso con propósito.",
 )
 
 CLOSINGS = (
@@ -73,6 +78,8 @@ CLOSINGS = (
     "Que Dios te conceda claridad para decidir, paciencia para esperar y fuerza para perseverar en el bien. Amén.",
     "Guardá esta enseñanza para cuando vuelva el ruido y recordá que la fe también se construye un día a la vez. Amén.",
     "Que la Palabra de Dios vuelva a ordenar tu mirada y te recuerde que la esperanza todavía tiene lugar. Amén.",
+    "Que esta enseñanza no termine en este video: convertí hoy la esperanza en una acción concreta de fe. Amén.",
+    "Seguí adelante con fe y alegría serena; todavía hay una enseñanza, una oportunidad y un nuevo paso por delante. Amén.",
 )
 
 
@@ -101,7 +108,13 @@ def _candidate(theme: tuple[str, str, str, str], style: int, count: int) -> dict
     ]
     while len(lines) < count:
         lines.append(lines[len(lines) % 6])
-    title_prefixes = ("Una palabra para hoy", "Cuando necesitás dirección", "Una verdad bíblica para recordar", "Fe para este momento")
+    title_prefixes = (
+        "Una palabra para hoy",
+        "Cuando necesitás dirección",
+        "Una verdad bíblica para recordar",
+        "Fe para este momento",
+        "Una enseñanza que puede darte esperanza",
+    )
     title = f"{title_prefixes[style % len(title_prefixes)]} | {reference}"
     topic = f"{family} — enfoque {style + 1}"
     script = _clean(" ".join(lines[:count]))
@@ -145,16 +158,26 @@ def build_fast_metadata(base_metadata: dict, channel: dict, previous: list[dict]
     if brain:
         ranked = rerank_themes(THEMES, previous, seed, ranked, state=brain)
 
+    internal = load_internal_profile()
+    if internal:
+        ranked = rerank_for_quality(THEMES, previous, ranked, state=internal)
+
     explore = bool(profile) and (seed % 1000) < 250
     if explore:
-        # Exploration deliberately tests fresh topics. This protects the channel
-        # from overfitting to yesterday's winner while still honoring dedupe gates.
-        theme_order = [((seed + offset) % len(THEMES), 50.0, ["exploración controlada 25%"]) for offset in range(len(THEMES))]
-        growth_mode = "explore"
+        exploratory = [
+            ((seed + offset) % len(THEMES), 50.0, ["exploración controlada 25%"])
+            for offset in range(len(THEMES))
+        ]
+        theme_order = rerank_for_quality(THEMES, previous, exploratory, state=internal) if internal else exploratory
+        growth_mode = "explore_quality" if internal else "explore"
     else:
         theme_order = ranked
-        if brain:
+        if internal and brain:
+            growth_mode = "alien_npu_quality_ranked"
+        elif brain:
             growth_mode = "alien_npu_ranked"
+        elif internal:
+            growth_mode = "internal_quality_ranked"
         else:
             growth_mode = "learned_rank" if profile else "neutral_fallback"
 
@@ -196,12 +219,16 @@ def build_fast_metadata(base_metadata: dict, channel: dict, previous: list[dict]
         f"Reflexión cristiana inspirada en {chosen['reference']} para fortalecer la fe, "
         "la esperanza y la confianza en Dios en la vida cotidiana."
     )
-    base_metadata["cta"] = "Si esta palabra te ayudó, guardala para volver a escucharla cuando la necesites."
-    base_metadata["metadata_provider"] = "local_unique_biblical:alien_npu:growth_ranked:deduped:v5"
+    base_metadata["cta"] = "Si esta palabra te ayudó, guardala y compartila con alguien que hoy necesite esperanza."
+    base_metadata["editorial_tone"] = "emotivo_esperanzador_entusiasta_humano_reverente_sin_clickbait"
+    base_metadata["quality_mission"] = "crear_publicar_aprender_mejorar_con_calidad"
+    base_metadata["metadata_provider"] = "local_unique_biblical:alien_npu:quality_cortex:growth_ranked:deduped:v6"
     base_metadata["growth_engine_version"] = str(profile.get("version") or "neutral")
     base_metadata["growth_selection_mode"] = growth_mode
     base_metadata["growth_candidate_score"] = round(chosen_growth_score, 2)
     base_metadata["growth_selection_reasons"] = chosen_growth_reasons[:7]
     base_metadata["npu_brain_version"] = str(brain.get("version") or "inactive")
     base_metadata["npu_brain_confidence"] = float(brain.get("brain_confidence") or 0.0)
+    base_metadata["internal_quality_cortex_version"] = str(internal.get("version") or "inactive")
+    base_metadata["internal_training_generation"] = int(internal.get("training_generation") or 0)
     return base_metadata
