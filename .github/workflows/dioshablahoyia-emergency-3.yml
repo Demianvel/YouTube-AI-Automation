@@ -1,0 +1,169 @@
+name: Dios Habla Hoy IA - Emergencia exacta 3 Shorts
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "triggers/dioshablahoyia-emergency-3-now.txt"
+
+permissions:
+  contents: write
+  issues: write
+
+concurrency:
+  group: dioshablahoyia-short-publisher
+  cancel-in-progress: true
+
+jobs:
+  recover3:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    env:
+      PYTHONPATH: .
+      TZ: America/Argentina/Buenos_Aires
+      CHANNEL: dioshablahoyia
+      CONTENT_MODE: voice
+      DIOS_GUARD_LOCAL_ONLY: "true"
+      DIOS_GUARD_RECOVERY_LIMIT: "3"
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      GEMINI_TEXT_MODEL: gemini-3.6-flash
+      GEMINI_TTS_MODEL: gemini-3.1-flash-tts-preview
+      GEMINI_TTS_VOICE: Algenib
+      GEMINI_TTS_MAX_ATTEMPTS: "4"
+      SPIRITUAL_MALE_GEMINI_VOICE: Algenib
+      SPIRITUAL_VOICE_PROFILE: voz_de_luz_serena_original_v1
+      SPIRITUAL_VOICE_BRAND: Voz de Luz
+      SPIRITUAL_VOICE_LOCKED: "true"
+      SPIRITUAL_VOICEOVER_MODE: "true"
+      SPIRITUAL_LIPSYNC_ENABLED: "false"
+      SPIRITUAL_REQUIRE_PRIMARY_VOICE: "true"
+      SPIRITUAL_SHORT_SECONDS: "60"
+      SPIRITUAL_SHORT_SCENE_SECONDS: "10"
+      SPIRITUAL_SHORT_AI_CLIPS: "0"
+      SPIRITUAL_ALLOW_STILL_FALLBACK: "true"
+      SPIRITUAL_FAST_RENDER: "true"
+      SPIRITUAL_VISUAL_VARIETY_LEVEL: maximum
+      SPIRITUAL_EDITORIAL_VARIETY_LEVEL: high
+      SPIRITUAL_CTA_OVERLAY: "false"
+      SPIRITUAL_REQUIRE_FRESH_VISUAL: "true"
+      SPIRITUAL_VISUAL_PHASH_MAX_DISTANCE: "7"
+      TTS_PROVIDER: gemini_tts
+      TTS_FALLBACK_KOKORO: "false"
+      GEMINI_VIDEO_ENABLED: "false"
+      HF_VIDEO_ENABLED: "false"
+      HF_REQUIRE_TEXT_TO_VIDEO: "false"
+      HF_VIDEO_STRICT: "false"
+      HF_REFERENCE_IMAGE_ENABLED: "false"
+      HF_REFERENCE_EDITOR_ENABLED: "false"
+      HF_TEXT_ZERO_ENABLED: "false"
+      HF_INFERENCE_PROVIDER_ENABLED: "false"
+      HF_ZERO_TOKEN: ""
+      HF_TOKEN: ""
+      SPIRITUAL_REFERENCE_AVOID_RECENT: "100"
+      DIOS_FAST_LOCAL_VISUAL_MODE: "true"
+      MUSIC_PROVIDER: local
+      YOUTUBE_TOKEN_DIOSHABLAHOYIA: ${{ secrets.YOUTUBE_TOKEN_DIOSHABLAHOYIA }}
+      FACEBOOK_PAGE_ID: ${{ secrets.FACEBOOK_PAGE_ID }}
+      FACEBOOK_PAGE_ACCESS_TOKEN: ${{ secrets.FACEBOOK_PAGE_ACCESS_TOKEN }}
+      FACEBOOK_GRAPH_API_VERSION: v25.0
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install emergency publisher runtime
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg espeak-ng libsndfile1 fonts-dejavu-core git >/dev/null
+          python -m pip install -q --upgrade pip
+          pip install -q \
+            "google-genai>=2.3.0" \
+            "google-api-python-client>=2.170.0" \
+            "google-auth>=2.40.0" \
+            "google-auth-oauthlib>=1.2.2" \
+            "Pillow>=11.0.0" \
+            "requests>=2.32.0" \
+            "numpy<3,>=1.26" \
+            "soundfile>=0.13.1" \
+            "huggingface_hub<2,>=0.34.4" \
+            "gradio_client<3,>=1.11.0"
+
+      - name: Verify exact emergency guardrails
+        run: |
+          test -n "$YOUTUBE_TOKEN_DIOSHABLAHOYIA"
+          test -n "$GEMINI_API_KEY"
+          test "$DIOS_GUARD_RECOVERY_LIMIT" = "3"
+          test "$DIOS_GUARD_LOCAL_ONLY" = "true"
+          test "$GEMINI_TTS_VOICE" = "Algenib"
+          test "$GEMINI_TTS_MAX_ATTEMPTS" = "4"
+          test "$SPIRITUAL_VOICE_LOCKED" = "true"
+          test "$SPIRITUAL_REQUIRE_PRIMARY_VOICE" = "true"
+          test "$TTS_FALLBACK_KOKORO" = "false"
+          test -z "$HF_TOKEN"
+          test -z "$HF_ZERO_TOKEN"
+          python -m py_compile \
+            scripts/dioshablahoyia_daily_guard.py \
+            scripts/publish_dios_fast.py \
+            scripts/publish_dios_fast_local_emergency.py \
+            app/dios_visual_integrity.py \
+            app/spiritual_tts.py \
+            app/spiritual_audio.py \
+            app/youtube.py \
+            app/pipeline.py
+
+      - name: Publish exactly three missing Shorts
+        run: python scripts/dioshablahoyia_daily_guard.py
+
+      - name: Persist every successful upload
+        if: always()
+        shell: bash
+        run: |
+          RECORDS="/tmp/dios-daily-guard/new-short-records.jsonl"
+          test -f "$RECORDS" || exit 0
+          test -s "$RECORDS" || exit 0
+          cp "$RECORDS" /tmp/dios-emergency-3-records.jsonl
+          git config user.name "youtube-ai-bot"
+          git config user.email "actions@users.noreply.github.com"
+          for attempt in 1 2 3 4 5; do
+            git fetch origin main
+            git reset --hard origin/main
+            mkdir -p state
+            touch state/history.jsonl
+            while IFS= read -r record; do
+              test -n "$record" || continue
+              video_id=$(printf '%s' "$record" | python -c 'import json,sys; print(json.load(sys.stdin).get("video_id", ""))' 2>/dev/null || true)
+              if test -n "$video_id" && grep -Fq "\"video_id\": \"$video_id\"" state/history.jsonl; then
+                continue
+              fi
+              printf '%s\n' "$record" >> state/history.jsonl
+            done < /tmp/dios-emergency-3-records.jsonl
+            git add state/history.jsonl
+            if git diff --cached --quiet; then exit 0; fi
+            git commit -m "chore: persist exact 3 Dios emergency Shorts"
+            if git push origin HEAD:main; then exit 0; fi
+          done
+          exit 1
+
+      - name: Upload diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dioshablahoyia-emergency-3-${{ github.run_id }}
+          path: output/
+          if-no-files-found: ignore
+          retention-days: 2
+
+      - name: Open issue on emergency failure
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh issue create \
+            --title "Dios Habla Hoy - emergencia exacta 3 Shorts fallo" \
+            --body "La recuperacion exacta de 3 Shorts fallo. Revisar Actions run $GITHUB_RUN_ID. Voz de Luz/Algenib permanecio bloqueada y no se habilito HF."
