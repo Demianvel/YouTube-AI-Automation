@@ -1,1 +1,1 @@
-2026-08-19 23:56 ART | ejecutar guardia diaria zero-HF corregida ahora; completar solo faltantes hasta 10; Voz de Luz Algenib fija; 4 intentos respetando Retry-After; sin duplicados
+2026-08-19 23:58 ART | publicar ahora los 3 faltantes; zero-HF; Voz de Luz Algenib fija; continuidad natural >=82%; conservar objetivo inicial aunque cruce medianoche; sin duplicados
