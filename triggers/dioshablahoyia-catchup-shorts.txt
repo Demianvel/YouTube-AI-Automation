@@ -1,1 +1,1 @@
-2026-08-19T22:48:23-03:00 | daily guard: current history below 10; completar solo los Shorts faltantes hasta exactamente 10, sin duplicados, mantener permanentemente Voz de Luz / Algenib, nunca usar voz fallback
+2026-08-19T23:10:05-03:00 | NPU guard: history registra 7 Shorts uploaded para el dia local 2026-08-19; completar solo los 3 faltantes hasta exactamente 10, sin duplicados, mantener permanentemente Voz de Luz / Algenib, voice_identity_locked=true, nunca usar voz fallback; Growth/NPU fail-open y nunca bloquear publishing
