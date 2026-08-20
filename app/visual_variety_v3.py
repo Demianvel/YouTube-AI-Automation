@@ -33,13 +33,52 @@ EXTRA_FAMILY_SCENES: dict[str, tuple[str, ...]] = {
         "historic stone sanctuary beside a river with mist lifting from surrounding trees",
         "quiet candlelit stone alcove with an open Bible and no decorative text",
     ),
+    "daily_faith_moments": (
+        "hands opening a Bible beside a quiet breakfast table while early sunlight enters through a window, no visible face",
+        "person seen from behind walking alone on a coastal path at sunrise with natural wind moving clothing",
+        "hands offering a glass of water to another person in a simple act of compassion, faces outside frame",
+        "quiet bedroom window at blue hour with an open Bible on a bedside table and soft natural shadows",
+        "person seen from a distance sitting beside a lake in silent reflection under changing clouds",
+        "two hands gently holding each other during a difficult moment with warm window light and realistic skin detail",
+        "boots walking along a wet forest trail after rain while sun rays appear between trees",
+        "simple meal being shared at a wooden table with natural hands entering frame and no staged posing",
+        "person from behind standing on a hill as storm clouds open to reveal warm light on the horizon",
+        "hands placing a small written worry note beside a closed Bible before prayer, no readable text",
+    ),
+    "biblical_objects_and_details": (
+        "weathered clay oil lamp beside rolled parchment on rough ancient stone under warm side light",
+        "simple wooden shepherd staff resting beside green grass and a small stream in morning light",
+        "old fishing net and wooden boat detail beside calm lake water at sunrise",
+        "ancient stone doorway opening toward a bright desert path with realistic dust and depth",
+        "olive branches and a simple clay cup on a weathered wooden table in Mediterranean daylight",
+        "close cinematic detail of wheat moving in wind beneath a bright sky with distant hills",
+        "simple wooden cross silhouette reflected in wet ground after rain at dawn",
+        "open Bible pages moving gently in natural wind beside a mountain overlook",
+        "smooth stones beside clear river water under soft sunlight suggesting David's story without characters",
+        "small loaf of bread and simple clay cup on natural linen beside warm candlelight",
+    ),
+    "hopeful_creation_details": (
+        "sunlight breaking through dense storm clouds over a dark ocean with a bright path across the water",
+        "macro cinematic raindrops on fresh green leaves as morning light returns after a storm",
+        "river flowing through a deep green canyon beneath slowly lifting mist",
+        "first sunlight touching snowy mountain peaks above a dark peaceful valley",
+        "wildflowers moving in wind beside a narrow path toward a bright horizon",
+        "waves washing over smooth stones while golden sunset reflections move across the water",
+        "rainbow appearing above distant mountains after heavy rain with realistic atmospheric light",
+        "northern lights reflected in a still Arctic lake with dark mountains and scattered stars",
+        "warm sun rays entering an old forest and illuminating floating mist between trees",
+        "single new plant growing between stones after rain with natural shallow depth of field",
+    ),
 }
 
 FAMILY_SCENES: dict[str, tuple[str, ...]] = {**V2_FAMILY_SCENES, **EXTRA_FAMILY_SCENES}
 
-SCENE_COOLDOWN_VIDEOS = 42
-FAMILY_USAGE_WINDOW = 16
-FAMILY_HARD_RECENT = 2
+# Keep exact semantic scenes out of rotation for a much longer period. With ten
+# Shorts a day, 42 videos was only about four days and viewers could notice the
+# same compositions returning quickly.
+SCENE_COOLDOWN_VIDEOS = 120
+FAMILY_USAGE_WINDOW = 40
+FAMILY_HARD_RECENT = 4
 
 
 def _hash(text: str) -> str:
@@ -48,7 +87,7 @@ def _hash(text: str) -> str:
 
 def _rng(metadata: dict) -> random.Random:
     marker = os.getenv("GITHUB_RUN_ID", "") or os.getenv("GITHUB_RUN_NUMBER", "") or "local"
-    raw = f"visual-pack-v3|{metadata.get('topic','')}|{metadata.get('title','')}|{marker}"
+    raw = f"visual-pack-v4|{metadata.get('topic','')}|{metadata.get('title','')}|{marker}"
     return random.Random(int(hashlib.sha256(raw.encode()).hexdigest()[:16], 16))
 
 
@@ -72,7 +111,7 @@ def _recent_scene_texts(previous: list[dict], limit: int = SCENE_COOLDOWN_VIDEOS
     return result
 
 
-def _recent_prompt_hashes(previous: list[dict], limit: int = 160) -> set[str]:
+def _recent_prompt_hashes(previous: list[dict], limit: int = 320) -> set[str]:
     result: set[str] = set()
     for row in previous[-limit:]:
         for value in row.get("visual_prompt_hashes") or []:
@@ -110,8 +149,6 @@ def _choose_families(previous: list[dict], count: int, rng: random.Random) -> li
     families = list(FAMILY_SCENES)
     noise = {family: rng.random() for family in families}
 
-    # A family used in either of the previous two videos receives a large penalty.
-    # This removes the old behavior that forced Norway + Jesus into every Short.
     families.sort(key=lambda family: (1 if family in recent else 0, usage.get(family, 0), noise[family]))
 
     chosen: list[str] = []
@@ -120,7 +157,6 @@ def _choose_families(previous: list[dict], count: int, rng: random.Random) -> li
             break
         chosen.append(family)
 
-    # If a future format asks for more scenes than families, only then cycle.
     cursor = 0
     while len(chosen) < count:
         family = families[cursor % len(families)]
@@ -142,11 +178,11 @@ def _new_combo(
     pool = fresh_semantic or candidates
 
     for scene in pool:
-        for _ in range(80):
+        for _ in range(120):
             camera = rng.choice(CAMERAS)
             lighting = rng.choice(LIGHTING)
             atmosphere = rng.choice(ATMOSPHERES)
-            fingerprint = _hash(f"v3|{family}|{scene}|{camera}|{lighting}|{atmosphere}")
+            fingerprint = _hash(f"v4|{family}|{scene}|{camera}|{lighting}|{atmosphere}")
             if fingerprint in blocked_hashes:
                 continue
             blocked_hashes.add(fingerprint)
@@ -187,15 +223,16 @@ def attach_visual_pack_v3(metadata: dict, previous: list[dict], content_type: st
     manifest: list[dict[str, str]] = []
     for index, row in enumerate(rows):
         item = chosen[index]
-        variation = _hash(f"{item['prompt_hash']}|{run_marker}|scene-{index}|v3")[:12]
+        variation = _hash(f"{item['prompt_hash']}|{run_marker}|scene-{index}|v4")[:12]
         row["visual_family"] = item["family"]
         row["visual_prompt_hash"] = item["prompt_hash"]
         row["visual_prompt"] = (
             f"{item['scene']}. Camera: {item['camera']}. Lighting: {item['lighting']}. "
             f"Atmosphere: {item['atmosphere']}. Spiritual context: {topic}. "
             + (f"Biblical reference: {reference}. " if reference else "")
-            + "Create a completely NEW original photorealistic live-action cinematic frame. The scene must be visibly different from every other scene in this video: different subject arrangement, background, camera distance, focal point and light direction. "
-            "Never reproduce an earlier image, pose, crop, background, camera position or composition. Use realistic anatomy, natural hands, physically plausible fabric, water, clouds and light. Vertical 9:16. No text, no captions, no logo, no watermark, no celebrity resemblance. "
+            + "Create a completely NEW original photorealistic live-action cinematic frame. Every scene in this video must use a different visual family, subject arrangement, background, camera distance, focal point and light direction. "
+            "Never reproduce an earlier image, pose, crop, background, camera position or composition. Avoid six portraits or six similar landscapes in one video. Mix wide establishing shots, close details, symbolic faith cutaways, creation, biblical places, architecture, animals and human moments when context allows. "
+            "Use realistic anatomy, natural hands, physically plausible fabric, water, clouds and light. Vertical 9:16. No text, no captions, no logo, no watermark, no celebrity resemblance. "
             f"Unique production fingerprint {variation}."
         )
         manifest.append({
@@ -217,5 +254,5 @@ def attach_visual_pack_v3(metadata: dict, previous: list[dict], content_type: st
     metadata["visual_family_cooldown_videos"] = FAMILY_HARD_RECENT
     metadata["visual_unique_families_per_short"] = min(scene_count, len(set(selected_families)))
     metadata["visual_brand_anchor_forced"] = False
-    metadata["visual_engine_version"] = "2026.08.20-semantic-source-motion-v3"
+    metadata["visual_engine_version"] = "2026.08.20-semantic-source-motion-v4"
     return metadata
