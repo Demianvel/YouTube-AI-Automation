@@ -18,6 +18,12 @@ MOTION_PROFILE_NAMES = (
     "slow_pull_back",
     "offcenter_left_push",
     "offcenter_right_push",
+    "upper_third_push",
+    "lower_third_push",
+    "left_reveal_push",
+    "right_reveal_pull",
+    "gentle_vertical_reveal",
+    "cinematic_corner_drift",
 )
 
 
@@ -34,17 +40,29 @@ def _digest(source: Path, salt: str = "") -> int:
 
 
 def motion_profile(source: Path, index: int = 0, salt: str = "") -> tuple[int, str]:
-    value = _digest(source, f"{salt}|{index}")
-    profile = value % len(MOTION_PROFILE_NAMES)
+    """Choose a deterministic profile without repeating adjacent scene motions."""
+    base = _digest(source, f"motion-v4|{salt}") % len(MOTION_PROFILE_NAMES)
+    profile = (base + max(0, int(index)) * 5) % len(MOTION_PROFILE_NAMES)
     return profile, MOTION_PROFILE_NAMES[profile]
 
 
 def _zoom_expr(profile: int, frames: int) -> str:
-    if profile == 9:
-        return f"max(1.0,1.105-0.105*on/max(1,{frames - 1}))"
-    rates = (0.00046, 0.00055, 0.00053, 0.00049, 0.00051, 0.00052, 0.00050, 0.00054, 0.00048, 0.00045, 0.00058, 0.00057)
-    cap = (1.085, 1.105, 1.105, 1.095, 1.095, 1.11, 1.11, 1.11, 1.11, 1.105, 1.12, 1.12)[profile]
-    return f"min(zoom+{rates[profile]:.5f},{cap:.3f})"
+    if profile in {9, 15}:
+        start = 1.115 if profile == 15 else 1.105
+        amount = start - 1.0
+        return f"max(1.0,{start:.3f}-{amount:.3f}*on/max(1,{frames - 1}))"
+
+    rates = (
+        0.00046, 0.00055, 0.00053, 0.00049, 0.00051, 0.00052,
+        0.00050, 0.00054, 0.00048, 0.00045, 0.00058, 0.00057,
+        0.00050, 0.00052, 0.00060, 0.00056, 0.00047, 0.00059,
+    )
+    caps = (
+        1.085, 1.105, 1.105, 1.095, 1.095, 1.110,
+        1.110, 1.110, 1.110, 1.105, 1.120, 1.120,
+        1.100, 1.100, 1.125, 1.115, 1.095, 1.120,
+    )
+    return f"min(zoom+{rates[profile]:.5f},{caps[profile]:.3f})"
 
 
 def _xy_expr(profile: int, frames: int) -> tuple[str, str]:
@@ -55,6 +73,10 @@ def _xy_expr(profile: int, frames: int) -> tuple[str, str]:
     right_to_left = f"max(0,(iw-iw/zoom)*(1-{progress}))"
     top_to_bottom = f"min(ih-ih/zoom,(ih-ih/zoom)*{progress})"
     bottom_to_top = f"max(0,(ih-ih/zoom)*(1-{progress}))"
+    left_22 = "max(0,(iw-iw/zoom)*0.22)"
+    right_78 = "min(iw-iw/zoom,(iw-iw/zoom)*0.78)"
+    top_22 = "max(0,(ih-ih/zoom)*0.22)"
+    bottom_78 = "min(ih-ih/zoom,(ih-ih/zoom)*0.78)"
 
     profiles = (
         (center_x, center_y),
@@ -67,8 +89,14 @@ def _xy_expr(profile: int, frames: int) -> tuple[str, str]:
         (left_to_right, bottom_to_top),
         (right_to_left, bottom_to_top),
         (center_x, center_y),
-        ("max(0,(iw-iw/zoom)*0.22)", center_y),
-        ("min(iw-iw/zoom,(iw-iw/zoom)*0.78)", center_y),
+        (left_22, center_y),
+        (right_78, center_y),
+        (center_x, top_22),
+        (center_x, bottom_78),
+        (left_to_right, top_22),
+        (right_to_left, bottom_78),
+        (right_78, top_to_bottom),
+        (left_to_right, bottom_to_top),
     )
     return profiles[profile]
 
@@ -91,11 +119,12 @@ def render_still_motion(
     zoom_expr = _zoom_expr(profile, frames)
     x_expr, y_expr = _xy_expr(profile, frames)
 
-    digest = _digest(source, f"grade|{salt}|{index}")
-    contrast = 1.015 + ((digest >> 4) % 5) * 0.006
-    saturation = 1.025 + ((digest >> 8) % 6) * 0.007
-    brightness = -0.003 + ((digest >> 12) % 7) * 0.001
-    sharpen = 0.10 + ((digest >> 16) % 4) * 0.04
+    digest = _digest(source, f"grade-v4|{salt}|{index}")
+    contrast = 1.018 + ((digest >> 4) % 6) * 0.006
+    saturation = 1.020 + ((digest >> 8) % 7) * 0.008
+    brightness = -0.004 + ((digest >> 12) % 9) * 0.001
+    sharpen = 0.10 + ((digest >> 16) % 5) * 0.04
+    vignette_angle = 5.5 + ((digest >> 20) % 5) * 0.25
 
     scale_w = width * 2
     scale_h = height * 2
@@ -104,7 +133,8 @@ def render_still_motion(
         f"crop={scale_w}:{scale_h},"
         f"zoompan=z='{zoom_expr}':x='{x_expr}':y='{y_expr}':d={frames}:s={width}x{height}:fps={fps},"
         f"setsar=1,eq=contrast={contrast:.3f}:saturation={saturation:.3f}:brightness={brightness:.3f},"
-        f"unsharp=5:5:{sharpen:.2f}:5:5:0"
+        f"unsharp=5:5:{sharpen:.2f}:5:5:0,"
+        f"vignette=PI/{vignette_angle:.2f}"
     )
     subprocess.run(
         [
