@@ -103,11 +103,27 @@ jobs:
           python scripts/check_ready.py --generation-only
           test -n "$YOUTUBE_TOKEN_DIOSHABLAHOYIA"
           test -n "$HF_ZERO_TOKEN"
-          test -f assets/dioshablahoyia/reference/jesus_reference_user_new_01.jpg
-          test -f assets/dioshablahoyia/reference/jesus_reference_user_new_02.jpg
-          test -f assets/dioshablahoyia/reference/jesus_reference_user_new_03.jpg
-          test -f assets/dioshablahoyia/visual_reference/noah_ark_user_new_01.jpg
-          python -m py_compile scripts/dioshablahoyia_catchup_shorts.py scripts/publish_dios_fast.py app/facebook_pages.py app/pipeline.py app/spiritual_image.py app/spiritual_reference_generation.py app/spiritual_free_media.py app/visual_variety_v2.py
+          test "$GEMINI_TTS_VOICE" = "Algenib"
+          test "$SPIRITUAL_REQUIRE_PRIMARY_VOICE" = "true"
+          test "$TTS_FALLBACK_KOKORO" = "false"
+          python - <<'PY'
+          from pathlib import Path
+          jesus_refs = sorted(Path('assets/dioshablahoyia/reference').glob('jesus_reference_*.jpg'))
+          if not jesus_refs:
+              raise SystemExit('No hay referencias Jesus disponibles')
+          print('Referencias Jesus disponibles:', len(jesus_refs))
+          PY
+          python -m py_compile \
+            scripts/dioshablahoyia_catchup_shorts.py \
+            scripts/publish_dios_fast.py \
+            app/facebook_pages.py \
+            app/pipeline.py \
+            app/spiritual_image.py \
+            app/spiritual_reference_generation.py \
+            app/spiritual_free_media.py \
+            app/visual_variety_v3.py \
+            app/dios_visual_integrity.py \
+            app/spiritual_visual_motion.py
 
       - name: Generate and upload only the missing Shorts
         run: python scripts/dioshablahoyia_catchup_shorts.py
