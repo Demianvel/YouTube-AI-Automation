@@ -1,0 +1,85 @@
+name: Dios Habla Hoy IA - Growth Engine
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "42 */3 * * *"
+  push:
+    branches: [main]
+    paths:
+      - "app/youtube_growth_engine.py"
+      - "scripts/growth_learn.py"
+      - ".github/workflows/dioshablahoyia-growth-engine.yml"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: dioshablahoyia-growth-learning
+  cancel-in-progress: true
+
+jobs:
+  learn:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      PYTHONPATH: .
+      TZ: America/Argentina/Buenos_Aires
+      YOUTUBE_TOKEN_DIOSHABLAHOYIA: ${{ secrets.YOUTUBE_TOKEN_DIOSHABLAHOYIA }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install analytics dependencies
+        run: pip install -q google-api-python-client google-auth
+
+      - name: Validate Growth Engine offline
+        run: |
+          python -m py_compile app/youtube_growth_engine.py app/fast_spiritual_metadata.py scripts/growth_learn.py
+          python - <<'PY'
+          from app.youtube_growth_engine import build_growth_profile, candidate_growth_score
+          snapshot = {
+              "analytics_api_available": True,
+              "reports": {"top_videos": [
+                  {"video":"a", "title":"Paz en la tormenta", "publishedAt":"2026-08-19T00:00:00Z", "views":8000, "engagedViews":6000, "averageViewPercentage":88, "likes":800, "comments":120, "shares":90, "subscribersGained":45, "like_rate":.1, "comment_rate":.015, "share_rate":.01125, "subscriber_gain_rate":.005625},
+                  {"video":"b", "title":"Otra reflexión", "publishedAt":"2026-08-10T00:00:00Z", "views":300, "likes":10, "comments":1, "like_rate":.0333, "comment_rate":.0033},
+              ]},
+              "warnings": [],
+          }
+          history = [
+              {"video_id":"a", "status":"uploaded", "bible_reference":"Marcos 4:39-40", "content_family":"Marcos 4 y Jesus calma la tormenta", "topic":"paz en la tormenta"},
+              {"video_id":"b", "status":"uploaded", "bible_reference":"Salmo 27:13-14", "content_family":"esperar con confianza", "topic":"espera"},
+          ]
+          profile = build_growth_profile(snapshot, history)
+          assert profile["fail_open"] is True
+          assert profile["publishing_must_continue"] is True
+          assert profile["top_outliers"]
+          score, reasons = candidate_growth_score(family="Marcos 4 y Jesus calma la tormenta", reference="Marcos 4:39-40", truth="paz", practice="confiar", previous=[], profile=profile)
+          assert 0 <= score <= 100
+          assert reasons
+          print("Growth Engine offline validation OK", score, reasons)
+          PY
+
+      - name: Learn from current channel performance
+        run: python scripts/growth_learn.py --channel dioshablahoyia --days 90
+
+      - name: Persist learned profile without touching publishing state
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f state/growth/dioshablahoyia_growth.json || exit 0
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -- state/growth/dioshablahoyia_growth.json
+          if git diff --cached --quiet; then
+            echo "Growth profile sin cambios"
+            exit 0
+          fi
+          git commit -m "chore: learn Dios Habla Hoy growth profile"
+          git pull --rebase origin main
+          git push origin HEAD:main
