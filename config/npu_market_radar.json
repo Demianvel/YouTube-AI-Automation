@@ -1,0 +1,24 @@
+{
+  "lookback_days": 7,
+  "region_code": "AR",
+  "relevance_language": "es",
+  "max_results_per_query": 12,
+  "queries": [
+    {"niche": "inteligencia_artificial", "query": "herramientas inteligencia artificial", "commercial_intent_prior": 0.85},
+    {"niche": "finanzas_personales", "query": "finanzas personales ahorrar invertir", "commercial_intent_prior": 0.95},
+    {"niche": "emprendimientos", "query": "emprendimientos negocios ingresos online", "commercial_intent_prior": 0.90},
+    {"niche": "tecnologia", "query": "tecnologia celulares apps novedades", "commercial_intent_prior": 0.82},
+    {"niche": "gaming", "query": "gaming roblox juegos tendencia", "commercial_intent_prior": 0.70},
+    {"niche": "fitness_bienestar", "query": "fitness entrenamiento bienestar", "commercial_intent_prior": 0.78},
+    {"niche": "productividad", "query": "productividad estudio trabajo herramientas", "commercial_intent_prior": 0.80},
+    {"niche": "viajes", "query": "viajes argentina turismo", "commercial_intent_prior": 0.76},
+    {"niche": "fe_cristiana", "query": "Dios Jesus Biblia oración reflexión", "commercial_intent_prior": 0.55}
+  ],
+  "policy": {
+    "market_analysis_only": true,
+    "never_auto_switch_channel_niche": true,
+    "never_claim_actual_rpm_without_first_party_data": true,
+    "never_guarantee_virality": true,
+    "max_daily_search_calls": 12
+  }
+}

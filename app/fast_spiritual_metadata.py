@@ -6,6 +6,7 @@ import re
 import time
 from difflib import SequenceMatcher
 
+from .alien_npu_brain import load_brain_state, rerank_themes
 from .youtube_growth_engine import load_growth_profile, ranked_theme_indices
 
 
@@ -140,6 +141,10 @@ def build_fast_metadata(base_metadata: dict, channel: dict, previous: list[dict]
 
     profile = load_growth_profile()
     ranked = ranked_theme_indices(THEMES, previous, seed, profile=profile)
+    brain = load_brain_state()
+    if brain:
+        ranked = rerank_themes(THEMES, previous, seed, ranked, state=brain)
+
     explore = bool(profile) and (seed % 1000) < 250
     if explore:
         # Exploration deliberately tests fresh topics. This protects the channel
@@ -148,7 +153,10 @@ def build_fast_metadata(base_metadata: dict, channel: dict, previous: list[dict]
         growth_mode = "explore"
     else:
         theme_order = ranked
-        growth_mode = "learned_rank" if profile else "neutral_fallback"
+        if brain:
+            growth_mode = "alien_npu_ranked"
+        else:
+            growth_mode = "learned_rank" if profile else "neutral_fallback"
 
     chosen = None
     chosen_growth_score = 50.0
@@ -189,9 +197,11 @@ def build_fast_metadata(base_metadata: dict, channel: dict, previous: list[dict]
         "la esperanza y la confianza en Dios en la vida cotidiana."
     )
     base_metadata["cta"] = "Si esta palabra te ayudó, guardala para volver a escucharla cuando la necesites."
-    base_metadata["metadata_provider"] = "local_unique_biblical:growth_ranked:prechecked_against_history:v4"
+    base_metadata["metadata_provider"] = "local_unique_biblical:alien_npu:growth_ranked:deduped:v5"
     base_metadata["growth_engine_version"] = str(profile.get("version") or "neutral")
     base_metadata["growth_selection_mode"] = growth_mode
     base_metadata["growth_candidate_score"] = round(chosen_growth_score, 2)
-    base_metadata["growth_selection_reasons"] = chosen_growth_reasons[:5]
+    base_metadata["growth_selection_reasons"] = chosen_growth_reasons[:7]
+    base_metadata["npu_brain_version"] = str(brain.get("version") or "inactive")
+    base_metadata["npu_brain_confidence"] = float(brain.get("brain_confidence") or 0.0)
     return base_metadata
