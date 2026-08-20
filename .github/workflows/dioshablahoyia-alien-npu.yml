@@ -70,7 +70,12 @@ jobs:
           from pathlib import Path
 
           workflow = Path('.github/workflows/dioshablahoyia-alien-npu.yml').read_text(encoding='utf-8')
-          forbidden = ('YOUTUBE_TOKEN_', 'google-api-python-client', 'npu_market_radar.py --channel', 'growth_radar.py --channel')
+          forbidden = (
+              'YOUTUBE' + '_TOKEN_',
+              'google-api-' + 'python-client',
+              'npu_market_' + 'radar.py --channel',
+              'growth_' + 'radar.py --channel',
+          )
           for value in forbidden:
               assert value not in workflow, f'external/quota path found in local trainer: {value}'
 
