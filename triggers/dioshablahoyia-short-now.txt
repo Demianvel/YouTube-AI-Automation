@@ -1,1 +1,1 @@
-2026-08-19 21:40 ART | rerun after final #292 fix: HF quota fallback may use only unseen local reference+variant combinations, including no duplicate variant inside the same Short; Voz de Luz Algenib remains immutable
+2026-08-19 21:42 ART | final verification for #292: probe alternate unseen local visual variants before any exhausted external fallback; no repeat within history or current Short; Voz de Luz Algenib unchanged
