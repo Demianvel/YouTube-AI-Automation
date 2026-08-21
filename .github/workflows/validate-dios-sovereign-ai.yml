@@ -1,0 +1,56 @@
+name: Validate DHH Sovereign Local AI
+
+on:
+  pull_request:
+    paths:
+      - "app/dios_sovereign_ai.py"
+      - "scripts/dios_sovereign_*.py"
+      - "config/dios_sovereign_ai.json"
+      - "models/dios_sovereign/**"
+      - ".github/workflows/dios-sovereign-local-ai.yml"
+      - ".github/workflows/validate-dios-sovereign-ai.yml"
+      - "requirements-sovereign.txt"
+  push:
+    branches: [main]
+    paths:
+      - "app/dios_sovereign_ai.py"
+      - "scripts/dios_sovereign_*.py"
+      - "config/dios_sovereign_ai.json"
+      - "models/dios_sovereign/**"
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Compile sovereign Python sources
+        run: |
+          python -m py_compile \
+            app/dios_sovereign_ai.py \
+            scripts/dios_sovereign_prepare_dataset.py \
+            scripts/dios_sovereign_train_lora.py \
+            scripts/publish_dios_sovereign.py
+      - name: Validate model manifest and approved references
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          cfg = json.loads(Path('config/dios_sovereign_ai.json').read_text(encoding='utf-8'))
+          assert cfg['version'] == 'dhh-sovereign-v1'
+          assert cfg['offline'] is True
+          assert cfg['publication']['allow_remote_image_ai'] is False
+          assert cfg['publication']['allow_remote_tts'] is False
+          assert cfg['publication']['daily_shorts_target'] == 10
+          assert cfg['publication']['weekend_long_target'] == 2
+          refs = [Path(cfg['image']['reference_dir']) / name for name in cfg['image']['references']]
+          for ref in refs:
+              assert ref.exists() and ref.stat().st_size > 1000, ref
+          assert cfg['voice']['exact_algenib'] is False
+          print('Sovereign manifest OK')
+          PY
