@@ -1,6 +1,6 @@
 {
   "version": "alien-npu-brain-v1",
-  "generated_at": "2026-08-21T19:39:09.522527+00:00",
+  "generated_at": "2026-08-21T20:42:57.914781+00:00",
   "architecture": {
     "type": "multi-cortex ensemble with quantum-inspired softmax exploration",
     "literal_consciousness": false,
@@ -715,7 +715,7 @@
         "niche_only": true
       },
       {
-        "key": "mateo gorriones",
+        "key": "cuidado mateo",
         "samples": 0,
         "mean_score": 55.13,
         "best_score": 92.78,
@@ -729,7 +729,7 @@
         "seo_only": true
       },
       {
-        "key": "cuidado mateo",
+        "key": "mateo gorriones",
         "samples": 0,
         "mean_score": 55.13,
         "best_score": 92.78,
@@ -743,35 +743,21 @@
         "seo_only": true
       },
       {
-        "key": "esperanza juan",
-        "samples": 0,
-        "mean_score": 55.0,
-        "best_score": 91.67,
-        "seo_only": true
-      },
-      {
-        "key": "paz esperanza",
-        "samples": 0,
-        "mean_score": 55.0,
-        "best_score": 91.67,
-        "seo_only": true
-      },
-      {
-        "key": "corazón juan",
-        "samples": 0,
-        "mean_score": 55.0,
-        "best_score": 91.67,
-        "seo_only": true
-      },
-      {
-        "key": "juan promesa",
-        "samples": 0,
-        "mean_score": 55.0,
-        "best_score": 91.67,
-        "seo_only": true
-      },
-      {
         "key": "juan juan",
+        "samples": 0,
+        "mean_score": 55.0,
+        "best_score": 91.67,
+        "seo_only": true
+      },
+      {
+        "key": "promesa paz",
+        "samples": 0,
+        "mean_score": 55.0,
+        "best_score": 91.67,
+        "seo_only": true
+      },
+      {
+        "key": "promesa",
         "samples": 0,
         "mean_score": 55.0,
         "best_score": 91.67,
@@ -792,7 +778,21 @@
         "seo_only": true
       },
       {
-        "key": "promesa",
+        "key": "corazón juan",
+        "samples": 0,
+        "mean_score": 55.0,
+        "best_score": 91.67,
+        "seo_only": true
+      },
+      {
+        "key": "juan promesa",
+        "samples": 0,
+        "mean_score": 55.0,
+        "best_score": 91.67,
+        "seo_only": true
+      },
+      {
+        "key": "paz esperanza",
         "samples": 0,
         "mean_score": 55.0,
         "best_score": 91.67,
@@ -806,7 +806,7 @@
         "seo_only": true
       },
       {
-        "key": "promesa paz",
+        "key": "esperanza juan",
         "samples": 0,
         "mean_score": 55.0,
         "best_score": 91.67,
@@ -820,14 +820,14 @@
         "seo_only": true
       },
       {
-        "key": "estás solo",
+        "key": "solo etapa",
         "samples": 0,
         "mean_score": 54.97,
         "best_score": 91.39,
         "seo_only": true
       },
       {
-        "key": "mensaje pajaros",
+        "key": "mensaje",
         "samples": 0,
         "mean_score": 54.97,
         "best_score": 91.39,
