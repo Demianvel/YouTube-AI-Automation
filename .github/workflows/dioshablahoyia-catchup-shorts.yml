@@ -28,10 +28,12 @@ jobs:
       GEMINI_TEXT_MODEL: gemini-3.6-flash
       GEMINI_TTS_MODEL: gemini-3.1-flash-tts-preview
       GEMINI_TTS_VOICE: Algenib
+      GEMINI_TTS_MAX_ATTEMPTS: "4"
       SPIRITUAL_MALE_GEMINI_VOICE: Algenib
       SPIRITUAL_VOICE_PROFILE: voz_de_luz_serena_original_v1
       SPIRITUAL_VOICE_BRAND: Voz de Luz
-      SPIRITUAL_VOICE_REFERENCE_MODE: fresh_github_reference_bank_no_speaker_clone
+      SPIRITUAL_VOICE_REFERENCE_MODE: fixed_original_identity_no_speaker_clone
+      SPIRITUAL_VOICE_LOCKED: "true"
       SPIRITUAL_VOICEOVER_MODE: "true"
       SPIRITUAL_LIPSYNC_ENABLED: "false"
       SPIRITUAL_REQUIRE_PRIMARY_VOICE: "true"
@@ -44,10 +46,12 @@ jobs:
       SPIRITUAL_EDITORIAL_VARIETY_LEVEL: high
       SPIRITUAL_CTA_OVERLAY: "false"
       SPIRITUAL_REQUIRE_FRESH_VISUAL: "true"
+      SPIRITUAL_VISUAL_REFERENCE_LOCKED: "true"
+      SPIRITUAL_VISUAL_REFERENCE_PROFILE: realistic_jesus_reference_abc_v1
+      SPIRITUAL_ALLOW_SYMBOLIC_JESUS_FALLBACK: "false"
+      SPIRITUAL_ALLOW_LOCAL_PROCEDURAL_VISUAL: "false"
       TTS_PROVIDER: gemini_tts
       TTS_FALLBACK_KOKORO: "false"
-      KOKORO_VOICE: em_alex
-      KOKORO_SPEED: "0.91"
       GEMINI_VIDEO_ENABLED: "false"
       HF_VIDEO_ENABLED: "false"
       HF_REQUIRE_TEXT_TO_VIDEO: "false"
@@ -81,10 +85,10 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Install lightweight runtime once
+      - name: Install strict publisher runtime once
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y -qq ffmpeg espeak-ng libsndfile1 fonts-dejavu-core git >/dev/null
+          sudo apt-get install -y -qq ffmpeg libsndfile1 fonts-dejavu-core git >/dev/null
           python -m pip install -q --upgrade pip
           pip install -q \
             "google-genai>=2.3.0" \
@@ -98,30 +102,36 @@ jobs:
             "huggingface_hub<2,>=0.34.4" \
             "gradio_client<3,>=1.11.0"
 
-      - name: Validate fixed voice and fresh visual engine
+      - name: Validate permanent voice and realistic reference identity
         run: |
-          python scripts/check_ready.py --generation-only
+          test -n "$GEMINI_API_KEY"
           test -n "$YOUTUBE_TOKEN_DIOSHABLAHOYIA"
           test -n "$HF_ZERO_TOKEN"
           test "$GEMINI_TTS_VOICE" = "Algenib"
+          test "$SPIRITUAL_MALE_GEMINI_VOICE" = "Algenib"
+          test "$SPIRITUAL_VOICE_BRAND" = "Voz de Luz"
+          test "$SPIRITUAL_VOICE_PROFILE" = "voz_de_luz_serena_original_v1"
+          test "$SPIRITUAL_VOICE_LOCKED" = "true"
           test "$SPIRITUAL_REQUIRE_PRIMARY_VOICE" = "true"
+          test "$TTS_PROVIDER" = "gemini_tts"
           test "$TTS_FALLBACK_KOKORO" = "false"
-          python - <<'PY'
-          from pathlib import Path
-          jesus_refs = sorted(Path('assets/dioshablahoyia/reference').glob('jesus_reference_*.jpg'))
-          if not jesus_refs:
-              raise SystemExit('No hay referencias Jesus disponibles')
-          print('Referencias Jesus disponibles:', len(jesus_refs))
-          PY
+          test "$SPIRITUAL_VISUAL_REFERENCE_LOCKED" = "true"
+          test "$SPIRITUAL_ALLOW_SYMBOLIC_JESUS_FALLBACK" = "false"
+          test "$SPIRITUAL_ALLOW_LOCAL_PROCEDURAL_VISUAL" = "false"
+          for ref in \
+            assets/dioshablahoyia/reference/jesus_reference_a.jpg \
+            assets/dioshablahoyia/reference/jesus_reference_b.jpg \
+            assets/dioshablahoyia/reference/jesus_reference_c.jpg; do
+            test -s "$ref"
+          done
           python -m py_compile \
             scripts/dioshablahoyia_catchup_shorts.py \
+            scripts/publish_dios_locked.py \
             scripts/publish_dios_fast.py \
             app/facebook_pages.py \
             app/pipeline.py \
             app/spiritual_image.py \
             app/spiritual_reference_generation.py \
-            app/spiritual_free_media.py \
-            app/visual_variety_v3.py \
             app/dios_visual_integrity.py \
             app/spiritual_visual_motion.py
 
@@ -143,7 +153,11 @@ jobs:
             touch state/history.jsonl
             while IFS= read -r record; do
               test -n "$record" || continue
-              grep -Fqx "$record" state/history.jsonl || printf '%s\n' "$record" >> state/history.jsonl
+              VIDEO_ID="$(printf '%s' "$record" | python -c 'import json,sys; print(json.load(sys.stdin).get("video_id", ""))' 2>/dev/null || true)"
+              if [ -n "$VIDEO_ID" ] && grep -Fq "\"video_id\": \"$VIDEO_ID\"" state/history.jsonl; then
+                continue
+              fi
+              printf '%s\n' "$record" >> state/history.jsonl
             done < "$RECORDS"
             git add state/history.jsonl
             if git diff --cached --quiet; then exit 0; fi
@@ -164,4 +178,4 @@ jobs:
         if: failure()
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh issue create --title "Dios Habla Hoy - faltan Shorts del objetivo 10 por dia" --body "El catch-up estricto no completo el objetivo sin cambiar Voz de Luz ni repetir visuales. Revisar Actions run $GITHUB_RUN_ID."
+        run: gh issue create --title "Dios Habla Hoy - faltan Shorts del objetivo 10 por dia" --body "El catch-up estricto no completo el objetivo sin cambiar Voz de Luz / Algenib ni salir del banco visual realista de referencias. Revisar Actions run $GITHUB_RUN_ID."
