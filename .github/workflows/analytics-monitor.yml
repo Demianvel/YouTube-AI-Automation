@@ -3,14 +3,11 @@ name: Monitor Dios Habla Hoy YouTube Analytics
 on:
   workflow_dispatch:
   schedule:
-    - cron: "17 * * * *"
-  push:
-    branches: [main]
-    paths:
-      - app/channel_analytics.py
-      - scripts/analytics_snapshot.py
-      - config/channels.json
-      - .github/workflows/analytics-monitor.yml
+    # External Analytics refresh is allowed only in the two weekend windows.
+    # Saturday 09:00 Argentina (UTC-3) = Saturday 12:00 UTC.
+    - cron: "0 12 * * 6"
+    # Sunday 21:00 Argentina (UTC-3) = Monday 00:00 UTC.
+    - cron: "0 0 * * 1"
 
 permissions:
   contents: read
@@ -25,6 +22,7 @@ jobs:
     timeout-minutes: 20
     env:
       PYTHONPATH: .
+      TZ: America/Argentina/Buenos_Aires
       YOUTUBE_TOKEN_DIOSHABLAHOYIA: ${{ secrets.YOUTUBE_TOKEN_DIOSHABLAHOYIA }}
     steps:
       - uses: actions/checkout@v4
