@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
 from app import pipeline, spiritual_audio, spiritual_image, youtube as youtube_module
@@ -69,5 +70,6 @@ youtube_module._enforce_spiritual_voice_guard = _local_voice_youtube_guard
 
 
 if __name__ == "__main__":
-    result = pipeline.run("dioshablahoyia", dry_run=False, content_mode="voice")
+    dry_run = os.getenv("DIOS_LOCAL_DRY_RUN", "false").lower().strip() == "true"
+    result = pipeline.run("dioshablahoyia", dry_run=dry_run, content_mode="voice")
     print(result)
