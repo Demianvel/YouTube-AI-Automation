@@ -4,6 +4,7 @@ on:
   pull_request:
     paths:
       - "app/dios_sovereign_ai.py"
+      - "app/dios_sovereign_voice.py"
       - "scripts/dios_sovereign_*.py"
       - "config/dios_sovereign_ai.json"
       - "models/dios_sovereign/**"
@@ -15,6 +16,7 @@ on:
     branches: [main]
     paths:
       - "app/dios_sovereign_ai.py"
+      - "app/dios_sovereign_voice.py"
       - "scripts/dios_sovereign_*.py"
       - "config/dios_sovereign_ai.json"
       - "models/dios_sovereign/**"
@@ -34,6 +36,7 @@ jobs:
         run: |
           python -m py_compile \
             app/dios_sovereign_ai.py \
+            app/dios_sovereign_voice.py \
             scripts/dios_sovereign_bootstrap_weights.py \
             scripts/dios_sovereign_prepare_dataset.py \
             scripts/dios_sovereign_train_lora.py \
