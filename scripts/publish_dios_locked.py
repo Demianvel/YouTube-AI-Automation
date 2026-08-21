@@ -3,6 +3,8 @@ from __future__ import annotations
 import os
 from pathlib import Path
 
+from PIL import Image, ImageEnhance, ImageFilter, ImageOps
+
 from app import pipeline, spiritual_audio, spiritual_image, spiritual_tts, youtube as youtube_module
 from app import spiritual_reference_generation as reference_generation
 import scripts.publish_dios_fast as fast
@@ -85,12 +87,91 @@ def _strict_algenib_voice(path: Path, text: str) -> str:
     return used
 
 
+def _local_reference_cinematic_variant(out: Path, seed: int) -> tuple[str, str]:
+    """Create a high-quality 9:16 scene directly from the locked Jesus bank.
+
+    This is not procedural art and it does not invent another face. It preserves
+    the historical reference pixels and only applies cinematic framing, depth,
+    mild grade and deterministic composition so publishing can continue when a
+    remote reference editor has no quota.
+    """
+    reference = _locked_choose_reference(seed)
+    reference_name = reference.name
+    safe = int(seed) & 0x7FFFFFFF
+    target = (1080, 1920)
+    out.parent.mkdir(parents=True, exist_ok=True)
+
+    with Image.open(reference) as opened:
+        src = ImageOps.exif_transpose(opened).convert("RGB")
+        src_ratio = src.width / max(1, src.height)
+        target_ratio = target[0] / target[1]
+
+        # Full-bleed whenever the source is already close to portrait. Otherwise
+        # preserve the complete person over a softly defocused version of the
+        # very same reference, avoiding destructive face/body crops.
+        if abs(src_ratio - target_ratio) <= 0.10:
+            cx = 0.47 + ((safe % 7) - 3) * 0.008
+            cy = 0.47 + (((safe // 7) % 7) - 3) * 0.006
+            frame = ImageOps.fit(
+                src,
+                target,
+                method=Image.Resampling.LANCZOS,
+                centering=(max(0.40, min(0.60, cx)), max(0.40, min(0.58, cy))),
+            )
+        else:
+            bg = ImageOps.fit(
+                src,
+                target,
+                method=Image.Resampling.LANCZOS,
+                centering=(0.5, 0.46),
+            )
+            bg = bg.filter(ImageFilter.GaussianBlur(radius=30))
+            bg = ImageEnhance.Brightness(bg).enhance(0.74)
+            bg = ImageEnhance.Contrast(bg).enhance(1.05)
+
+            fg = src.copy()
+            fg.thumbnail((1010, 1810), Image.Resampling.LANCZOS)
+            zoom = 1.0 + (safe % 5) * 0.008
+            if zoom > 1.0:
+                fg = fg.resize(
+                    (max(1, int(fg.width * zoom)), max(1, int(fg.height * zoom))),
+                    Image.Resampling.LANCZOS,
+                )
+            offset_x = ((safe // 11) % 25) - 12
+            offset_y = ((safe // 17) % 31) - 15
+            x = (target[0] - fg.width) // 2 + offset_x
+            y = (target[1] - fg.height) // 2 + offset_y
+            mask = Image.new("L", fg.size, 255).filter(ImageFilter.GaussianBlur(radius=7))
+            frame = bg.copy()
+            frame.paste(fg, (x, y), mask)
+
+        # Restrained grade only; facial structure and identity remain untouched.
+        brightness = 0.99 + (safe % 4) * 0.008
+        contrast = 1.025 + ((safe // 5) % 4) * 0.008
+        color = 1.005 + ((safe // 19) % 4) * 0.006
+        frame = ImageEnhance.Brightness(frame).enhance(brightness)
+        frame = ImageEnhance.Contrast(frame).enhance(contrast)
+        frame = ImageEnhance.Color(frame).enhance(color)
+        frame = ImageEnhance.Sharpness(frame).enhance(1.06)
+        frame.save(out, format="JPEG", quality=96, subsampling=0, optimize=True)
+
+    if not out.exists() or out.stat().st_size < 25_000:
+        raise RuntimeError("VISUAL_IDENTITY_LOCK: la variante cinematografica local quedo invalida.")
+
+    provider = (
+        "Local reference-guided image / direct cinematic reference transform / "
+        f"reference:{reference_name}"
+    )
+    return provider, reference_name
+
+
 def _locked_reference_download(prompt: str, out: Path, seed: int) -> str:
     """Create every scene from the historical Jesus reference identity.
 
-    Reference-guided generation may vary pose, camera, landscape and lighting,
-    but may not fall back to stock portraits, symbolic-only Jesus substitutes,
-    local procedural art, or text-only generation that loses the identity.
+    Prefer remote reference editing when available. If its quota is unavailable,
+    use a direct cinematic transform of the same locked reference bank. Never use
+    stock portraits, symbolic-only substitutes, text-only generation, or local
+    procedural art that invents another identity.
     """
     _reference_bank()
     full_prompt = (
@@ -98,12 +179,20 @@ def _locked_reference_download(prompt: str, out: Path, seed: int) -> str:
         "preserve the same recurring realistic Jesus identity from the supplied reference bank, "
         "live-action photographic realism, natural human skin and fabric, reverent cinematic scene"
     )
-    provider, reference_name = reference_generation.generate_reference_guided_image(
-        full_prompt,
-        out,
-        seed,
-        target_size=(1080, 1920),
-    )
+
+    try:
+        provider, reference_name = reference_generation.generate_reference_guided_image(
+            full_prompt,
+            out,
+            seed,
+            target_size=(1080, 1920),
+        )
+    except Exception as exc:
+        print(
+            "Referencia remota no disponible; usando transformacion cinematografica directa "
+            f"del banco Jesus bloqueado. Motivo: {exc}"
+        )
+        provider, reference_name = _local_reference_cinematic_variant(out, seed)
 
     if reference_name not in REFERENCE_NAMES:
         raise RuntimeError(
@@ -115,7 +204,11 @@ def _locked_reference_download(prompt: str, out: Path, seed: int) -> str:
         raise RuntimeError(
             "VISUAL_IDENTITY_LOCK: se rechazo un fallback text-only porque puede perder la identidad visual de Jesus."
         )
-    if "reference editor" not in low and "reference-guided image" not in low:
+    if (
+        "reference editor" not in low
+        and "reference-guided image" not in low
+        and "direct cinematic reference transform" not in low
+    ):
         raise RuntimeError(
             f"VISUAL_IDENTITY_LOCK: proveedor no guiado por referencia: {provider}"
         )
@@ -125,8 +218,8 @@ def _locked_reference_download(prompt: str, out: Path, seed: int) -> str:
         )
 
     print(
-        f"{VISUAL_LOCK_VERSION}: escena realista nueva guiada por {reference_name}; "
-        "sin fallback simbolico ni voz alternativa."
+        f"{VISUAL_LOCK_VERSION}: escena realista guiada por {reference_name}; "
+        "sin fallback simbolico, procedural ni voz alternativa."
     )
     return f"{provider}:{VISUAL_LOCK_VERSION}"
 
