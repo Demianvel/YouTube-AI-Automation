@@ -14,6 +14,7 @@ HISTORY = ROOT / "state" / "history.jsonl"
 NEW_RECORDS = Path("/tmp/dios-daily-guard/new-short-records.jsonl")
 TZ = ZoneInfo("America/Argentina/Buenos_Aires")
 DAILY_TARGET = 10
+LOCKED_PUBLISHER = "publish_dios_locked.py"
 
 
 def _rows() -> list[dict]:
@@ -57,9 +58,13 @@ def today_uploaded_count() -> int:
 
 
 def _publisher_script() -> str:
-    if os.getenv("DIOS_GUARD_LOCAL_ONLY", "").lower().strip() == "true":
-        return "publish_dios_fast_local_emergency.py"
-    return "publish_dios_fast.py"
+    """Always use the permanent identity-locked publisher.
+
+    DIOS_GUARD_LOCAL_ONLY is intentionally ignored for media identity. Older
+    workflows may still export it, but it can no longer switch the narrator or
+    visual engine away from Voz de Luz / Algenib + the approved reference bank.
+    """
+    return LOCKED_PUBLISHER
 
 
 def _recovery_limit(initial_today: int) -> int:
@@ -85,7 +90,7 @@ def main() -> int:
 
     print(f"GUARDIA DIARIA: {initial_today}/{DAILY_TARGET} Shorts subidos al iniciar en Argentina.")
     print(f"Objetivo congelado para esta recuperacion: {initial_missing} nuevas subidas maximas.")
-    print(f"Publicador de esta pasada: {publisher}")
+    print(f"Publicador permanente de esta pasada: {publisher}")
 
     if initial_missing <= 0:
         NEW_RECORDS.write_text("", encoding="utf-8")
@@ -97,8 +102,8 @@ def main() -> int:
         before_ids = _uploaded_ids()
         remaining = initial_missing - successful_new
         print(
-            f"Faltan {remaining} de esta recuperacion. Se intenta uno con Voz de Luz / Algenib obligatoria; "
-            "nunca se permite otra voz.",
+            f"Faltan {remaining} de esta recuperacion. Se intenta uno con Voz de Luz / Algenib obligatoria "
+            "y referencias realistas bloqueadas; nunca se permite otra voz ni visual procedural.",
             flush=True,
         )
 
@@ -111,8 +116,6 @@ def main() -> int:
         newly_recorded = after_ids - before_ids
 
         if newly_recorded:
-            # A single publisher invocation should create one video. Clamp the
-            # accounting to the remaining hard limit as a safety net.
             accepted = min(len(newly_recorded), remaining)
             successful_new += accepted
             ids_text = ", ".join(sorted(newly_recorded))
@@ -122,13 +125,13 @@ def main() -> int:
                 flush=True,
             )
             if successful_new < initial_missing:
-                time.sleep(45 if publisher == "publish_dios_fast_local_emergency.py" else 75)
+                time.sleep(75)
             continue
 
         if result.returncode != 0:
             print(
-                "La publicacion fallo antes de quedar registrada. Se detiene esta pasada para no gastar "
-                "cuota ni duplicar.",
+                "La publicacion fallo antes de quedar registrada. Se detiene esta pasada antes de cambiar la voz, "
+                "perder la identidad visual o arriesgar un duplicado.",
                 file=sys.stderr,
             )
             break
