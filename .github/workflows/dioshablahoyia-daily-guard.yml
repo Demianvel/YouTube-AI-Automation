@@ -30,19 +30,14 @@ jobs:
       CHANNEL: dioshablahoyia
       CONTENT_MODE: voice
       DIOS_GUARD_LOCAL_ONLY: "true"
-      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-      GEMINI_TEXT_MODEL: gemini-3.6-flash
-      GEMINI_TTS_MODEL: gemini-3.1-flash-tts-preview
-      GEMINI_TTS_VOICE: Algenib
-      GEMINI_TTS_MAX_ATTEMPTS: "4"
-      SPIRITUAL_MALE_GEMINI_VOICE: Algenib
-      SPIRITUAL_VOICE_PROFILE: voz_de_luz_serena_original_v1
-      SPIRITUAL_VOICE_BRAND: Voz de Luz
-      SPIRITUAL_VOICE_REFERENCE_MODE: fresh_github_reference_bank_no_speaker_clone
+      SPIRITUAL_LOCAL_MEDIA_ENGINE: "true"
+      SPIRITUAL_LOCAL_VOICE_LOCK: "true"
+      SPIRITUAL_VOICE_PROFILE: voz_de_luz_local_original_v1
+      SPIRITUAL_VOICE_BRAND: Voz de Luz Local
       SPIRITUAL_VOICE_LOCKED: "true"
       SPIRITUAL_VOICEOVER_MODE: "true"
       SPIRITUAL_LIPSYNC_ENABLED: "false"
-      SPIRITUAL_REQUIRE_PRIMARY_VOICE: "true"
+      SPIRITUAL_REQUIRE_PRIMARY_VOICE: "false"
       SPIRITUAL_SHORT_SECONDS: "60"
       SPIRITUAL_SHORT_SCENE_SECONDS: "10"
       SPIRITUAL_SHORT_AI_CLIPS: "0"
@@ -53,8 +48,9 @@ jobs:
       SPIRITUAL_CTA_OVERLAY: "false"
       SPIRITUAL_REQUIRE_FRESH_VISUAL: "true"
       SPIRITUAL_VISUAL_PHASH_MAX_DISTANCE: "7"
-      TTS_PROVIDER: gemini_tts
-      TTS_FALLBACK_KOKORO: "false"
+      TTS_PROVIDER: local
+      TTS_FALLBACK_KOKORO: "true"
+      GEMINI_API_KEY: ""
       GEMINI_VIDEO_ENABLED: "false"
       HF_VIDEO_ENABLED: "false"
       HF_REQUIRE_TEXT_TO_VIDEO: "false"
@@ -65,9 +61,8 @@ jobs:
       HF_INFERENCE_PROVIDER_ENABLED: "false"
       HF_ZERO_TOKEN: ""
       HF_TOKEN: ""
-      SPIRITUAL_REFERENCE_AVOID_RECENT: "100"
-      DIOS_FAST_LOCAL_VISUAL_MODE: "true"
-      PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
+      PEXELS_API_KEY: ""
+      POLLINATIONS_API_KEY: ""
       MUSIC_PROVIDER: local
       YOUTUBE_TOKEN_DIOSHABLAHOYIA: ${{ secrets.YOUTUBE_TOKEN_DIOSHABLAHOYIA }}
       FACEBOOK_PAGE_ID: ${{ secrets.FACEBOOK_PAGE_ID }}
@@ -82,14 +77,15 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
+          cache: pip
+          cache-dependency-path: requirements.txt
 
-      - name: Install guarded publisher runtime
+      - name: Install quota-free publisher runtime
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y -qq ffmpeg espeak-ng libsndfile1 fonts-dejavu-core git >/dev/null
           python -m pip install -q --upgrade pip
           pip install -q \
-            "google-genai>=2.3.0" \
             "google-api-python-client>=2.170.0" \
             "google-auth>=2.40.0" \
             "google-auth-oauthlib>=1.2.2" \
@@ -99,26 +95,28 @@ jobs:
             "soundfile>=0.13.1" \
             "huggingface_hub<2,>=0.34.4" \
             "gradio_client<3,>=1.11.0"
+          # Kokoro mejora la naturalidad y no usa una API de inferencia. Es opcional:
+          # si no puede instalar/cargar sus assets, espeak-ng garantiza voz local.
+          pip install -q "kokoro>=0.9.4" || echo "Kokoro opcional no disponible; se usara espeak-ng local."
 
-      - name: Verify immutable Voz de Luz and zero-HF emergency guardrails
+      - name: Verify quota-free local media guardrails
         run: |
           test -n "$YOUTUBE_TOKEN_DIOSHABLAHOYIA"
-          test -n "$GEMINI_API_KEY"
-          test "$GEMINI_TTS_VOICE" = "Algenib"
-          test "$GEMINI_TTS_MAX_ATTEMPTS" = "4"
-          test "$SPIRITUAL_MALE_GEMINI_VOICE" = "Algenib"
-          test "$SPIRITUAL_VOICE_LOCKED" = "true"
-          test "$SPIRITUAL_REQUIRE_PRIMARY_VOICE" = "true"
-          test "$TTS_FALLBACK_KOKORO" = "false"
           test "$DIOS_GUARD_LOCAL_ONLY" = "true"
+          test "$SPIRITUAL_LOCAL_MEDIA_ENGINE" = "true"
+          test "$SPIRITUAL_LOCAL_VOICE_LOCK" = "true"
+          test "$TTS_PROVIDER" = "local"
+          test -z "$GEMINI_API_KEY"
           test -z "$HF_TOKEN"
           test -z "$HF_ZERO_TOKEN"
+          test -z "$PEXELS_API_KEY"
+          test -z "$POLLINATIONS_API_KEY"
           python -m py_compile \
             scripts/dioshablahoyia_daily_guard.py \
             scripts/publish_dios_fast.py \
             scripts/publish_dios_fast_local_emergency.py \
+            app/local_spiritual_media.py \
             app/dios_visual_integrity.py \
-            app/spiritual_tts.py \
             app/spiritual_audio.py \
             app/pipeline.py \
             app/facebook_pages.py
@@ -167,5 +165,5 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh issue create \
-            --title "Dios Habla Hoy - guardia diaria no llego a 10 Shorts" \
-            --body "La guardia automatica detecto que el dia no pudo cerrarse con 10 Shorts manteniendo Voz de Luz/Algenib. Revisar Actions run $GITHUB_RUN_ID. No se habilito ninguna voz alternativa."
+            --title "Dios Habla Hoy - guardia local no llego a 10 Shorts" \
+            --body "La guardia quota-free no pudo cerrar el dia con 10 Shorts. Revisar Actions run $GITHUB_RUN_ID. La generacion de imagen/voz no usa Gemini, HF inference, Pexels ni Pollinations."
