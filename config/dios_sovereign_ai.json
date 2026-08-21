@@ -1,0 +1,46 @@
+{
+  "version": "dhh-sovereign-v1",
+  "channel": "dioshablahoyia",
+  "offline": true,
+  "image": {
+    "mode": "local_diffusion_or_reference",
+    "base_model_path": "models/dios_sovereign/image/base",
+    "lora_path": "models/dios_sovereign/image/lora/dios_jesus_identity.safetensors",
+    "reference_dir": "assets/dioshablahoyia/reference",
+    "references": [
+      "jesus_reference_a.jpg",
+      "jesus_reference_b.jpg",
+      "jesus_reference_c.jpg"
+    ],
+    "width": 1080,
+    "height": 1920,
+    "steps": 28,
+    "guidance_scale": 5.5,
+    "negative_prompt": "cartoon, anime, illustration, plastic skin, deformed face, extra fingers, extra limbs, duplicate person, text, watermark, logo, low resolution, oversaturated, fake beard, doll-like face"
+  },
+  "voice": {
+    "zero_credit_provider": "piper_local",
+    "model_path": "models/dios_sovereign/voice/voz_de_luz_local.onnx",
+    "config_path": "models/dios_sovereign/voice/voz_de_luz_local.onnx.json",
+    "brand": "Voz de Luz Local",
+    "profile": "voz_de_luz_local_sovereign_v1",
+    "exact_algenib": false,
+    "sample_rate": 22050,
+    "master_lufs": -16.5
+  },
+  "theme": {
+    "engine": "local_biblical_editorial_v1",
+    "history_path": "state/history.jsonl",
+    "avoid_recent": 30,
+    "short_seconds": 60,
+    "scene_seconds": 10,
+    "language": "es-AR"
+  },
+  "publication": {
+    "daily_shorts_target": 10,
+    "weekend_long_target": 2,
+    "require_offline_media_generation": true,
+    "allow_remote_image_ai": false,
+    "allow_remote_tts": false
+  }
+}
