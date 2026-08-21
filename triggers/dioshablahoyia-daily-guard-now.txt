@@ -1,1 +1,1 @@
-2026-08-20 07:42 ART | NPU + Weekend Growth Guard recovery: current local day has 2 confirmed persisted Shorts, so fill only the 8 missing Shorts up to exactly 10. Keep permanently Voz de Luz / Algenib with SPIRITUAL_REQUIRE_PRIMARY_VOICE=true, TTS_FALLBACK_KOKORO=false and voice_identity_locked=true. Never duplicate uploads and never relax the fresh-visual guard into repeated local portraits. Local NPU learning remains zero-quota/local-only and fail-open; publishing must continue.
+2026-08-21 09:06 ART | Trigger quota-free local daily guard for today's Shorts target.
