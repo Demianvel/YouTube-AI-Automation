@@ -70,6 +70,10 @@ jobs:
       SPIRITUAL_CTA_OVERLAY: "false"
       SPIRITUAL_REQUIRE_FRESH_VISUAL: "true"
       SPIRITUAL_VISUAL_PHASH_MAX_DISTANCE: "7"
+      SPIRITUAL_VISUAL_REFERENCE_LOCKED: "true"
+      SPIRITUAL_VISUAL_REFERENCE_PROFILE: realistic_jesus_reference_abc_v1
+      SPIRITUAL_ALLOW_SYMBOLIC_JESUS_FALLBACK: "false"
+      SPIRITUAL_ALLOW_LOCAL_PROCEDURAL_VISUAL: "false"
       TTS_PROVIDER: gemini_tts
       TTS_FALLBACK_KOKORO: "false"
       GEMINI_VIDEO_ENABLED: "false"
@@ -150,7 +154,7 @@ jobs:
         if: steps.daily_cap.outputs.should_publish == 'true'
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y -qq ffmpeg espeak-ng libsndfile1 fonts-dejavu-core git >/dev/null
+          sudo apt-get install -y -qq ffmpeg libsndfile1 fonts-dejavu-core git >/dev/null
           python -m pip install -q --upgrade pip
           pip install -q \
             "google-genai>=2.3.0" \
@@ -164,34 +168,46 @@ jobs:
             "huggingface_hub<2,>=0.34.4" \
             "gradio_client<3,>=1.11.0"
 
-      - name: Verify immutable voice and realistic reference bank
+      - name: Verify immutable voice and historical realistic reference bank
         if: steps.daily_cap.outputs.should_publish == 'true'
         run: |
           test -n "$GEMINI_API_KEY"
           test -n "$YOUTUBE_TOKEN_DIOSHABLAHOYIA"
           test "$GEMINI_TTS_VOICE" = "Algenib"
           test "$SPIRITUAL_MALE_GEMINI_VOICE" = "Algenib"
+          test "$SPIRITUAL_VOICE_BRAND" = "Voz de Luz"
+          test "$SPIRITUAL_VOICE_PROFILE" = "voz_de_luz_serena_original_v1"
           test "$SPIRITUAL_REQUIRE_PRIMARY_VOICE" = "true"
           test "$SPIRITUAL_VOICE_LOCKED" = "true"
           test "$TTS_PROVIDER" = "gemini_tts"
           test "$TTS_FALLBACK_KOKORO" = "false"
-          python - <<'PY'
-          from pathlib import Path
-          refs = sorted(Path('assets/dioshablahoyia/reference').glob('jesus_reference_*.jpg'))
-          if not refs:
-              raise SystemExit('BLOQUEADO: falta el banco de referencias realistas de Jesus')
-          print('Referencias realistas de Jesus disponibles:', len(refs))
-          PY
-          python -m py_compile scripts/publish_dios_fast.py app/spiritual_tts.py app/spiritual_audio.py app/pipeline.py app/dios_visual_integrity.py
+          test "$SPIRITUAL_VISUAL_REFERENCE_LOCKED" = "true"
+          test "$SPIRITUAL_ALLOW_SYMBOLIC_JESUS_FALLBACK" = "false"
+          test "$SPIRITUAL_ALLOW_LOCAL_PROCEDURAL_VISUAL" = "false"
+          for ref in \
+            assets/dioshablahoyia/reference/jesus_reference_a.jpg \
+            assets/dioshablahoyia/reference/jesus_reference_b.jpg \
+            assets/dioshablahoyia/reference/jesus_reference_c.jpg; do
+            test -s "$ref"
+          done
+          python -m py_compile \
+            scripts/publish_dios_locked.py \
+            scripts/publish_dios_fast.py \
+            app/spiritual_tts.py \
+            app/spiritual_audio.py \
+            app/spiritual_reference_generation.py \
+            app/pipeline.py \
+            app/dios_visual_integrity.py
 
-      - name: Generate fresh Short with permanent Voz de Luz
+      - name: Generate fresh Short with permanent Voz de Luz and realistic reference identity
         if: steps.daily_cap.outputs.should_publish == 'true'
         shell: bash
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.dry_run }}" = "true" ]; then
+            echo "El dry-run generico no publica; la identidad bloqueada se valida por compilacion y guardas."
             python -m app.pipeline --channel dioshablahoyia --content-mode voice --dry-run
           else
-            python scripts/publish_dios_fast.py
+            python scripts/publish_dios_locked.py
           fi
 
       - name: Verify produced identity before persistence
@@ -203,11 +219,16 @@ jobs:
           row = json.loads(Path('state/history.jsonl').read_text(encoding='utf-8').splitlines()[-1])
           used = str(row.get('tts_provider_used') or '').lower()
           profile = row.get('voice_profile')
-          if 'gemini' not in used or ':algenib:' not in used or 'fallback' in used:
+          providers = row.get('generated_visual_provider') or []
+          if isinstance(providers, str):
+              providers = [providers]
+          if 'gemini' not in used or ':algenib:' not in used or 'fallback' in used or 'kokoro' in used:
               raise SystemExit(f'BLOQUEADO: voz publicada inesperada: {used}')
           if profile != 'voz_de_luz_serena_original_v1':
               raise SystemExit(f'BLOQUEADO: perfil de voz inesperado: {profile}')
-          print('VOICE_IDENTITY_OK: Voz de Luz / Algenib')
+          if not providers or any('dios-realistic-reference-lock-v1' not in str(item) for item in providers):
+              raise SystemExit(f'BLOQUEADO: visual fuera de la identidad realista bloqueada: {providers}')
+          print('IDENTITY_OK: Voz de Luz / Algenib + realistic Jesus reference bank')
           PY
 
       - name: Persist anti-duplicate history
@@ -251,4 +272,4 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh issue create --title "Dios Habla Hoy - fallo un Short con Voz de Luz" --body "Se bloqueo la publicacion antes de aceptar una voz distinta de Voz de Luz / Algenib. Revisar Actions run $GITHUB_RUN_ID."
+          gh issue create --title "Dios Habla Hoy - fallo identidad permanente" --body "Se bloqueo la publicacion antes de aceptar una voz distinta de Voz de Luz / Algenib o un visual fuera del banco realista de referencias. Revisar Actions run $GITHUB_RUN_ID."
