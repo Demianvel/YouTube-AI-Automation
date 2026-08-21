@@ -8,31 +8,27 @@ import time
 import wave
 from pathlib import Path
 
-from .audio import continuous_speech_text
-
 
 # Permanent original voice identity for Dios Habla Hoy.
-# Algenib is the single stable male base voice. Content type may change semantic
-# emphasis, but never narrator identity, cadence, pitch, accent or vocal texture.
+# Algenib is the only allowed narrator. Alternate/local voices are deliberately
+# disabled so a quota or provider failure can never silently change the channel.
 MALE_GEMINI_VOICE_DEFAULT = "Algenib"
-MALE_KOKORO_VOICE_DEFAULT = "em_alex"
+MALE_KOKORO_VOICE_DEFAULT = "em_alex"  # compatibility constant only; never used
 SPIRITUAL_VOICE_PROFILE = "voz_de_luz_serena_original_v1"
 VOICE_BRAND_NAME = "Voz de Luz"
-VOICE_LOCK_VERSION = "voz-de-luz-algenib-v3-natural-fixed"
+VOICE_LOCK_VERSION = "voz-de-luz-algenib-v4-hard-lock"
 REFERENCE_MODE = "fixed_original_identity_no_speaker_clone"
 
 
 def safe_tts_chunks(text: str, max_words: int = 42, max_chars: int = 300) -> list[str]:
-    """Split long spiritual prose into safe TTS units without losing words."""
+    """Compatibility helper retained for callers; no alternate TTS uses it."""
     clean = " ".join(str(text or "").split()).strip()
     if not clean:
         return []
-
     tokens = re.findall(r"\S+", clean)
     chunks: list[str] = []
     current: list[str] = []
     current_chars = 0
-
     for token in tokens:
         projected_chars = current_chars + (1 if current else 0) + len(token)
         if current and (len(current) >= max_words or projected_chars > max_chars):
@@ -41,7 +37,6 @@ def safe_tts_chunks(text: str, max_words: int = 42, max_chars: int = 300) -> lis
             current_chars = 0
         current.append(token)
         current_chars += (1 if current_chars else 0) + len(token)
-
     if current:
         chunks.append(" ".join(current))
     return chunks
@@ -77,7 +72,6 @@ def _delivery_mode(text: str) -> str:
 
 
 def _director_notes(mode: str) -> str:
-    """Keep one permanent cadence; mode changes meaning/emphasis only."""
     semantic = {
         "night_prayer": "Keep the emotional emphasis gentle and comforting, appropriate for evening listening.",
         "prayer": "Keep the emotional emphasis sincere, close and compassionate, as a guided prayer.",
@@ -95,7 +89,7 @@ def _director_notes(mode: str) -> str:
 
 
 def _brand_master(path: Path) -> None:
-    """Apply the permanent Voz de Luz broadcast master to every provider."""
+    """Apply the permanent Voz de Luz broadcast master without changing identity."""
     if not path.exists():
         return
     temp = path.with_name(path.stem + ".voz-de-luz-master.wav")
@@ -120,14 +114,16 @@ def _brand_master(path: Path) -> None:
         else:
             temp.unlink(missing_ok=True)
     except Exception as exc:
-        print(f"No se pudo aplicar el master Voz de Luz ({exc}); se conserva la voz original.")
+        print(f"No se pudo aplicar el master Voz de Luz ({exc}); se conserva la voz Algenib original.")
         temp.unlink(missing_ok=True)
 
 
 def _locked_gemini_voice() -> str:
     requested = os.getenv("GEMINI_TTS_VOICE", MALE_GEMINI_VOICE_DEFAULT).strip() or MALE_GEMINI_VOICE_DEFAULT
-    locked = os.getenv("SPIRITUAL_VOICE_LOCKED", "true").lower().strip() == "true"
-    if locked and requested.lower() != MALE_GEMINI_VOICE_DEFAULT.lower():
+    locked = os.getenv("SPIRITUAL_VOICE_LOCKED", "true").lower().strip()
+    if locked != "true":
+        raise RuntimeError("VOICE_LOCK: SPIRITUAL_VOICE_LOCKED debe permanecer true para Dios Habla Hoy.")
+    if requested.lower() != MALE_GEMINI_VOICE_DEFAULT.lower():
         raise RuntimeError(
             f"VOICE_LOCK: GEMINI_TTS_VOICE={requested} no coincide con la voz fija {MALE_GEMINI_VOICE_DEFAULT}."
         )
@@ -140,7 +136,6 @@ def _is_gemini_quota_error(exc: Exception) -> bool:
 
 
 def _gemini_retry_seconds(exc: Exception, default: float = 65.0) -> float:
-    """Honor Gemini RetryInfo instead of hammering the same quota window."""
     text = str(exc)
     patterns = (
         r"retry in\s+([0-9]+(?:\.[0-9]+)?)s",
@@ -158,7 +153,7 @@ def _gemini_spiritual_voice(path: Path, text: str) -> str:
 
     api_key = os.getenv("GEMINI_API_KEY", "").strip()
     if not api_key:
-        raise RuntimeError("Falta GEMINI_API_KEY para Gemini TTS.")
+        raise RuntimeError("Falta GEMINI_API_KEY para Voz de Luz / Algenib.")
 
     model = os.getenv("GEMINI_TTS_MODEL", "gemini-3.1-flash-tts-preview").strip()
     voice = _locked_gemini_voice()
@@ -215,7 +210,6 @@ Speak naturally and continuously. Link phrases smoothly. Use normal human breath
             last_error = exc
             if attempt >= max_attempts:
                 break
-
             if _is_gemini_quota_error(exc):
                 wait_seconds = _gemini_retry_seconds(exc)
                 print(
@@ -236,80 +230,35 @@ Speak naturally and continuously. Link phrases smoothly. Use normal human breath
 
 
 def _kokoro_chunked_voice(path: Path, text: str) -> None:
-    import numpy as np
-    import soundfile as sf
-    from kokoro import KPipeline
-
-    voice = MALE_KOKORO_VOICE_DEFAULT
-    speed = 1.0
-    pipeline = KPipeline(lang_code="e")
-    rendered: list[np.ndarray] = []
-
-    chunks = safe_tts_chunks(text)
-    if not chunks:
-        raise RuntimeError("No hay texto para la narracion espiritual.")
-
-    for index, chunk in enumerate(chunks, start=1):
-        flowing = continuous_speech_text(chunk)
-        piece_count = 0
-        for _graphemes, _phonemes, audio in pipeline(
-            flowing,
-            voice=voice,
-            speed=speed,
-            split_pattern=r"(?<=[.!?])\s+",
-        ):
-            if audio is not None and len(audio):
-                rendered.append(np.asarray(audio, dtype=np.float32))
-                piece_count += 1
-        if piece_count == 0:
-            raise RuntimeError(f"Kokoro no genero audio para el fragmento espiritual {index}/{len(chunks)}.")
-
-    pause = np.zeros(max(1, int(24000 * 0.018)), dtype=np.float32)
-    joined: list[np.ndarray] = []
-    for index, audio in enumerate(rendered):
-        if index:
-            joined.append(pause)
-        joined.append(audio)
-
-    combined = np.concatenate(joined)
-    peak = float(np.max(np.abs(combined))) if len(combined) else 0.0
-    if peak > 0.98:
-        combined = combined * (0.96 / peak)
-    path.parent.mkdir(parents=True, exist_ok=True)
-    sf.write(str(path), combined, 24000, subtype="PCM_16")
+    del path, text
+    raise RuntimeError(
+        "VOICE_LOCK: Kokoro esta deshabilitado permanentemente para Dios Habla Hoy; "
+        "si Algenib no esta disponible la publicacion debe detenerse."
+    )
 
 
 def make_spiritual_spanish_voice(path: Path, text: str) -> str:
-    """Generate the permanent original Voz de Luz narrator with a safe male fallback."""
+    """Generate only the permanent Voz de Luz / Algenib narrator."""
     provider = os.getenv("TTS_PROVIDER", "gemini_tts").lower().strip()
-    mode = _delivery_mode(text)
-    require_primary = os.getenv("SPIRITUAL_REQUIRE_PRIMARY_VOICE", "false").lower().strip() == "true"
-    if provider in {"gemini", "gemini_tts", "gemini-tts"}:
-        try:
-            used = _gemini_spiritual_voice(path, text)
-        except Exception as exc:
-            if require_primary:
-                raise RuntimeError(
-                    f"La ejecucion exige la voz primaria {VOICE_BRAND_NAME}/{MALE_GEMINI_VOICE_DEFAULT}; Gemini TTS no estuvo disponible: {exc}"
-                ) from exc
-            print(f"Gemini TTS no disponible ({exc}); usando respaldo masculino fijo Kokoro con master Voz de Luz.")
-            _kokoro_chunked_voice(path, text)
-            used = f"kokoro:{MALE_KOKORO_VOICE_DEFAULT}:{SPIRITUAL_VOICE_PROFILE}:{mode}:fallback"
-    else:
-        if require_primary:
-            raise RuntimeError(
-                f"La ejecucion exige TTS primario Gemini/{MALE_GEMINI_VOICE_DEFAULT}, pero TTS_PROVIDER={provider}."
-            )
-        _kokoro_chunked_voice(path, text)
-        used = f"kokoro:{MALE_KOKORO_VOICE_DEFAULT}:{SPIRITUAL_VOICE_PROFILE}:{mode}:forced"
+    require_primary = os.getenv("SPIRITUAL_REQUIRE_PRIMARY_VOICE", "true").lower().strip()
+    fallback_kokoro = os.getenv("TTS_FALLBACK_KOKORO", "false").lower().strip()
 
+    if provider not in {"gemini", "gemini_tts", "gemini-tts"}:
+        raise RuntimeError(
+            f"VOICE_LOCK: TTS_PROVIDER={provider or 'vacio'} no esta permitido; se exige Gemini TTS/{MALE_GEMINI_VOICE_DEFAULT}."
+        )
+    if require_primary != "true":
+        raise RuntimeError("VOICE_LOCK: SPIRITUAL_REQUIRE_PRIMARY_VOICE debe permanecer true.")
+    if fallback_kokoro != "false":
+        raise RuntimeError("VOICE_LOCK: TTS_FALLBACK_KOKORO debe permanecer false.")
+
+    used = _gemini_spiritual_voice(path, text)
     if not path.exists() or path.stat().st_size < 1000:
         raise RuntimeError(f"{used} genero un archivo de voz espiritual invalido.")
 
-    if require_primary:
-        low = used.lower()
-        if "gemini" not in low or f":{MALE_GEMINI_VOICE_DEFAULT.lower()}:" not in low or "fallback" in low:
-            raise RuntimeError(f"VOICE_LOCK: proveedor de voz inesperado: {used}")
+    low = used.lower()
+    if "gemini" not in low or f":{MALE_GEMINI_VOICE_DEFAULT.lower()}:" not in low or "fallback" in low or "kokoro" in low:
+        raise RuntimeError(f"VOICE_LOCK: proveedor de voz inesperado: {used}")
 
     _brand_master(path)
     return used
