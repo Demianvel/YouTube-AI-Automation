@@ -5,12 +5,13 @@ from pathlib import Path
 
 from app import hf_primary_router, pipeline, spiritual_audio, spiritual_image, spiritual_tts
 from app import dios_sovereign_ai as sovereign
+from app import dios_sovereign_voice as sovereign_voice
 import scripts.publish_dios_fast as fast
 
 
-LOCAL_VOICE_PROFILE = "voz_de_luz_local_sovereign_v1"
-LOCAL_VOICE_BRAND = "Voz de Luz Local"
-LOCAL_VOICE_LOCK_VERSION = "dhh-sovereign-local-voice-v1"
+LOCAL_VOICE_PROFILE = sovereign_voice.VOICE_PROFILE
+LOCAL_VOICE_BRAND = sovereign_voice.VOICE_BRAND
+LOCAL_VOICE_LOCK_VERSION = sovereign_voice.VOICE_PROVIDER
 
 
 def _configure_offline_env() -> None:
@@ -74,8 +75,9 @@ def configure() -> None:
     spiritual_image._download = sovereign.generate_visual
     spiritual_image._animate = fast._fast_animate
 
-    spiritual_audio.make_spiritual_spanish_voice = sovereign.make_voice
-    spiritual_tts.make_spiritual_spanish_voice = sovereign.make_voice
+    spiritual_audio.make_spiritual_spanish_voice = sovereign_voice.make_voice
+    spiritual_tts.make_spiritual_spanish_voice = sovereign_voice.make_voice
+    spiritual_audio._fit_text_for_natural_short_voice = sovereign_voice.fit_script
     spiritual_audio._enforce_voice_identity = _enforce_local_voice
     spiritual_audio.EXPECTED_VOICE = LOCAL_VOICE_BRAND
     spiritual_audio.EXPECTED_PROFILE = LOCAL_VOICE_PROFILE
