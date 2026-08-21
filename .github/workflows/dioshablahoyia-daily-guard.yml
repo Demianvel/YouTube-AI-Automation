@@ -7,8 +7,7 @@ on:
     paths:
       - "triggers/dioshablahoyia-daily-guard-now.txt"
   schedule:
-    # GitHub usa UTC. En Argentina (UTC-3): 01:10 = 22:10 del dia anterior;
-    # 02:20 = 23:20 del dia anterior. Ambas pasadas cuentan por fecha local ART.
+    # 22:10 y 23:20 America/Argentina/Buenos_Aires (GitHub cron usa UTC).
     - cron: "10 1 * * *"
     - cron: "20 2 * * *"
 
@@ -29,15 +28,19 @@ jobs:
       TZ: America/Argentina/Buenos_Aires
       CHANNEL: dioshablahoyia
       CONTENT_MODE: voice
-      DIOS_GUARD_LOCAL_ONLY: "true"
-      SPIRITUAL_LOCAL_MEDIA_ENGINE: "true"
-      SPIRITUAL_LOCAL_VOICE_LOCK: "true"
-      SPIRITUAL_VOICE_PROFILE: voz_de_luz_local_original_v1
-      SPIRITUAL_VOICE_BRAND: Voz de Luz Local
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      GEMINI_TEXT_MODEL: gemini-3.6-flash
+      GEMINI_TTS_MODEL: gemini-3.1-flash-tts-preview
+      GEMINI_TTS_VOICE: Algenib
+      GEMINI_TTS_MAX_ATTEMPTS: "4"
+      SPIRITUAL_MALE_GEMINI_VOICE: Algenib
+      SPIRITUAL_VOICE_PROFILE: voz_de_luz_serena_original_v1
+      SPIRITUAL_VOICE_BRAND: Voz de Luz
+      SPIRITUAL_VOICE_REFERENCE_MODE: fixed_original_identity_no_speaker_clone
       SPIRITUAL_VOICE_LOCKED: "true"
       SPIRITUAL_VOICEOVER_MODE: "true"
       SPIRITUAL_LIPSYNC_ENABLED: "false"
-      SPIRITUAL_REQUIRE_PRIMARY_VOICE: "false"
+      SPIRITUAL_REQUIRE_PRIMARY_VOICE: "true"
       SPIRITUAL_SHORT_SECONDS: "60"
       SPIRITUAL_SHORT_SCENE_SECONDS: "10"
       SPIRITUAL_SHORT_AI_CLIPS: "0"
@@ -47,27 +50,28 @@ jobs:
       SPIRITUAL_EDITORIAL_VARIETY_LEVEL: high
       SPIRITUAL_CTA_OVERLAY: "false"
       SPIRITUAL_REQUIRE_FRESH_VISUAL: "true"
-      SPIRITUAL_VISUAL_PHASH_MAX_DISTANCE: "7"
-      TTS_PROVIDER: local
-      TTS_FALLBACK_KOKORO: "true"
-      GEMINI_API_KEY: ""
+      TTS_PROVIDER: gemini_tts
+      TTS_FALLBACK_KOKORO: "false"
       GEMINI_VIDEO_ENABLED: "false"
       HF_VIDEO_ENABLED: "false"
       HF_REQUIRE_TEXT_TO_VIDEO: "false"
       HF_VIDEO_STRICT: "false"
-      HF_REFERENCE_IMAGE_ENABLED: "false"
-      HF_REFERENCE_EDITOR_ENABLED: "false"
-      HF_TEXT_ZERO_ENABLED: "false"
+      HF_REFERENCE_IMAGE_ENABLED: "true"
+      HF_REFERENCE_EDITOR_ENABLED: "true"
+      HF_REFERENCE_ZERO_SPACE: black-forest-labs/FLUX.1-Kontext-Dev
+      HF_TEXT_ZERO_ENABLED: "true"
+      HF_TEXT_ZERO_SPACE: black-forest-labs/FLUX.1-schnell
+      HF_REFERENCE_ZERO_SPACE_FIRST: "true"
+      HF_ZERO_AUTH_RETRY: "true"
+      HF_REMOTE_CIRCUIT_BREAKER: "true"
       HF_INFERENCE_PROVIDER_ENABLED: "false"
-      HF_ZERO_TOKEN: ""
+      HF_ZERO_TOKEN: ${{ secrets.HF_TOKEN }}
       HF_TOKEN: ""
-      PEXELS_API_KEY: ""
-      POLLINATIONS_API_KEY: ""
+      SPIRITUAL_REFERENCE_AVOID_RECENT: "100"
+      DIOS_FAST_LOCAL_VISUAL_MODE: "false"
+      PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
       MUSIC_PROVIDER: local
       YOUTUBE_TOKEN_DIOSHABLAHOYIA: ${{ secrets.YOUTUBE_TOKEN_DIOSHABLAHOYIA }}
-      FACEBOOK_PAGE_ID: ${{ secrets.FACEBOOK_PAGE_ID }}
-      FACEBOOK_PAGE_ACCESS_TOKEN: ${{ secrets.FACEBOOK_PAGE_ACCESS_TOKEN }}
-      FACEBOOK_GRAPH_API_VERSION: v25.0
 
     steps:
       - uses: actions/checkout@v4
@@ -77,10 +81,8 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-          cache: pip
-          cache-dependency-path: requirements.txt
 
-      - name: Install quota-free publisher runtime
+      - name: Install strict recovery runtime
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y -qq ffmpeg espeak-ng libsndfile1 fonts-dejavu-core git >/dev/null
@@ -96,45 +98,37 @@ jobs:
             "soundfile>=0.13.1" \
             "huggingface_hub<2,>=0.34.4" \
             "gradio_client<3,>=1.11.0"
-          # La libreria google-genai queda instalada solo para imports del pipeline;
-          # GEMINI_API_KEY permanece vacia y el motor local no llama a Gemini.
-          # Kokoro mejora la naturalidad y no usa una API de inferencia. Es opcional:
-          # si no puede instalar/cargar sus assets, espeak-ng garantiza voz local.
-          pip install -q "kokoro>=0.9.4" || echo "Kokoro opcional no disponible; se usara espeak-ng local."
 
-      - name: Verify quota-free local media guardrails
+      - name: Verify permanent voice and realistic references
         run: |
+          test -n "$GEMINI_API_KEY"
           test -n "$YOUTUBE_TOKEN_DIOSHABLAHOYIA"
-          test "$DIOS_GUARD_LOCAL_ONLY" = "true"
-          test "$SPIRITUAL_LOCAL_MEDIA_ENGINE" = "true"
-          test "$SPIRITUAL_LOCAL_VOICE_LOCK" = "true"
-          test "$TTS_PROVIDER" = "local"
-          test -z "$GEMINI_API_KEY"
-          test -z "$HF_TOKEN"
-          test -z "$HF_ZERO_TOKEN"
-          test -z "$PEXELS_API_KEY"
-          test -z "$POLLINATIONS_API_KEY"
-          python -m py_compile \
-            scripts/dioshablahoyia_daily_guard.py \
-            scripts/publish_dios_fast.py \
-            scripts/publish_dios_fast_local_emergency.py \
-            app/local_spiritual_media.py \
-            app/dios_visual_integrity.py \
-            app/spiritual_audio.py \
-            app/pipeline.py \
-            app/facebook_pages.py
+          test "$GEMINI_TTS_VOICE" = "Algenib"
+          test "$SPIRITUAL_MALE_GEMINI_VOICE" = "Algenib"
+          test "$SPIRITUAL_REQUIRE_PRIMARY_VOICE" = "true"
+          test "$SPIRITUAL_VOICE_LOCKED" = "true"
+          test "$TTS_PROVIDER" = "gemini_tts"
+          test "$TTS_FALLBACK_KOKORO" = "false"
+          python - <<'PY'
+          from pathlib import Path
+          refs = sorted(Path('assets/dioshablahoyia/reference').glob('jesus_reference_*.jpg'))
+          if not refs:
+              raise SystemExit('BLOQUEADO: falta el banco de referencias realistas de Jesus')
+          print('Referencias realistas de Jesus disponibles:', len(refs))
+          PY
+          python -m py_compile scripts/dioshablahoyia_catchup_shorts.py scripts/publish_dios_fast.py app/spiritual_tts.py app/spiritual_audio.py app/pipeline.py
 
-      - name: Complete only missing Shorts up to exactly 10
-        run: python scripts/dioshablahoyia_daily_guard.py
+      - name: Complete only missing Shorts with permanent Voz de Luz
+        run: python scripts/dioshablahoyia_catchup_shorts.py
 
       - name: Persist guard recovery records
-        if: always()
+        if: success()
         shell: bash
         run: |
-          RECORDS="/tmp/dios-daily-guard/new-short-records.jsonl"
+          RECORDS="/tmp/dios-catchup/new-short-records.jsonl"
           test -f "$RECORDS" || exit 0
           test -s "$RECORDS" || exit 0
-          cp "$RECORDS" /tmp/dios-daily-guard-records-copy.jsonl
+          cp "$RECORDS" /tmp/dios-guard-records-copy.jsonl
           git config user.name "youtube-ai-bot"
           git config user.email "actions@users.noreply.github.com"
           for attempt in 1 2 3 4 5; do
@@ -144,11 +138,15 @@ jobs:
             touch state/history.jsonl
             while IFS= read -r record; do
               test -n "$record" || continue
-              grep -Fqx "$record" state/history.jsonl || printf '%s\n' "$record" >> state/history.jsonl
-            done < /tmp/dios-daily-guard-records-copy.jsonl
+              VIDEO_ID="$(printf '%s' "$record" | python -c 'import json,sys; print(json.load(sys.stdin).get("video_id", ""))' 2>/dev/null || true)"
+              if [ -n "$VIDEO_ID" ] && grep -Fq "\"video_id\": \"$VIDEO_ID\"" state/history.jsonl; then
+                continue
+              fi
+              printf '%s\n' "$record" >> state/history.jsonl
+            done < /tmp/dios-guard-records-copy.jsonl
             git add state/history.jsonl
             if git diff --cached --quiet; then exit 0; fi
-            git commit -m "chore: persist daily Dios Shorts guard recovery"
+            git commit -m "chore: persist strict daily Dios recovery"
             if git push origin HEAD:main; then exit 0; fi
           done
           exit 1
@@ -162,11 +160,11 @@ jobs:
           if-no-files-found: ignore
           retention-days: 2
 
-      - name: Open issue if daily target still missing
+      - name: Open issue if strict daily target remains missing
         if: failure()
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh issue create \
-            --title "Dios Habla Hoy - guardia local no llego a 10 Shorts" \
-            --body "La guardia quota-free no pudo cerrar el dia con 10 Shorts. Revisar Actions run $GITHUB_RUN_ID. La generacion de imagen/voz no usa Gemini, HF inference, Pexels ni Pollinations."
+            --title "Dios Habla Hoy - guardia estricta no llego a 10 Shorts" \
+            --body "La guardia se nego a cambiar Voz de Luz / Algenib. Revisar Actions run $GITHUB_RUN_ID."
