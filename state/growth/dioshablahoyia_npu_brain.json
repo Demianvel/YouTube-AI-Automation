@@ -1,6 +1,6 @@
 {
   "version": "alien-npu-brain-v1",
-  "generated_at": "2026-08-21T17:47:21.658531+00:00",
+  "generated_at": "2026-08-21T18:58:15.492937+00:00",
   "architecture": {
     "type": "multi-cortex ensemble with quantum-inspired softmax exploration",
     "literal_consciousness": false,
@@ -722,7 +722,7 @@
         "seo_only": true
       },
       {
-        "key": "descanso mateo",
+        "key": "cuidado mateo",
         "samples": 0,
         "mean_score": 55.13,
         "best_score": 92.78,
@@ -736,14 +736,49 @@
         "seo_only": true
       },
       {
-        "key": "cuidado mateo",
+        "key": "descanso mateo",
         "samples": 0,
         "mean_score": 55.13,
         "best_score": 92.78,
         "seo_only": true
       },
       {
+        "key": "transforma corazón",
+        "samples": 0,
+        "mean_score": 55.0,
+        "best_score": 91.67,
+        "seo_only": true
+      },
+      {
+        "key": "paz esperanza",
+        "samples": 0,
+        "mean_score": 55.0,
+        "best_score": 91.67,
+        "seo_only": true
+      },
+      {
         "key": "juan",
+        "samples": 0,
+        "mean_score": 55.0,
+        "best_score": 91.67,
+        "seo_only": true
+      },
+      {
+        "key": "promesa paz",
+        "samples": 0,
+        "mean_score": 55.0,
+        "best_score": 91.67,
+        "seo_only": true
+      },
+      {
+        "key": "promesa",
+        "samples": 0,
+        "mean_score": 55.0,
+        "best_score": 91.67,
+        "seo_only": true
+      },
+      {
+        "key": "esperanza juan",
         "samples": 0,
         "mean_score": 55.0,
         "best_score": 91.67,
@@ -764,34 +799,6 @@
         "seo_only": true
       },
       {
-        "key": "transforma corazón",
-        "samples": 0,
-        "mean_score": 55.0,
-        "best_score": 91.67,
-        "seo_only": true
-      },
-      {
-        "key": "paz esperanza",
-        "samples": 0,
-        "mean_score": 55.0,
-        "best_score": 91.67,
-        "seo_only": true
-      },
-      {
-        "key": "promesa paz",
-        "samples": 0,
-        "mean_score": 55.0,
-        "best_score": 91.67,
-        "seo_only": true
-      },
-      {
-        "key": "esperanza juan",
-        "samples": 0,
-        "mean_score": 55.0,
-        "best_score": 91.67,
-        "seo_only": true
-      },
-      {
         "key": "juan juan",
         "samples": 0,
         "mean_score": 55.0,
@@ -806,28 +813,21 @@
         "seo_only": true
       },
       {
-        "key": "promesa",
-        "samples": 0,
-        "mean_score": 55.0,
-        "best_score": 91.67,
-        "seo_only": true
-      },
-      {
-        "key": "estás solo",
-        "samples": 0,
-        "mean_score": 54.97,
-        "best_score": 91.39,
-        "seo_only": true
-      },
-      {
-        "key": "confianza reflexion",
-        "samples": 0,
-        "mean_score": 54.97,
-        "best_score": 91.39,
-        "seo_only": true
-      },
-      {
         "key": "reflexion sobre",
+        "samples": 0,
+        "mean_score": 54.97,
+        "best_score": 91.39,
+        "seo_only": true
+      },
+      {
+        "key": "reflexion",
+        "samples": 0,
+        "mean_score": 54.97,
+        "best_score": 91.39,
+        "seo_only": true
+      },
+      {
+        "key": "solo etapa",
         "samples": 0,
         "mean_score": 54.97,
         "best_score": 91.39,
