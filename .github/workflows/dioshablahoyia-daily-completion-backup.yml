@@ -1,0 +1,56 @@
+name: Dios Habla Hoy IA - Backup cierre 10 Shorts
+
+on:
+  workflow_dispatch:
+  schedule:
+    # GitHub cron usa UTC; estas pasadas equivalen a 20:45, 21:45,
+    # 22:45 y 23:35 en America/Argentina/Buenos_Aires.
+    # La guardia cuenta lo ya publicado y completa solo hasta exactamente 10.
+    - cron: "45 23 * * *"
+    - cron: "45 0 * * *"
+    - cron: "45 1 * * *"
+    - cron: "35 2 * * *"
+
+permissions:
+  actions: write
+  contents: read
+
+concurrency:
+  group: dioshablahoyia-daily-completion-backup
+  cancel-in-progress: true
+
+jobs:
+  dispatch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Dispatch strict daily guard only when publisher is idle
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          active_for() {
+            gh run list \
+              -R "$GITHUB_REPOSITORY" \
+              --workflow "$1" \
+              --limit 30 \
+              --json status \
+              --jq '[.[] | select(.status == "queued" or .status == "in_progress" or .status == "waiting" or .status == "pending")] | length' \
+              2>/dev/null || echo 0
+          }
+
+          ACTIVE_SHORTS="$(active_for shorts.yml)"
+          ACTIVE_GUARD="$(active_for dioshablahoyia-daily-guard.yml)"
+          ACTIVE_CATCHUP="$(active_for dioshablahoyia-catchup-shorts.yml)"
+
+          echo "Activos: shorts=$ACTIVE_SHORTS guard=$ACTIVE_GUARD catchup=$ACTIVE_CATCHUP"
+          if [ "$ACTIVE_SHORTS" -gt 0 ] || [ "$ACTIVE_GUARD" -gt 0 ] || [ "$ACTIVE_CATCHUP" -gt 0 ]; then
+            echo "Ya existe una recuperacion/publicacion activa; no se duplica."
+            exit 0
+          fi
+
+          gh workflow run dioshablahoyia-daily-guard.yml \
+            -R "$GITHUB_REPOSITORY" \
+            --ref main
+          echo "Guardia diaria disparada. Ella misma cuenta el historial local y se detiene en 10/10."
