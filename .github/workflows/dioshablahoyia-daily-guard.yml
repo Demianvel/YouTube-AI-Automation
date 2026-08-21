@@ -50,6 +50,10 @@ jobs:
       SPIRITUAL_EDITORIAL_VARIETY_LEVEL: high
       SPIRITUAL_CTA_OVERLAY: "false"
       SPIRITUAL_REQUIRE_FRESH_VISUAL: "true"
+      SPIRITUAL_VISUAL_REFERENCE_LOCKED: "true"
+      SPIRITUAL_VISUAL_REFERENCE_PROFILE: realistic_jesus_reference_abc_v1
+      SPIRITUAL_ALLOW_SYMBOLIC_JESUS_FALLBACK: "false"
+      SPIRITUAL_ALLOW_LOCAL_PROCEDURAL_VISUAL: "false"
       TTS_PROVIDER: gemini_tts
       TTS_FALLBACK_KOKORO: "false"
       GEMINI_VIDEO_ENABLED: "false"
@@ -85,7 +89,7 @@ jobs:
       - name: Install strict recovery runtime
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y -qq ffmpeg espeak-ng libsndfile1 fonts-dejavu-core git >/dev/null
+          sudo apt-get install -y -qq ffmpeg libsndfile1 fonts-dejavu-core git >/dev/null
           python -m pip install -q --upgrade pip
           pip install -q \
             "google-genai>=2.3.0" \
@@ -99,26 +103,40 @@ jobs:
             "huggingface_hub<2,>=0.34.4" \
             "gradio_client<3,>=1.11.0"
 
-      - name: Verify permanent voice and realistic references
+      - name: Verify permanent voice and historical realistic references
         run: |
           test -n "$GEMINI_API_KEY"
           test -n "$YOUTUBE_TOKEN_DIOSHABLAHOYIA"
+          test -n "$HF_ZERO_TOKEN"
           test "$GEMINI_TTS_VOICE" = "Algenib"
           test "$SPIRITUAL_MALE_GEMINI_VOICE" = "Algenib"
+          test "$SPIRITUAL_VOICE_BRAND" = "Voz de Luz"
+          test "$SPIRITUAL_VOICE_PROFILE" = "voz_de_luz_serena_original_v1"
           test "$SPIRITUAL_REQUIRE_PRIMARY_VOICE" = "true"
           test "$SPIRITUAL_VOICE_LOCKED" = "true"
           test "$TTS_PROVIDER" = "gemini_tts"
           test "$TTS_FALLBACK_KOKORO" = "false"
-          python - <<'PY'
-          from pathlib import Path
-          refs = sorted(Path('assets/dioshablahoyia/reference').glob('jesus_reference_*.jpg'))
-          if not refs:
-              raise SystemExit('BLOQUEADO: falta el banco de referencias realistas de Jesus')
-          print('Referencias realistas de Jesus disponibles:', len(refs))
-          PY
-          python -m py_compile scripts/dioshablahoyia_catchup_shorts.py scripts/publish_dios_fast.py app/spiritual_tts.py app/spiritual_audio.py app/pipeline.py
+          test "$SPIRITUAL_VISUAL_REFERENCE_LOCKED" = "true"
+          test "$SPIRITUAL_ALLOW_SYMBOLIC_JESUS_FALLBACK" = "false"
+          test "$SPIRITUAL_ALLOW_LOCAL_PROCEDURAL_VISUAL" = "false"
+          for ref in \
+            assets/dioshablahoyia/reference/jesus_reference_a.jpg \
+            assets/dioshablahoyia/reference/jesus_reference_b.jpg \
+            assets/dioshablahoyia/reference/jesus_reference_c.jpg; do
+            test -s "$ref"
+          done
+          python -m py_compile \
+            scripts/dioshablahoyia_catchup_shorts.py \
+            scripts/dioshablahoyia_daily_guard.py \
+            scripts/publish_dios_locked.py \
+            scripts/publish_dios_fast.py \
+            scripts/publish_dios_fast_local_emergency.py \
+            app/spiritual_tts.py \
+            app/spiritual_audio.py \
+            app/spiritual_reference_generation.py \
+            app/pipeline.py
 
-      - name: Complete only missing Shorts with permanent Voz de Luz
+      - name: Complete only missing Shorts with permanent identity
         run: python scripts/dioshablahoyia_catchup_shorts.py
 
       - name: Persist guard recovery records
@@ -167,4 +185,4 @@ jobs:
         run: |
           gh issue create \
             --title "Dios Habla Hoy - guardia estricta no llego a 10 Shorts" \
-            --body "La guardia se nego a cambiar Voz de Luz / Algenib. Revisar Actions run $GITHUB_RUN_ID."
+            --body "La guardia se nego a cambiar Voz de Luz / Algenib o la identidad visual realista de referencia. Revisar Actions run $GITHUB_RUN_ID."
