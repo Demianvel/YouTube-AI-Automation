@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import random
 import subprocess
 import time
@@ -205,8 +206,14 @@ def _kokoro_voice(path: Path, text: str) -> str:
     from kokoro import KPipeline
 
     pipeline = KPipeline(lang_code="e")
+    try:
+        speed = float(os.getenv("LOCAL_KOKORO_SPEED", "0.76"))
+    except ValueError:
+        speed = 0.76
+    speed = max(0.72, min(0.84, speed))
+
     rendered: list[np.ndarray] = []
-    for _graphemes, _phonemes, audio in pipeline(text, voice=LOCAL_KOKORO_VOICE, speed=1.0):
+    for _graphemes, _phonemes, audio in pipeline(text, voice=LOCAL_KOKORO_VOICE, speed=speed):
         if audio is not None and len(audio):
             rendered.append(np.asarray(audio, dtype=np.float32))
     if not rendered:
@@ -217,14 +224,19 @@ def _kokoro_voice(path: Path, text: str) -> str:
         combined = combined * (0.96 / peak)
     path.parent.mkdir(parents=True, exist_ok=True)
     sf.write(str(path), combined, 24000, subtype="PCM_16")
-    return f"local_kokoro:{LOCAL_KOKORO_VOICE}:{LOCAL_VOICE_PROFILE}:{LOCAL_MEDIA_ENGINE_VERSION}"
+    return f"local_kokoro:{LOCAL_KOKORO_VOICE}:speed={speed:.2f}:{LOCAL_VOICE_PROFILE}:{LOCAL_MEDIA_ENGINE_VERSION}"
 
 
 def _espeak_voice(path: Path, text: str) -> str:
     path.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        speed = int(os.getenv("LOCAL_ESPEAK_WPM", "132"))
+    except ValueError:
+        speed = 132
+    speed = max(124, min(138, speed))
     subprocess.run(
         [
-            "espeak-ng", "-v", "es-419", "-s", "145", "-p", "34", "-a", "165",
+            "espeak-ng", "-v", "es-419", "-s", str(speed), "-p", "34", "-a", "165",
             "-g", "2", "-w", str(path), text,
         ],
         check=True,
@@ -233,14 +245,16 @@ def _espeak_voice(path: Path, text: str) -> str:
     )
     if not path.exists() or path.stat().st_size < 1000:
         raise RuntimeError("espeak-ng local no genero audio.")
-    return f"local_espeak_ng:es-419:{LOCAL_VOICE_PROFILE}:{LOCAL_MEDIA_ENGINE_VERSION}"
+    return f"local_espeak_ng:es-419:wpm={speed}:{LOCAL_VOICE_PROFILE}:{LOCAL_MEDIA_ENGINE_VERSION}"
 
 
 def make_local_spiritual_voice(path: Path, text: str) -> str:
     """Generate narration without any paid/inference API.
 
-    Kokoro is preferred for naturalness. If its model assets are unavailable,
-    espeak-ng is installed by the workflow and guarantees a no-network fallback.
+    Kokoro is preferred for naturalness. Its local cadence is intentionally tuned
+    for the channel's 60-second narration word budget. If its model assets are
+    unavailable, espeak-ng is installed by the workflow and guarantees a
+    no-network fallback with a slower, continuity-safe speaking rate.
     """
     clean = " ".join(str(text or "").split()).strip()
     if not clean:
