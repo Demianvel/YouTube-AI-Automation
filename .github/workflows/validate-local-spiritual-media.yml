@@ -1,0 +1,75 @@
+name: Validate quota-free Dios local media
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - agent/dios-procedural-visual-fallback-20260821
+    paths:
+      - "app/local_spiritual_media.py"
+      - "scripts/publish_dios_fast_local_emergency.py"
+      - ".github/workflows/dioshablahoyia-daily-guard.yml"
+      - ".github/workflows/validate-local-spiritual-media.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install local-only test runtime
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg espeak-ng libsndfile1 >/dev/null
+          python -m pip install -q "Pillow>=11.0.0" "numpy<3,>=1.26" "soundfile>=0.13.1"
+
+      - name: Compile local publisher
+        run: |
+          python -m py_compile app/local_spiritual_media.py scripts/publish_dios_fast_local_emergency.py
+
+      - name: Generate image and voice without APIs
+        env:
+          GEMINI_API_KEY: ""
+          HF_TOKEN: ""
+          HF_ZERO_TOKEN: ""
+          PEXELS_API_KEY: ""
+          POLLINATIONS_API_KEY: ""
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          from app.local_spiritual_media import generate_original_spiritual_image, make_local_spiritual_voice
+
+          out = Path('/tmp/dios-local-media-test')
+          out.mkdir(parents=True, exist_ok=True)
+          image = out / 'scene.jpg'
+          voice = out / 'voice.wav'
+
+          provider = generate_original_spiritual_image(
+              'Biblia abierta, cruz, montanas, amanecer, rio y esperanza',
+              image,
+              20260821,
+              target_size=(540, 960),
+          )
+          used = make_local_spiritual_voice(
+              voice,
+              'Dios puede darte paz aun en un dia dificil. Respira, confia y da un paso con esperanza.',
+          )
+
+          assert image.exists() and image.stat().st_size > 20_000, image.stat().st_size if image.exists() else 0
+          assert voice.exists() and voice.stat().st_size > 10_000, voice.stat().st_size if voice.exists() else 0
+          assert provider.startswith('local_original_procedural_cinematic/'), provider
+          assert used.startswith('local_'), used
+          print('image_provider=', provider)
+          print('voice_provider=', used)
+          print('image_bytes=', image.stat().st_size)
+          print('voice_bytes=', voice.stat().st_size)
+          PY
+          ffprobe -v error -select_streams a:0 -show_entries stream=codec_type -of default=nw=1 /tmp/dios-local-media-test/voice.wav
