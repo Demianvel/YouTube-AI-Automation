@@ -1,8 +1,8 @@
 {
   "version": "dios-internal-quality-cortex-v1",
-  "generated_at": "2026-08-21T11:43:56.425796+00:00",
-  "training_generation": 32,
-  "data_fingerprint": "5cb2c16032c5738362c718c6d0768f6db02f602e6e195014b42aab9bd0c9c43d",
+  "generated_at": "2026-08-21T13:13:09.523376+00:00",
+  "training_generation": 33,
+  "data_fingerprint": "35e33a5a2301c7088f0cb33da5e70d5af31d4069269a000e6d94e9533ebe9bfc",
   "changed_since_previous": true,
   "training_mode": "local_only_zero_external_calls",
   "mission": {
@@ -23,49 +23,49 @@
     "publishing_must_continue": true
   },
   "memory": {
-    "uploaded_samples": 62,
+    "uploaded_samples": 73,
     "unique_references": 24,
-    "unique_families": 57,
+    "unique_families": 68,
     "recent_emotional_terms": [
       [
+        "esperanza",
+        31
+      ],
+      [
         "paz",
-        25
+        27
       ],
       [
         "corazón",
         24
       ],
       [
-        "esperanza",
-        21
+        "descanso",
+        14
       ],
       [
         "confianza",
-        12
+        13
       ],
       [
         "amor",
         12
       ],
       [
-        "descanso",
-        12
+        "luz",
+        9
       ],
       [
-        "luz",
+        "acompaña",
+        9
+      ],
+      [
+        "refugio",
         6
       ],
       [
         "fortaleza",
         6
-      ],
-      [
-        "acompaña",
-        6
-      ],
-      [
-        "refugio",
-        5
       ],
       [
         "misericordia",
@@ -76,11 +76,23 @@
         3
       ],
       [
+        "valentia",
+        3
+      ],
+      [
+        "valentía",
+        3
+      ],
+      [
+        "corazon",
+        3
+      ],
+      [
         "acompañar",
         2
       ],
       [
-        "corazon",
+        "alegría",
         2
       ],
       [
@@ -88,42 +100,30 @@
         1
       ],
       [
-        "valentía",
-        1
-      ],
-      [
-        "valentia",
-        1
-      ],
-      [
         "propósito",
-        1
-      ],
-      [
-        "alegría",
         1
       ]
     ],
     "recent_teaching_terms": [
       [
         "enseñanza",
-        21
-      ],
-      [
-        "verdad",
-        20
+        32
       ],
       [
         "decisión",
-        20
+        31
       ],
       [
         "aplicación",
-        16
+        27
+      ],
+      [
+        "verdad",
+        22
       ],
       [
         "camino",
-        12
+        13
       ],
       [
         "recordá",
@@ -131,7 +131,7 @@
       ],
       [
         "enseña",
-        5
+        6
       ],
       [
         "sabiduría",
@@ -141,22 +141,26 @@
     "most_used_references": [
       [
         "Filipenses 4:6-7",
-        15
+        19
       ],
       [
         "Mateo 6:25-34",
-        5
+        6
       ],
       [
         "Romanos 8:28",
-        3
+        5
+      ],
+      [
+        "Mateo 11:28-30",
+        4
       ],
       [
         "Isaías 9",
         3
       ],
       [
-        "Mateo 11:28-30",
+        "Salmo 91",
         3
       ],
       [
@@ -166,10 +170,6 @@
       [
         "Juan 10:1-18",
         3
-      ],
-      [
-        "Salmo 91",
-        2
       ],
       [
         "Romanos 8:26-27",
@@ -192,12 +192,12 @@
         2
       ],
       [
-        "Génesis 6-9",
+        "Juan 14:27",
         2
       ],
       [
-        "Daniel 7:13-14",
-        1
+        "Marcos 4:35-41",
+        2
       ]
     ],
     "most_used_families": [
