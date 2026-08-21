@@ -1,0 +1,188 @@
+name: Dios Habla Hoy - Sovereign Local AI
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: Acción local
+        required: true
+        default: readiness
+        type: choice
+        options:
+          - readiness
+          - prepare_dataset
+          - train_visual_lora
+          - publish_one_short
+      model_root:
+        description: Directorio persistente del runner con pesos locales
+        required: true
+        default: /opt/dhh-models/dios_sovereign
+        type: string
+
+permissions:
+  contents: write
+  issues: write
+
+concurrency:
+  group: dioshablahoyia-sovereign-local-ai
+  cancel-in-progress: false
+
+jobs:
+  sovereign:
+    runs-on: [self-hosted, linux, x64]
+    timeout-minutes: 180
+    env:
+      PYTHONPATH: .
+      TZ: America/Argentina/Buenos_Aires
+      DHH_MODEL_ROOT: ${{ inputs.model_root }}
+      HF_HUB_OFFLINE: "1"
+      TRANSFORMERS_OFFLINE: "1"
+      DIFFUSERS_OFFLINE: "1"
+      DIOS_SOVEREIGN_OFFLINE: "true"
+      GEMINI_API_KEY: ""
+      HF_TOKEN: ""
+      HF_ZERO_TOKEN: ""
+      PEXELS_API_KEY: ""
+      POLLINATIONS_API_KEY: ""
+      GEMINI_VIDEO_ENABLED: "false"
+      HF_VIDEO_ENABLED: "false"
+      HF_REFERENCE_IMAGE_ENABLED: "false"
+      HF_REFERENCE_EDITOR_ENABLED: "false"
+      HF_TEXT_ZERO_ENABLED: "false"
+      HF_INFERENCE_PROVIDER_ENABLED: "false"
+      TTS_PROVIDER: piper_local
+      TTS_FALLBACK_KOKORO: "false"
+      SPIRITUAL_VOICE_LOCKED: "true"
+      SPIRITUAL_REQUIRE_PRIMARY_VOICE: "true"
+      SPIRITUAL_VOICE_BRAND: Voz de Luz Local
+      SPIRITUAL_VOICE_PROFILE: voz_de_luz_local_sovereign_v1
+      SPIRITUAL_ALLOW_LOCAL_PROCEDURAL_VISUAL: "false"
+      YOUTUBE_TOKEN_DIOSHABLAHOYIA: ${{ secrets.YOUTUBE_TOKEN_DIOSHABLAHOYIA }}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Link persistent local model weights
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p models/dios_sovereign/image models/dios_sovereign/voice
+          rm -rf models/dios_sovereign/image/base
+          rm -rf models/dios_sovereign/image/lora
+          rm -f models/dios_sovereign/voice/voz_de_luz_local.onnx
+          rm -f models/dios_sovereign/voice/voz_de_luz_local.onnx.json
+          if [ -d "$DHH_MODEL_ROOT/image/base" ]; then
+            ln -s "$DHH_MODEL_ROOT/image/base" models/dios_sovereign/image/base
+          fi
+          if [ -d "$DHH_MODEL_ROOT/image/lora" ]; then
+            ln -s "$DHH_MODEL_ROOT/image/lora" models/dios_sovereign/image/lora
+          else
+            mkdir -p models/dios_sovereign/image/lora
+          fi
+          if [ -f "$DHH_MODEL_ROOT/voice/voz_de_luz_local.onnx" ]; then
+            ln -s "$DHH_MODEL_ROOT/voice/voz_de_luz_local.onnx" models/dios_sovereign/voice/voz_de_luz_local.onnx
+          fi
+          if [ -f "$DHH_MODEL_ROOT/voice/voz_de_luz_local.onnx.json" ]; then
+            ln -s "$DHH_MODEL_ROOT/voice/voz_de_luz_local.onnx.json" models/dios_sovereign/voice/voz_de_luz_local.onnx.json
+          fi
+
+      - name: Validate source code
+        run: |
+          python -m py_compile \
+            app/dios_sovereign_ai.py \
+            scripts/dios_sovereign_prepare_dataset.py \
+            scripts/dios_sovereign_train_lora.py \
+            scripts/publish_dios_sovereign.py
+
+      - name: Show sovereign readiness
+        if: inputs.action == 'readiness'
+        run: |
+          python - <<'PY'
+          import json
+          from app.dios_sovereign_ai import readiness
+          print(json.dumps(readiness(), indent=2, ensure_ascii=False))
+          PY
+
+      - name: Prepare identity training dataset
+        if: inputs.action == 'prepare_dataset'
+        run: |
+          python scripts/dios_sovereign_prepare_dataset.py \
+            --out "$DHH_MODEL_ROOT/training/jesus_identity" \
+            --variants-per-reference 48 \
+            --size 1024
+
+      - name: Verify CUDA for LoRA training
+        if: inputs.action == 'train_visual_lora'
+        run: |
+          python - <<'PY'
+          import torch
+          if not torch.cuda.is_available():
+              raise SystemExit('Se requiere GPU NVIDIA/CUDA en el runner propio para entrenar el LoRA profesional.')
+          print('CUDA OK:', torch.cuda.get_device_name(0))
+          PY
+
+      - name: Train channel visual identity LoRA offline
+        if: inputs.action == 'train_visual_lora'
+        run: |
+          test -d "$DHH_MODEL_ROOT/image/base"
+          test -f "$DHH_MODEL_ROOT/training/jesus_identity/metadata.jsonl"
+          mkdir -p "$DHH_MODEL_ROOT/image/lora"
+          python scripts/dios_sovereign_train_lora.py \
+            --base-model "$DHH_MODEL_ROOT/image/base" \
+            --dataset "$DHH_MODEL_ROOT/training/jesus_identity" \
+            --output "$DHH_MODEL_ROOT/image/lora/dios_jesus_identity.safetensors" \
+            --resolution 1024 \
+            --rank 16 \
+            --max-steps 700 \
+            --learning-rate 0.0001 \
+            --batch-size 1 \
+            --gradient-accumulation 4 \
+            --mixed-precision fp16
+
+      - name: Verify local publication assets
+        if: inputs.action == 'publish_one_short'
+        run: |
+          test -n "$YOUTUBE_TOKEN_DIOSHABLAHOYIA"
+          test -f "$DHH_MODEL_ROOT/voice/voz_de_luz_local.onnx"
+          test -f "$DHH_MODEL_ROOT/voice/voz_de_luz_local.onnx.json"
+          command -v ffmpeg
+          command -v piper
+          python - <<'PY'
+          import json
+          from app.dios_sovereign_ai import readiness
+          state = readiness()
+          print(json.dumps(state, indent=2, ensure_ascii=False))
+          if not state['voice_local_ready']:
+              raise SystemExit('La voz neural local todavía no está instalada.')
+          if not state['reference_fallback_ready']:
+              raise SystemExit('El banco visual local no está listo.')
+          PY
+
+      - name: Publish exactly one sovereign Short
+        if: inputs.action == 'publish_one_short'
+        run: python scripts/publish_dios_sovereign.py
+
+      - name: Persist publication history
+        if: success() && inputs.action == 'publish_one_short'
+        shell: bash
+        run: |
+          RECORD="$(tail -n 1 state/history.jsonl)"
+          VIDEO_ID="$(printf '%s' "$RECORD" | python -c 'import json,sys; print(json.load(sys.stdin).get("video_id", ""))')"
+          test -n "$VIDEO_ID"
+          git config user.name youtube-ai-bot
+          git config user.email actions@users.noreply.github.com
+          git fetch origin main
+          git reset --hard origin/main
+          touch state/history.jsonl
+          if ! grep -Fq "\"video_id\": \"$VIDEO_ID\"" state/history.jsonl; then
+            printf '%s\n' "$RECORD" >> state/history.jsonl
+            git add state/history.jsonl
+            git commit -m "chore: persist sovereign local AI Short"
+            git push origin HEAD:main
+          fi

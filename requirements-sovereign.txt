@@ -1,0 +1,15 @@
+# DHH Sovereign v1 local/offline runtime.
+# For NVIDIA self-hosted runners install the CUDA-compatible torch/torchvision
+# build appropriate to the machine before installing this file.
+Pillow>=11.0.0
+numpy<3,>=1.26
+soundfile>=0.13.1
+diffusers>=0.31.0
+transformers>=4.44.0
+accelerate>=0.34.0
+peft>=0.12.0
+safetensors>=0.4.5
+piper-tts>=1.2.0
+google-api-python-client>=2.170.0
+google-auth>=2.40.0
+google-auth-oauthlib>=1.2.2

@@ -1,0 +1,39 @@
+name: Dios Habla Hoy - Bootstrap Sovereign Weights
+
+on:
+  workflow_dispatch:
+    inputs:
+      model_root:
+        description: Directorio persistente del runner
+        required: true
+        default: /opt/dhh-models/dios_sovereign
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  bootstrap:
+    runs-on: [self-hosted, linux, x64]
+    timeout-minutes: 240
+    env:
+      PYTHONPATH: .
+      DHH_MODEL_ROOT: ${{ inputs.model_root }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install bootstrap client
+        run: python -m pip install -q --upgrade "huggingface_hub>=0.34.4"
+      - name: Download public base weights once
+        run: |
+          mkdir -p "$DHH_MODEL_ROOT"
+          python scripts/dios_sovereign_bootstrap_weights.py --model-root "$DHH_MODEL_ROOT"
+      - name: Confirm persistent files
+        run: |
+          test -f "$DHH_MODEL_ROOT/image/base/model_index.json"
+          test -f "$DHH_MODEL_ROOT/voice/voz_de_luz_local.onnx"
+          test -f "$DHH_MODEL_ROOT/voice/voz_de_luz_local.onnx.json"
+          test -f "$DHH_MODEL_ROOT/BOOTSTRAP_SOURCES.json"
+          echo "Bootstrap completo. La inferencia posterior puede ejecutarse offline."
