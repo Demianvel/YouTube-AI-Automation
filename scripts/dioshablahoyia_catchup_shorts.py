@@ -13,6 +13,7 @@ HISTORY = ROOT / "state" / "history.jsonl"
 RECORDS = Path("/tmp/dios-catchup/new-short-records.jsonl")
 TZ = ZoneInfo("America/Argentina/Buenos_Aires")
 DAILY_TARGET = 10
+LOCKED_PUBLISHER = ROOT / "scripts" / "publish_dios_locked.py"
 
 
 def _today_uploaded_count() -> int:
@@ -54,11 +55,11 @@ def main() -> int:
         success = False
         for attempt in range(1, 4):
             print(
-                f"Intento {attempt}/3: Voz de Luz / Algenib obligatoria y visual fresco obligatorio",
+                f"Intento {attempt}/3: Voz de Luz / Algenib obligatoria y Jesus realista guiado por referencia obligatorio",
                 flush=True,
             )
             result = subprocess.run(
-                [sys.executable, str(ROOT / "scripts" / "publish_dios_fast.py")],
+                [sys.executable, str(LOCKED_PUBLISHER)],
                 cwd=ROOT,
                 check=False,
             )
@@ -66,11 +67,14 @@ def main() -> int:
                 success = True
                 break
             if attempt < 3:
-                print("Fallo temporal; esperando 75 s sin cambiar voz ni reutilizar visuales.", flush=True)
+                print(
+                    "Fallo temporal; esperando 75 s sin cambiar voz, sin usar Kokoro y sin sustituir la identidad visual.",
+                    flush=True,
+                )
                 time.sleep(75)
         if not success:
             print(
-                f"No se pudo recuperar el Short {index} sin violar la voz fija o la regla de visual fresco.",
+                f"No se pudo recuperar el Short {index} sin violar la voz fija o la identidad visual realista.",
                 file=sys.stderr,
             )
             return 1

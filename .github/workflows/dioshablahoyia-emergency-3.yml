@@ -24,7 +24,6 @@ jobs:
       TZ: America/Argentina/Buenos_Aires
       CHANNEL: dioshablahoyia
       CONTENT_MODE: voice
-      DIOS_GUARD_LOCAL_ONLY: "true"
       DIOS_GUARD_RECOVERY_LIMIT: "3"
       GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
       GEMINI_TEXT_MODEL: gemini-3.6-flash
@@ -34,6 +33,7 @@ jobs:
       SPIRITUAL_MALE_GEMINI_VOICE: Algenib
       SPIRITUAL_VOICE_PROFILE: voz_de_luz_serena_original_v1
       SPIRITUAL_VOICE_BRAND: Voz de Luz
+      SPIRITUAL_VOICE_REFERENCE_MODE: fixed_original_identity_no_speaker_clone
       SPIRITUAL_VOICE_LOCKED: "true"
       SPIRITUAL_VOICEOVER_MODE: "true"
       SPIRITUAL_LIPSYNC_ENABLED: "false"
@@ -47,21 +47,25 @@ jobs:
       SPIRITUAL_EDITORIAL_VARIETY_LEVEL: high
       SPIRITUAL_CTA_OVERLAY: "false"
       SPIRITUAL_REQUIRE_FRESH_VISUAL: "true"
-      SPIRITUAL_VISUAL_PHASH_MAX_DISTANCE: "7"
+      SPIRITUAL_VISUAL_REFERENCE_LOCKED: "true"
+      SPIRITUAL_VISUAL_REFERENCE_PROFILE: realistic_jesus_reference_abc_v1
+      SPIRITUAL_ALLOW_SYMBOLIC_JESUS_FALLBACK: "false"
+      SPIRITUAL_ALLOW_LOCAL_PROCEDURAL_VISUAL: "false"
       TTS_PROVIDER: gemini_tts
       TTS_FALLBACK_KOKORO: "false"
       GEMINI_VIDEO_ENABLED: "false"
       HF_VIDEO_ENABLED: "false"
       HF_REQUIRE_TEXT_TO_VIDEO: "false"
       HF_VIDEO_STRICT: "false"
-      HF_REFERENCE_IMAGE_ENABLED: "false"
-      HF_REFERENCE_EDITOR_ENABLED: "false"
+      HF_REFERENCE_IMAGE_ENABLED: "true"
+      HF_REFERENCE_EDITOR_ENABLED: "true"
+      HF_REFERENCE_ZERO_SPACE: black-forest-labs/FLUX.1-Kontext-Dev
       HF_TEXT_ZERO_ENABLED: "false"
       HF_INFERENCE_PROVIDER_ENABLED: "false"
-      HF_ZERO_TOKEN: ""
+      HF_ZERO_TOKEN: ${{ secrets.HF_TOKEN }}
       HF_TOKEN: ""
       SPIRITUAL_REFERENCE_AVOID_RECENT: "100"
-      DIOS_FAST_LOCAL_VISUAL_MODE: "true"
+      DIOS_FAST_LOCAL_VISUAL_MODE: "false"
       MUSIC_PROVIDER: local
       YOUTUBE_TOKEN_DIOSHABLAHOYIA: ${{ secrets.YOUTUBE_TOKEN_DIOSHABLAHOYIA }}
       FACEBOOK_PAGE_ID: ${{ secrets.FACEBOOK_PAGE_ID }}
@@ -80,7 +84,7 @@ jobs:
       - name: Install emergency publisher runtime
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y -qq ffmpeg espeak-ng libsndfile1 fonts-dejavu-core git >/dev/null
+          sudo apt-get install -y -qq ffmpeg libsndfile1 fonts-dejavu-core git >/dev/null
           python -m pip install -q --upgrade pip
           pip install -q \
             "google-genai>=2.3.0" \
@@ -98,17 +102,27 @@ jobs:
         run: |
           test -n "$YOUTUBE_TOKEN_DIOSHABLAHOYIA"
           test -n "$GEMINI_API_KEY"
+          test -n "$HF_ZERO_TOKEN"
           test "$DIOS_GUARD_RECOVERY_LIMIT" = "3"
-          test "$DIOS_GUARD_LOCAL_ONLY" = "true"
           test "$GEMINI_TTS_VOICE" = "Algenib"
-          test "$GEMINI_TTS_MAX_ATTEMPTS" = "4"
+          test "$SPIRITUAL_VOICE_BRAND" = "Voz de Luz"
+          test "$SPIRITUAL_VOICE_PROFILE" = "voz_de_luz_serena_original_v1"
           test "$SPIRITUAL_VOICE_LOCKED" = "true"
           test "$SPIRITUAL_REQUIRE_PRIMARY_VOICE" = "true"
+          test "$TTS_PROVIDER" = "gemini_tts"
           test "$TTS_FALLBACK_KOKORO" = "false"
-          test -z "$HF_TOKEN"
-          test -z "$HF_ZERO_TOKEN"
+          test "$SPIRITUAL_VISUAL_REFERENCE_LOCKED" = "true"
+          test "$SPIRITUAL_ALLOW_SYMBOLIC_JESUS_FALLBACK" = "false"
+          test "$SPIRITUAL_ALLOW_LOCAL_PROCEDURAL_VISUAL" = "false"
+          for ref in \
+            assets/dioshablahoyia/reference/jesus_reference_a.jpg \
+            assets/dioshablahoyia/reference/jesus_reference_b.jpg \
+            assets/dioshablahoyia/reference/jesus_reference_c.jpg; do
+            test -s "$ref"
+          done
           python -m py_compile \
             scripts/dioshablahoyia_daily_guard.py \
+            scripts/publish_dios_locked.py \
             scripts/publish_dios_fast.py \
             scripts/publish_dios_fast_local_emergency.py \
             app/dios_visual_integrity.py \
@@ -166,4 +180,4 @@ jobs:
         run: |
           gh issue create \
             --title "Dios Habla Hoy - emergencia exacta 3 Shorts fallo" \
-            --body "La recuperacion exacta de 3 Shorts fallo. Revisar Actions run $GITHUB_RUN_ID. Voz de Luz/Algenib permanecio bloqueada y no se habilito HF."
+            --body "La recuperacion exacta de 3 Shorts fallo antes de cambiar Voz de Luz / Algenib o la identidad realista del banco de referencias. Revisar Actions run $GITHUB_RUN_ID."
