@@ -1,6 +1,6 @@
 {
   "version": "alien-npu-brain-v1",
-  "generated_at": "2026-08-22T16:42:38.269249+00:00",
+  "generated_at": "2026-08-22T17:37:52.742295+00:00",
   "architecture": {
     "type": "multi-cortex ensemble with quantum-inspired softmax exploration",
     "literal_consciousness": false,
@@ -715,6 +715,13 @@
         "niche_only": true
       },
       {
+        "key": "descanso mateo",
+        "samples": 0,
+        "mean_score": 55.13,
+        "best_score": 92.78,
+        "seo_only": true
+      },
+      {
         "key": "mateo gorriones",
         "samples": 0,
         "mean_score": 55.13,
@@ -736,14 +743,28 @@
         "seo_only": true
       },
       {
-        "key": "descanso mateo",
+        "key": "juan juan",
         "samples": 0,
-        "mean_score": 55.13,
-        "best_score": 92.78,
+        "mean_score": 55.0,
+        "best_score": 91.67,
         "seo_only": true
       },
       {
-        "key": "paz esperanza",
+        "key": "transforma corazón",
+        "samples": 0,
+        "mean_score": 55.0,
+        "best_score": 91.67,
+        "seo_only": true
+      },
+      {
+        "key": "juan promesa",
+        "samples": 0,
+        "mean_score": 55.0,
+        "best_score": 91.67,
+        "seo_only": true
+      },
+      {
+        "key": "paz transforma",
         "samples": 0,
         "mean_score": 55.0,
         "best_score": 91.67,
@@ -771,35 +792,7 @@
         "seo_only": true
       },
       {
-        "key": "juan juan",
-        "samples": 0,
-        "mean_score": 55.0,
-        "best_score": 91.67,
-        "seo_only": true
-      },
-      {
-        "key": "juan promesa",
-        "samples": 0,
-        "mean_score": 55.0,
-        "best_score": 91.67,
-        "seo_only": true
-      },
-      {
-        "key": "transforma corazón",
-        "samples": 0,
-        "mean_score": 55.0,
-        "best_score": 91.67,
-        "seo_only": true
-      },
-      {
-        "key": "promesa paz",
-        "samples": 0,
-        "mean_score": 55.0,
-        "best_score": 91.67,
-        "seo_only": true
-      },
-      {
-        "key": "paz transforma",
+        "key": "paz esperanza",
         "samples": 0,
         "mean_score": 55.0,
         "best_score": 91.67,
@@ -813,21 +806,28 @@
         "seo_only": true
       },
       {
-        "key": "mensaje pajaros",
+        "key": "promesa paz",
+        "samples": 0,
+        "mean_score": 55.0,
+        "best_score": 91.67,
+        "seo_only": true
+      },
+      {
+        "key": "pajaros confianza",
         "samples": 0,
         "mean_score": 54.97,
         "best_score": 91.39,
         "seo_only": true
       },
       {
-        "key": "reflexion",
+        "key": "etapa mensaje",
         "samples": 0,
         "mean_score": 54.97,
         "best_score": 91.39,
         "seo_only": true
       },
       {
-        "key": "mensaje",
+        "key": "reflexion sobre",
         "samples": 0,
         "mean_score": 54.97,
         "best_score": 91.39,
