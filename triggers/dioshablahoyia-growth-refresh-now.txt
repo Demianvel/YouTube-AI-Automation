@@ -1,1 +1,1 @@
-2026-08-19T23:40:00-03:00 | Ejecutar refresco externo ahora. Mantener schedule automatico: sabado 09:00 Argentina y domingo 21:00 Argentina. El NPU local continua 24x7 sin cuotas externas.
+2026-08-22 09:53 ART | Weekend Growth refresh recovery: the Saturday 09:00 Argentina window has passed and growth/radar state is still from 2026-08-20. Run the existing external Growth Engine refresh now. Keep the automatic schedule Saturday 09:00 and Sunday 21:00 America/Argentina/Buenos_Aires. Local Alien NPU remains local-only/zero-quota and fail-open.
