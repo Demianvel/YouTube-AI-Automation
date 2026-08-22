@@ -1,1 +1,1 @@
-2026-08-22 00:49 ART | Hourly guard: current local day below 10 Shorts; fill only missing Shorts with permanent Voz de Luz / Algenib identity.
+2026-08-22 01:37 ART | Hourly guard retry: 0/10 Shorts today. Retry existing strict recovery; fill only missing Shorts with permanent Voz de Luz / Algenib and locked realistic Jesus references. Do not use alternate voice.
