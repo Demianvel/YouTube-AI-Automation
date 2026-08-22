@@ -1,1 +1,1 @@
-2026-08-21 09:20 ART | Retry quota-free local daily guard after local voice continuity tuning.
+2026-08-22 00:49 ART | Hourly guard: current local day below 10 Shorts; fill only missing Shorts with permanent Voz de Luz / Algenib identity.
