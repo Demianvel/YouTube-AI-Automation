@@ -1,6 +1,6 @@
 {
   "version": "alien-npu-brain-v1",
-  "generated_at": "2026-08-22T19:38:02.489776+00:00",
+  "generated_at": "2026-08-22T20:41:54.483269+00:00",
   "architecture": {
     "type": "multi-cortex ensemble with quantum-inspired softmax exploration",
     "literal_consciousness": false,
@@ -715,6 +715,13 @@
         "niche_only": true
       },
       {
+        "key": "mateo gorriones",
+        "samples": 0,
+        "mean_score": 55.13,
+        "best_score": 92.78,
+        "seo_only": true
+      },
+      {
         "key": "cuidado mateo",
         "samples": 0,
         "mean_score": 55.13,
@@ -736,14 +743,7 @@
         "seo_only": true
       },
       {
-        "key": "mateo gorriones",
-        "samples": 0,
-        "mean_score": 55.13,
-        "best_score": 92.78,
-        "seo_only": true
-      },
-      {
-        "key": "transforma corazón",
+        "key": "promesa",
         "samples": 0,
         "mean_score": 55.0,
         "best_score": 91.67,
@@ -757,34 +757,6 @@
         "seo_only": true
       },
       {
-        "key": "paz transforma",
-        "samples": 0,
-        "mean_score": 55.0,
-        "best_score": 91.67,
-        "seo_only": true
-      },
-      {
-        "key": "corazón juan",
-        "samples": 0,
-        "mean_score": 55.0,
-        "best_score": 91.67,
-        "seo_only": true
-      },
-      {
-        "key": "promesa",
-        "samples": 0,
-        "mean_score": 55.0,
-        "best_score": 91.67,
-        "seo_only": true
-      },
-      {
-        "key": "paz esperanza",
-        "samples": 0,
-        "mean_score": 55.0,
-        "best_score": 91.67,
-        "seo_only": true
-      },
-      {
         "key": "promesa paz",
         "samples": 0,
         "mean_score": 55.0,
@@ -792,7 +764,7 @@
         "seo_only": true
       },
       {
-        "key": "esperanza juan",
+        "key": "corazón juan",
         "samples": 0,
         "mean_score": 55.0,
         "best_score": 91.67,
@@ -813,21 +785,49 @@
         "seo_only": true
       },
       {
-        "key": "reflexion",
+        "key": "esperanza juan",
         "samples": 0,
-        "mean_score": 54.97,
-        "best_score": 91.39,
+        "mean_score": 55.0,
+        "best_score": 91.67,
         "seo_only": true
       },
       {
-        "key": "pajaros confianza",
+        "key": "paz transforma",
         "samples": 0,
-        "mean_score": 54.97,
-        "best_score": 91.39,
+        "mean_score": 55.0,
+        "best_score": 91.67,
+        "seo_only": true
+      },
+      {
+        "key": "transforma corazón",
+        "samples": 0,
+        "mean_score": 55.0,
+        "best_score": 91.67,
+        "seo_only": true
+      },
+      {
+        "key": "paz esperanza",
+        "samples": 0,
+        "mean_score": 55.0,
+        "best_score": 91.67,
         "seo_only": true
       },
       {
         "key": "estás solo",
+        "samples": 0,
+        "mean_score": 54.97,
+        "best_score": 91.39,
+        "seo_only": true
+      },
+      {
+        "key": "confianza reflexion",
+        "samples": 0,
+        "mean_score": 54.97,
+        "best_score": 91.39,
+        "seo_only": true
+      },
+      {
+        "key": "reflexion",
         "samples": 0,
         "mean_score": 54.97,
         "best_score": 91.39,
