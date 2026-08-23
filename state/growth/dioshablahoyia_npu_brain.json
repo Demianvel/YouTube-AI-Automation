@@ -1,6 +1,6 @@
 {
   "version": "alien-npu-brain-v1",
-  "generated_at": "2026-08-23T19:37:44.103079+00:00",
+  "generated_at": "2026-08-23T20:41:16.458467+00:00",
   "architecture": {
     "type": "multi-cortex ensemble with quantum-inspired softmax exploration",
     "literal_consciousness": false,
@@ -705,14 +705,14 @@
         "seo_only": true
       },
       {
-        "key": "transforma corazón",
+        "key": "juan promesa",
         "samples": 0,
         "mean_score": 54.63,
         "best_score": 88.62,
         "seo_only": true
       },
       {
-        "key": "juan promesa",
+        "key": "transforma corazón",
         "samples": 0,
         "mean_score": 54.63,
         "best_score": 88.62,
@@ -754,14 +754,7 @@
         "seo_only": true
       },
       {
-        "key": "romanos",
-        "samples": 0,
-        "mean_score": 54.58,
-        "best_score": 88.13,
-        "seo_only": true
-      },
-      {
-        "key": "camino romanos",
+        "key": "está guiando",
         "samples": 0,
         "mean_score": 54.58,
         "best_score": 88.13,
@@ -769,6 +762,13 @@
       },
       {
         "key": "confianza obrar",
+        "samples": 0,
+        "mean_score": 54.58,
+        "best_score": 88.13,
+        "seo_only": true
+      },
+      {
+        "key": "guiando camino",
         "samples": 0,
         "mean_score": 54.58,
         "best_score": 88.13,
@@ -789,6 +789,13 @@
         "seo_only": true
       },
       {
+        "key": "romanos",
+        "samples": 0,
+        "mean_score": 54.58,
+        "best_score": 88.13,
+        "seo_only": true
+      },
+      {
         "key": "obrar romanos",
         "samples": 0,
         "mean_score": 54.58,
@@ -796,14 +803,7 @@
         "seo_only": true
       },
       {
-        "key": "está guiando",
-        "samples": 0,
-        "mean_score": 54.58,
-        "best_score": 88.13,
-        "seo_only": true
-      },
-      {
-        "key": "guiando camino",
+        "key": "camino romanos",
         "samples": 0,
         "mean_score": 54.58,
         "best_score": 88.13,

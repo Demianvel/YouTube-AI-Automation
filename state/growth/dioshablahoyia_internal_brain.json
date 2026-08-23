@@ -1,8 +1,8 @@
 {
   "version": "dios-internal-quality-cortex-v1",
-  "generated_at": "2026-08-23T19:37:43.932066+00:00",
-  "training_generation": 85,
-  "data_fingerprint": "84ad65522cc1be51643e874828a114e6e084d32f7c04a45ef79f8deb7eabb5ac",
+  "generated_at": "2026-08-23T20:41:16.322653+00:00",
+  "training_generation": 86,
+  "data_fingerprint": "3809f4ea7685f014ce675e536fbe30f1a1e66ee79c5f5a651f57c121b3c5ca50",
   "changed_since_previous": true,
   "training_mode": "local_only_zero_external_calls",
   "mission": {
@@ -23,9 +23,9 @@
     "publishing_must_continue": true
   },
   "memory": {
-    "uploaded_samples": 73,
+    "uploaded_samples": 74,
     "unique_references": 24,
-    "unique_families": 68,
+    "unique_families": 69,
     "recent_emotional_terms": [
       [
         "esperanza",
@@ -49,7 +49,7 @@
       ],
       [
         "amor",
-        12
+        13
       ],
       [
         "luz",
@@ -69,7 +69,7 @@
       ],
       [
         "misericordia",
-        4
+        5
       ],
       [
         "gratitud",
@@ -107,15 +107,15 @@
     "recent_teaching_terms": [
       [
         "enseñanza",
-        32
+        33
       ],
       [
         "decisión",
-        31
+        32
       ],
       [
         "aplicación",
-        27
+        28
       ],
       [
         "verdad",
@@ -141,7 +141,7 @@
     "most_used_references": [
       [
         "Filipenses 4:6-7",
-        19
+        20
       ],
       [
         "Mateo 6:25-34",
