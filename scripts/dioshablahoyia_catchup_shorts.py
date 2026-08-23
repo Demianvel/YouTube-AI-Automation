@@ -39,11 +39,28 @@ def _today_uploaded_count() -> int:
     return count
 
 
+def _checkpoint(baseline: list[str]) -> int:
+    """Persist every successful upload discovered since this recovery began.
+
+    The workflow later commits this file even when a subsequent publication
+    fails, so an already uploaded Short is never lost or regenerated.
+    """
+    current = HISTORY.read_text(encoding="utf-8").splitlines()
+    new_lines = [line for line in current[len(baseline) :] if line.strip()]
+    RECORDS.write_text(
+        "".join(f"{line}\n" for line in new_lines),
+        encoding="utf-8",
+    )
+    print(f"Checkpoint persistible: {len(new_lines)} nuevo(s) Short(s).", flush=True)
+    return len(new_lines)
+
+
 def main() -> int:
     HISTORY.parent.mkdir(parents=True, exist_ok=True)
     HISTORY.touch(exist_ok=True)
     RECORDS.parent.mkdir(parents=True, exist_ok=True)
     baseline = HISTORY.read_text(encoding="utf-8").splitlines()
+    _checkpoint(baseline)
 
     actual = _today_uploaded_count()
     missing = max(0, DAILY_TARGET - actual)
@@ -63,6 +80,7 @@ def main() -> int:
                 cwd=ROOT,
                 check=False,
             )
+            _checkpoint(baseline)
             if result.returncode == 0:
                 success = True
                 break
@@ -73,19 +91,15 @@ def main() -> int:
                 )
                 time.sleep(75)
         if not success:
+            _checkpoint(baseline)
             print(
                 f"No se pudo recuperar el Short {index} sin violar la voz fija o la identidad visual realista.",
                 file=sys.stderr,
             )
             return 1
 
-    current = HISTORY.read_text(encoding="utf-8").splitlines()
-    new_lines = current[len(baseline) :]
-    RECORDS.write_text(
-        "".join(f"{line}\n" for line in new_lines if line.strip()),
-        encoding="utf-8",
-    )
-    print(f"Nuevos registros preparados para persistir: {len(new_lines)}")
+    count = _checkpoint(baseline)
+    print(f"Nuevos registros preparados para persistir: {count}")
     print(f"Total publicado hoy tras catch-up: {_today_uploaded_count()}")
     return 0
 
