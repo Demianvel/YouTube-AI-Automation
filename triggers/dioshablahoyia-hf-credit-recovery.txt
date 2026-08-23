@@ -1,0 +1,1 @@
+2026-08-22 23:00 ART | Recuperacion inmediata: verificar OAuth antes de gastar creditos; completar solo Shorts faltantes hasta 10 y solo largos semanales faltantes hasta 2. Priorizar Hugging Face Inference Providers/creditos sobre ZeroGPU. Mantener Voz de Luz / Algenib y referencias realistas bloqueadas de Jesus sin sustituciones.
