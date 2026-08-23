@@ -4,4 +4,5 @@ __pycache__/
 output/
 client_secret.json
 *.token.json
+.youtube_token_dioshablahoyia.json
 .env
