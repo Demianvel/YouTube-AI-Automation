@@ -1,6 +1,6 @@
 {
   "version": "npu-seo-cortex-v1",
-  "generated_at": "2026-08-24T05:03:37.616506+00:00",
+  "generated_at": "2026-08-24T05:55:03.481228+00:00",
   "policy": {
     "first_party_priority": true,
     "external_signal_max_weight": 0.2,
@@ -12,12 +12,7 @@
   "videos_learned": 15,
   "keyword_weights": [
     {
-      "key": "corazón juan",
-      "seo_score": 88.4,
-      "evidence_points": 1
-    },
-    {
-      "key": "paz transforma",
+      "key": "promesa paz",
       "seo_score": 88.4,
       "evidence_points": 1
     },
@@ -27,7 +22,7 @@
       "evidence_points": 1
     },
     {
-      "key": "promesa paz",
+      "key": "juan promesa",
       "seo_score": 88.4,
       "evidence_points": 1
     },
@@ -37,12 +32,17 @@
       "evidence_points": 1
     },
     {
+      "key": "paz transforma",
+      "seo_score": 88.4,
+      "evidence_points": 1
+    },
+    {
       "key": "transforma",
       "seo_score": 88.4,
       "evidence_points": 1
     },
     {
-      "key": "juan promesa",
+      "key": "corazón juan",
       "seo_score": 88.4,
       "evidence_points": 1
     },
@@ -52,47 +52,7 @@
       "evidence_points": 2
     },
     {
-      "key": "está guiando",
-      "seo_score": 87.91,
-      "evidence_points": 1
-    },
-    {
-      "key": "romanos",
-      "seo_score": 87.91,
-      "evidence_points": 1
-    },
-    {
-      "key": "romanos romanos",
-      "seo_score": 87.91,
-      "evidence_points": 1
-    },
-    {
-      "key": "guiando",
-      "seo_score": 87.91,
-      "evidence_points": 1
-    },
-    {
-      "key": "confianza obrar",
-      "seo_score": 87.91,
-      "evidence_points": 1
-    },
-    {
-      "key": "obrar romanos",
-      "seo_score": 87.91,
-      "evidence_points": 1
-    },
-    {
-      "key": "guiando camino",
-      "seo_score": 87.91,
-      "evidence_points": 1
-    },
-    {
-      "key": "romanos confianza",
-      "seo_score": 87.91,
-      "evidence_points": 1
-    },
-    {
-      "key": "está",
+      "key": "camino romanos",
       "seo_score": 87.91,
       "evidence_points": 1
     },
@@ -102,17 +62,57 @@
       "evidence_points": 1
     },
     {
-      "key": "camino romanos",
+      "key": "confianza obrar",
       "seo_score": 87.91,
       "evidence_points": 1
     },
     {
-      "key": "paz esperanza",
+      "key": "guiando",
+      "seo_score": 87.91,
+      "evidence_points": 1
+    },
+    {
+      "key": "obrar romanos",
+      "seo_score": 87.91,
+      "evidence_points": 1
+    },
+    {
+      "key": "romanos",
+      "seo_score": 87.91,
+      "evidence_points": 1
+    },
+    {
+      "key": "guiando camino",
+      "seo_score": 87.91,
+      "evidence_points": 1
+    },
+    {
+      "key": "romanos romanos",
+      "seo_score": 87.91,
+      "evidence_points": 1
+    },
+    {
+      "key": "está",
+      "seo_score": 87.91,
+      "evidence_points": 1
+    },
+    {
+      "key": "romanos confianza",
+      "seo_score": 87.91,
+      "evidence_points": 1
+    },
+    {
+      "key": "está guiando",
+      "seo_score": 87.91,
+      "evidence_points": 1
+    },
+    {
+      "key": "esperanza",
       "seo_score": 87.83,
       "evidence_points": 3
     },
     {
-      "key": "esperanza",
+      "key": "paz esperanza",
       "seo_score": 87.83,
       "evidence_points": 3
     },
@@ -127,7 +127,7 @@
       "evidence_points": 4
     },
     {
-      "key": "gorriones",
+      "key": "cuidado mateo",
       "seo_score": 86.31,
       "evidence_points": 1
     },
@@ -137,12 +137,12 @@
       "evidence_points": 1
     },
     {
-      "key": "descanso mateo",
+      "key": "gorriones",
       "seo_score": 86.31,
       "evidence_points": 1
     },
     {
-      "key": "gorriones cuidado",
+      "key": "descanso mateo",
       "seo_score": 86.31,
       "evidence_points": 1
     },
@@ -152,7 +152,7 @@
       "evidence_points": 1
     },
     {
-      "key": "cuidado mateo",
+      "key": "gorriones cuidado",
       "seo_score": 86.31,
       "evidence_points": 1
     },
@@ -167,22 +167,22 @@
       "evidence_points": 3
     },
     {
-      "key": "buen pastor",
-      "seo_score": 85.61,
-      "evidence_points": 3
-    },
-    {
-      "key": "enfoque",
-      "seo_score": 85.61,
-      "evidence_points": 3
-    },
-    {
       "key": "juan buen",
       "seo_score": 85.61,
       "evidence_points": 3
     },
     {
       "key": "pastor enfoque",
+      "seo_score": 85.61,
+      "evidence_points": 3
+    },
+    {
+      "key": "buen pastor",
+      "seo_score": 85.61,
+      "evidence_points": 3
+    },
+    {
+      "key": "enfoque",
       "seo_score": 85.61,
       "evidence_points": 3
     },
@@ -217,27 +217,7 @@
       "evidence_points": 7
     },
     {
-      "key": "etapa mensaje",
-      "seo_score": 84.65,
-      "evidence_points": 1
-    },
-    {
-      "key": "estás",
-      "seo_score": 84.65,
-      "evidence_points": 1
-    },
-    {
-      "key": "reflexion",
-      "seo_score": 84.65,
-      "evidence_points": 1
-    },
-    {
-      "key": "pajaros confianza",
-      "seo_score": 84.65,
-      "evidence_points": 1
-    },
-    {
-      "key": "sobre mateo",
+      "key": "etapa",
       "seo_score": 84.65,
       "evidence_points": 1
     },
@@ -247,7 +227,7 @@
       "evidence_points": 1
     },
     {
-      "key": "sobre",
+      "key": "pajaros confianza",
       "seo_score": 84.65,
       "evidence_points": 1
     },
@@ -257,17 +237,27 @@
       "evidence_points": 1
     },
     {
+      "key": "confianza reflexion",
+      "seo_score": 84.65,
+      "evidence_points": 1
+    },
+    {
       "key": "reflexion sobre",
       "seo_score": 84.65,
       "evidence_points": 1
     },
     {
-      "key": "solo",
+      "key": "sobre",
       "seo_score": 84.65,
       "evidence_points": 1
     },
     {
-      "key": "confianza reflexion",
+      "key": "estás",
+      "seo_score": 84.65,
+      "evidence_points": 1
+    },
+    {
+      "key": "sobre mateo",
       "seo_score": 84.65,
       "evidence_points": 1
     },
@@ -277,12 +267,22 @@
       "evidence_points": 1
     },
     {
+      "key": "reflexion",
+      "seo_score": 84.65,
+      "evidence_points": 1
+    },
+    {
+      "key": "etapa mensaje",
+      "seo_score": 84.65,
+      "evidence_points": 1
+    },
+    {
       "key": "pajaros",
       "seo_score": 84.65,
       "evidence_points": 1
     },
     {
-      "key": "etapa",
+      "key": "solo",
       "seo_score": 84.65,
       "evidence_points": 1
     },
@@ -292,17 +292,17 @@
       "evidence_points": 2
     },
     {
+      "key": "necesita",
+      "seo_score": 84.33,
+      "evidence_points": 3
+    },
+    {
       "key": "descanso",
       "seo_score": 84.33,
       "evidence_points": 3
     },
     {
       "key": "corazón necesita",
-      "seo_score": 84.33,
-      "evidence_points": 3
-    },
-    {
-      "key": "necesita",
       "seo_score": 84.33,
       "evidence_points": 3
     },
@@ -317,22 +317,12 @@
       "evidence_points": 3
     },
     {
+      "key": "amor",
+      "seo_score": 83.6,
+      "evidence_points": 1
+    },
+    {
       "key": "lección",
-      "seo_score": 83.6,
-      "evidence_points": 1
-    },
-    {
-      "key": "parabola",
-      "seo_score": 83.6,
-      "evidence_points": 1
-    },
-    {
-      "key": "buen samaritano",
-      "seo_score": 83.6,
-      "evidence_points": 1
-    },
-    {
-      "key": "parabola buen",
       "seo_score": 83.6,
       "evidence_points": 1
     },
@@ -342,17 +332,7 @@
       "evidence_points": 1
     },
     {
-      "key": "amor parabola",
-      "seo_score": 83.6,
-      "evidence_points": 1
-    },
-    {
-      "key": "amor",
-      "seo_score": 83.6,
-      "evidence_points": 1
-    },
-    {
-      "key": "quién prójimo",
+      "key": "prójimo",
       "seo_score": 83.6,
       "evidence_points": 1
     },
@@ -362,12 +342,27 @@
       "evidence_points": 1
     },
     {
+      "key": "parabola",
+      "seo_score": 83.6,
+      "evidence_points": 1
+    },
+    {
       "key": "quién",
       "seo_score": 83.6,
       "evidence_points": 1
     },
     {
-      "key": "prójimo",
+      "key": "quién prójimo",
+      "seo_score": 83.6,
+      "evidence_points": 1
+    },
+    {
+      "key": "amor parabola",
+      "seo_score": 83.6,
+      "evidence_points": 1
+    },
+    {
+      "key": "parabola buen",
       "seo_score": 83.6,
       "evidence_points": 1
     },
@@ -377,27 +372,12 @@
       "evidence_points": 1
     },
     {
-      "key": "confianza filipenses",
-      "seo_score": 83.24,
+      "key": "buen samaritano",
+      "seo_score": 83.6,
       "evidence_points": 1
     },
     {
-      "key": "avanzar valentia",
-      "seo_score": 83.24,
-      "evidence_points": 1
-    },
-    {
-      "key": "valentia confianza",
-      "seo_score": 83.24,
-      "evidence_points": 1
-    },
-    {
-      "key": "valentia",
-      "seo_score": 83.24,
-      "evidence_points": 1
-    },
-    {
-      "key": "filipenses",
+      "key": "descanso filipenses",
       "seo_score": 83.24,
       "evidence_points": 1
     },
@@ -408,6 +388,26 @@
     },
     {
       "key": "filipenses josue",
+      "seo_score": 83.24,
+      "evidence_points": 1
+    },
+    {
+      "key": "filipenses",
+      "seo_score": 83.24,
+      "evidence_points": 1
+    },
+    {
+      "key": "valentia",
+      "seo_score": 83.24,
+      "evidence_points": 1
+    },
+    {
+      "key": "avanzar valentia",
+      "seo_score": 83.24,
+      "evidence_points": 1
+    },
+    {
+      "key": "confianza filipenses",
       "seo_score": 83.24,
       "evidence_points": 1
     }

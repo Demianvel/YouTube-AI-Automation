@@ -1,6 +1,6 @@
 {
   "version": "alien-npu-brain-v1",
-  "generated_at": "2026-08-24T05:03:37.770675+00:00",
+  "generated_at": "2026-08-24T05:55:03.583838+00:00",
   "architecture": {
     "type": "multi-cortex ensemble with quantum-inspired softmax exploration",
     "literal_consciousness": false,
@@ -697,14 +697,7 @@
         "seo_supported": true
       },
       {
-        "key": "corazón juan",
-        "samples": 0,
-        "mean_score": 54.61,
-        "best_score": 88.4,
-        "seo_only": true
-      },
-      {
-        "key": "paz transforma",
+        "key": "promesa paz",
         "samples": 0,
         "mean_score": 54.61,
         "best_score": 88.4,
@@ -718,7 +711,7 @@
         "seo_only": true
       },
       {
-        "key": "promesa paz",
+        "key": "juan promesa",
         "samples": 0,
         "mean_score": 54.61,
         "best_score": 88.4,
@@ -732,7 +725,14 @@
         "seo_only": true
       },
       {
-        "key": "juan promesa",
+        "key": "paz transforma",
+        "samples": 0,
+        "mean_score": 54.61,
+        "best_score": 88.4,
+        "seo_only": true
+      },
+      {
+        "key": "corazón juan",
         "samples": 0,
         "mean_score": 54.61,
         "best_score": 88.4,
@@ -746,21 +746,7 @@
         "seo_only": true
       },
       {
-        "key": "está guiando",
-        "samples": 0,
-        "mean_score": 54.55,
-        "best_score": 87.91,
-        "seo_only": true
-      },
-      {
-        "key": "romanos",
-        "samples": 0,
-        "mean_score": 54.55,
-        "best_score": 87.91,
-        "seo_only": true
-      },
-      {
-        "key": "romanos romanos",
+        "key": "camino romanos",
         "samples": 0,
         "mean_score": 54.55,
         "best_score": 87.91,
@@ -781,7 +767,21 @@
         "seo_only": true
       },
       {
+        "key": "romanos",
+        "samples": 0,
+        "mean_score": 54.55,
+        "best_score": 87.91,
+        "seo_only": true
+      },
+      {
         "key": "guiando camino",
+        "samples": 0,
+        "mean_score": 54.55,
+        "best_score": 87.91,
+        "seo_only": true
+      },
+      {
+        "key": "romanos romanos",
         "samples": 0,
         "mean_score": 54.55,
         "best_score": 87.91,
@@ -795,21 +795,21 @@
         "seo_only": true
       },
       {
-        "key": "camino romanos",
+        "key": "está guiando",
         "samples": 0,
         "mean_score": 54.55,
         "best_score": 87.91,
         "seo_only": true
       },
       {
-        "key": "paz esperanza",
+        "key": "esperanza",
         "samples": 0,
         "mean_score": 54.54,
         "best_score": 87.83,
         "seo_only": true
       },
       {
-        "key": "esperanza",
+        "key": "paz esperanza",
         "samples": 0,
         "mean_score": 54.54,
         "best_score": 87.83,
@@ -823,14 +823,14 @@
         "seo_only": true
       },
       {
-        "key": "mateo gorriones",
+        "key": "cuidado mateo",
         "samples": 0,
         "mean_score": 54.36,
         "best_score": 86.31,
         "seo_only": true
       },
       {
-        "key": "descanso mateo",
+        "key": "mateo gorriones",
         "samples": 0,
         "mean_score": 54.36,
         "best_score": 86.31,
