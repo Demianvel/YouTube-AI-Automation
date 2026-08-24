@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-08-20T09:53:09.023879+00:00",
+  "generated_at": "2026-08-24T01:22:55.436900+00:00",
   "window_hours": 72,
   "region": "AR",
   "language": "es",
@@ -10,57 +10,57 @@
     "Salmo 91",
     "oración para dormir"
   ],
-  "videos_analyzed": 37,
+  "videos_analyzed": 34,
   "top_terms": [
     {
-      "term": "salmo 91",
-      "samples": 10,
-      "signal_score": 6.0062
+      "term": "paz",
+      "samples": 2,
+      "signal_score": 6.0967
     },
     {
-      "term": "mañana",
-      "samples": 1,
-      "signal_score": 5.6513
+      "term": "salmo 91",
+      "samples": 5,
+      "signal_score": 5.8645
+    },
+    {
+      "term": "salmos",
+      "samples": 3,
+      "signal_score": 5.4345
+    },
+    {
+      "term": "dios",
+      "samples": 17,
+      "signal_score": 5.2348
     },
     {
       "term": "jesús",
-      "samples": 14,
-      "signal_score": 4.7488
-    },
-    {
-      "term": "paz",
-      "samples": 11,
-      "signal_score": 4.4875
-    },
-    {
-      "term": "oración",
-      "samples": 14,
-      "signal_score": 4.1293
-    },
-    {
-      "term": "fe",
-      "samples": 14,
-      "signal_score": 4.0735
+      "samples": 16,
+      "signal_score": 5.1655
     },
     {
       "term": "noche",
       "samples": 4,
-      "signal_score": 3.7853
+      "signal_score": 5.009
     },
     {
-      "term": "amor",
-      "samples": 4,
-      "signal_score": 3.7647
+      "term": "fe",
+      "samples": 16,
+      "signal_score": 4.8978
     },
     {
       "term": "biblia",
-      "samples": 9,
-      "signal_score": 3.7469
+      "samples": 8,
+      "signal_score": 4.6752
     },
     {
-      "term": "dormir",
-      "samples": 6,
-      "signal_score": 3.6817
+      "term": "oración",
+      "samples": 15,
+      "signal_score": 4.5087
+    },
+    {
+      "term": "amor",
+      "samples": 3,
+      "signal_score": 4.0206
     }
   ],
   "method": "public_youtube_recent_video_vph_and_engagement_aggregate",
