@@ -1,6 +1,6 @@
 {
   "version": "dios-growth-engine-v1",
-  "generated_at": "2026-08-23T11:52:35.049083+00:00",
+  "generated_at": "2026-08-24T00:57:29.032542+00:00",
   "channel": "dioshablahoyia",
   "fail_open": true,
   "publishing_must_continue": true,
@@ -20,25 +20,10 @@
   "data_quality": {
     "analytics_api_available": true,
     "videos_scored": 49,
-    "median_recent_views_per_hour": 6.1281,
+    "median_recent_views_per_hour": 5.7571,
     "warnings": []
   },
   "top_outliers": [
-    {
-      "video_id": "ZpA0rPjbIIo",
-      "title": "Juan 10 y Jesus como Buen Pastor — enfoque 8 | Fe, paz y esperanza",
-      "published_at": "2026-08-20T03:03:03Z",
-      "bible_reference": "",
-      "content_family": "",
-      "views": 1058,
-      "views_per_hour": 13.0899,
-      "outlier_ratio": 2.136,
-      "appeal": 75.93,
-      "engagement": 95.25,
-      "satisfaction": 100.0,
-      "freshness": 85.18,
-      "growth_score": 88.67
-    },
     {
       "video_id": "ojZOrbP3gy0",
       "title": "La Paz que Transforma Tu Corazón | Juan 14:27",
@@ -46,28 +31,13 @@
       "bible_reference": "Juan 14",
       "content_family": "Juan 14 y la promesa de paz y esperanza",
       "views": 2540,
-      "views_per_hour": 13.3067,
-      "outlier_ratio": 2.1714,
-      "appeal": 76.49,
+      "views_per_hour": 12.4533,
+      "outlier_ratio": 2.1631,
+      "appeal": 76.36,
       "engagement": 100.0,
       "satisfaction": 100.0,
-      "freshness": 68.47,
-      "growth_score": 88.62
-    },
-    {
-      "video_id": "Jh8GQvMdz7E",
-      "title": "Juan 10 y Jesus como Buen Pastor — enfoque 4 | Fe, paz y esperanza",
-      "published_at": "2026-08-20T03:09:13Z",
-      "bible_reference": "Juan 10:1-18",
-      "content_family": "Juan 10 y Jesus como Buen Pastor — enfoque 4",
-      "views": 902,
-      "views_per_hour": 11.174,
-      "outlier_ratio": 1.8234,
-      "appeal": 70.35,
-      "engagement": 100.0,
-      "satisfaction": 100.0,
-      "freshness": 85.2,
-      "growth_score": 88.14
+      "freshness": 66.72,
+      "growth_score": 88.4
     },
     {
       "video_id": "3ihXxti-yks",
@@ -76,13 +46,43 @@
       "bible_reference": "Romanos 8:28",
       "content_family": "Romanos 8 y la confianza en el obrar de Dios",
       "views": 2438,
-      "views_per_hour": 12.7746,
-      "outlier_ratio": 2.0846,
-      "appeal": 75.09,
+      "views_per_hour": 11.9551,
+      "outlier_ratio": 2.0766,
+      "appeal": 74.95,
       "engagement": 100.0,
       "satisfaction": 100.0,
-      "freshness": 68.48,
-      "growth_score": 88.13
+      "freshness": 66.72,
+      "growth_score": 87.91
+    },
+    {
+      "video_id": "Jh8GQvMdz7E",
+      "title": "Juan 10 y Jesus como Buen Pastor — enfoque 4 | Fe, paz y esperanza",
+      "published_at": "2026-08-20T03:09:13Z",
+      "bible_reference": "Juan 10:1-18",
+      "content_family": "Juan 10 y Jesus como Buen Pastor — enfoque 4",
+      "views": 959,
+      "views_per_hour": 10.2234,
+      "outlier_ratio": 1.7758,
+      "appeal": 69.39,
+      "engagement": 100.0,
+      "satisfaction": 100.0,
+      "freshness": 83.02,
+      "growth_score": 87.59
+    },
+    {
+      "video_id": "ZpA0rPjbIIo",
+      "title": "Juan 10 y Jesus como Buen Pastor — enfoque 8 | Fe, paz y esperanza",
+      "published_at": "2026-08-20T03:03:03Z",
+      "bible_reference": "",
+      "content_family": "",
+      "views": 1058,
+      "views_per_hour": 11.2664,
+      "outlier_ratio": 1.9569,
+      "appeal": 72.87,
+      "engagement": 95.4,
+      "satisfaction": 100.0,
+      "freshness": 83.0,
+      "growth_score": 87.43
     },
     {
       "video_id": "zj91XdjPY4I",
@@ -91,13 +91,13 @@
       "bible_reference": "Mateo 6:25-34",
       "content_family": "los gorriones y el cuidado de Dios, Mateo 10:29-31",
       "views": 1578,
-      "views_per_hour": 10.8961,
-      "outlier_ratio": 1.778,
-      "appeal": 69.44,
+      "views_per_hour": 9.9934,
+      "outlier_ratio": 1.7358,
+      "appeal": 68.56,
       "engagement": 100.0,
       "satisfaction": 100.0,
-      "freshness": 75.03,
-      "growth_score": 86.81
+      "freshness": 73.1,
+      "growth_score": 86.31
     },
     {
       "video_id": "jM0EqTK82X0",
@@ -105,14 +105,14 @@
       "published_at": "2026-08-17T10:55:39Z",
       "bible_reference": "Mateo 6:25-34",
       "content_family": "los pajaros y la confianza en Dios, reflexion sobre Mateo 6:25-34",
-      "views": 1385,
-      "views_per_hour": 9.5551,
-      "outlier_ratio": 1.5592,
-      "appeal": 64.64,
+      "views": 1388,
+      "views_per_hour": 8.7831,
+      "outlier_ratio": 1.5256,
+      "appeal": 63.83,
       "engagement": 100.0,
       "satisfaction": 100.0,
-      "freshness": 75.01,
-      "growth_score": 85.12
+      "freshness": 73.08,
+      "growth_score": 84.65
     },
     {
       "video_id": "rH4uwy19zwg",
@@ -121,13 +121,13 @@
       "bible_reference": "",
       "content_family": "la parabola del buen samaritano",
       "views": 1845,
-      "views_per_hour": 9.1548,
-      "outlier_ratio": 1.4939,
-      "appeal": 63.06,
+      "views_per_hour": 8.5968,
+      "outlier_ratio": 1.4932,
+      "appeal": 63.05,
       "engagement": 100.0,
       "satisfaction": 100.0,
-      "freshness": 67.04,
-      "growth_score": 83.78
+      "freshness": 65.32,
+      "growth_score": 83.6
     },
     {
       "video_id": "MN5tVRfnVr8",
@@ -135,14 +135,14 @@
       "published_at": "2026-08-16T16:57:56Z",
       "bible_reference": "Filipenses 4:6-7",
       "content_family": "Josue 1:9 y avanzar con valentia y confianza en Dios",
-      "views": 1411,
-      "views_per_hour": 8.6612,
-      "outlier_ratio": 1.4133,
-      "appeal": 61.02,
+      "views": 1413,
+      "views_per_hour": 8.0288,
+      "outlier_ratio": 1.3946,
+      "appeal": 60.53,
       "engagement": 100.0,
       "satisfaction": 100.0,
-      "freshness": 72.38,
-      "growth_score": 83.6
+      "freshness": 70.53,
+      "growth_score": 83.24
     },
     {
       "video_id": "0OxyzsShXjI",
@@ -150,14 +150,14 @@
       "published_at": "2026-08-16T17:09:34Z",
       "bible_reference": "Isaías 41:10",
       "content_family": "Isaias 41:10 y no caminar dominado por el miedo",
-      "views": 1402,
-      "views_per_hour": 8.6162,
-      "outlier_ratio": 1.406,
-      "appeal": 60.83,
+      "views": 1404,
+      "views_per_hour": 7.9864,
+      "outlier_ratio": 1.3872,
+      "appeal": 60.34,
       "engagement": 100.0,
       "satisfaction": 100.0,
-      "freshness": 72.41,
-      "growth_score": 83.53
+      "freshness": 70.55,
+      "growth_score": 83.17
     },
     {
       "video_id": "oI-0Itw-Cqs",
@@ -166,13 +166,13 @@
       "bible_reference": "Salmo 23",
       "content_family": "Salmo 23 y caminar acompañado por Dios",
       "views": 1307,
-      "views_per_hour": 8.5093,
-      "outlier_ratio": 1.3886,
-      "appeal": 60.37,
+      "views_per_hour": 7.8414,
+      "outlier_ratio": 1.362,
+      "appeal": 59.67,
       "engagement": 100.0,
       "satisfaction": 100.0,
-      "freshness": 73.73,
-      "growth_score": 83.5
+      "freshness": 71.84,
+      "growth_score": 83.07
     },
     {
       "video_id": "HfEIMJqEcoM",
@@ -180,29 +180,14 @@
       "published_at": "2026-08-16T15:39:01Z",
       "bible_reference": "Miqueas 5:2",
       "content_family": "profecia mesianica de Miqueas 5",
-      "views": 1390,
-      "views_per_hour": 8.4639,
-      "outlier_ratio": 1.3812,
-      "appeal": 60.18,
+      "views": 1392,
+      "views_per_hour": 7.8508,
+      "outlier_ratio": 1.3637,
+      "appeal": 59.71,
       "engagement": 100.0,
       "satisfaction": 100.0,
-      "freshness": 72.19,
-      "growth_score": 83.28
-    },
-    {
-      "video_id": "qNv7FUvun80",
-      "title": "Dios sigue presente en el proceso | Juan 10:1-18",
-      "published_at": "2026-08-20T03:06:06Z",
-      "bible_reference": "Juan 10:1-18",
-      "content_family": "Juan 10 y Jesus como Buen Pastor — enfoque 3",
-      "views": 962,
-      "views_per_hour": 11.9097,
-      "outlier_ratio": 1.9434,
-      "appeal": 72.63,
-      "engagement": 79.55,
-      "satisfaction": 100.0,
-      "freshness": 85.19,
-      "growth_score": 82.8
+      "freshness": 70.34,
+      "growth_score": 82.93
     },
     {
       "video_id": "n0EVrDDw0yw",
@@ -211,28 +196,28 @@
       "bible_reference": "Isaías 9",
       "content_family": "profecia mesianica de Isaias 9",
       "views": 1292,
-      "views_per_hour": 7.8611,
-      "outlier_ratio": 1.2828,
-      "appeal": 57.48,
+      "views_per_hour": 7.2816,
+      "outlier_ratio": 1.2648,
+      "appeal": 56.97,
       "engagement": 100.0,
       "satisfaction": 100.0,
-      "freshness": 72.17,
-      "growth_score": 82.34
+      "freshness": 70.32,
+      "growth_score": 81.97
     },
     {
-      "video_id": "_DurSP1p8vM",
-      "title": "Una promesa de esperanza, sin miedo ni presión | Isaías 41:10",
-      "published_at": "2026-08-20T11:04:03Z",
-      "bible_reference": "Isaías 41:10",
-      "content_family": "Isaias 41 y no vivir dominado por el miedo — enfoque 2",
-      "views": 640,
-      "views_per_hour": 8.7901,
-      "outlier_ratio": 1.4344,
-      "appeal": 61.57,
-      "engagement": 88.61,
+      "video_id": "qNv7FUvun80",
+      "title": "Dios sigue presente en el proceso | Juan 10:1-18",
+      "published_at": "2026-08-20T03:06:06Z",
+      "bible_reference": "Juan 10:1-18",
+      "content_family": "Juan 10 y Jesus como Buen Pastor — enfoque 3",
+      "views": 972,
+      "views_per_hour": 10.3562,
+      "outlier_ratio": 1.7989,
+      "appeal": 69.86,
+      "engagement": 79.82,
       "satisfaction": 100.0,
-      "freshness": 86.55,
-      "growth_score": 81.79
+      "freshness": 83.01,
+      "growth_score": 81.7
     },
     {
       "video_id": "WHBRfx2t9NM",
@@ -241,439 +226,454 @@
       "bible_reference": "Lucas 15:1-7",
       "content_family": "perdon, misericordia y volver a empezar",
       "views": 1382,
-      "views_per_hour": 7.6371,
-      "outlier_ratio": 1.2462,
-      "appeal": 56.43,
+      "views_per_hour": 7.1222,
+      "outlier_ratio": 1.2371,
+      "appeal": 56.16,
       "engagement": 100.0,
       "satisfaction": 100.0,
-      "freshness": 69.83,
-      "growth_score": 81.73
+      "freshness": 68.04,
+      "growth_score": 81.46
+    },
+    {
+      "video_id": "uDvCSFc3R3s",
+      "title": "Cuando necesitás paz: Mateo 5:1-12",
+      "published_at": "2026-08-16T15:19:57Z",
+      "bible_reference": "Mateo 5:1-12",
+      "content_family": "las bienaventuranzas y el Reino de Dios",
+      "views": 1206,
+      "views_per_hour": 6.7896,
+      "outlier_ratio": 1.1793,
+      "appeal": 54.44,
+      "engagement": 100.0,
+      "satisfaction": 100.0,
+      "freshness": 70.3,
+      "growth_score": 81.09
     }
   ],
   "reference_weights": [
     {
       "key": "Juan 14",
       "samples": 1,
-      "mean_score": 88.62,
-      "best_score": 88.62
+      "mean_score": 88.4,
+      "best_score": 88.4
     },
     {
       "key": "Juan 10:1-18",
       "samples": 2,
-      "mean_score": 85.47,
-      "best_score": 88.14
+      "mean_score": 84.65,
+      "best_score": 87.59
     },
     {
       "key": "Salmo 23",
       "samples": 1,
-      "mean_score": 83.5,
-      "best_score": 83.5
+      "mean_score": 83.07,
+      "best_score": 83.07
     },
     {
       "key": "Miqueas 5:2",
       "samples": 1,
-      "mean_score": 83.28,
-      "best_score": 83.28
+      "mean_score": 82.93,
+      "best_score": 82.93
     },
     {
       "key": "Isaías 41:10",
       "samples": 2,
-      "mean_score": 82.66,
-      "best_score": 83.53
+      "mean_score": 81.9,
+      "best_score": 83.17
     },
     {
       "key": "Lucas 15:1-7",
       "samples": 1,
-      "mean_score": 81.73,
-      "best_score": 81.73
+      "mean_score": 81.46,
+      "best_score": 81.46
     },
     {
       "key": "Mateo 6:25-34",
       "samples": 4,
-      "mean_score": 79.02,
-      "best_score": 86.81
+      "mean_score": 78.59,
+      "best_score": 86.31
     },
     {
       "key": "Isaías 40:28-31",
       "samples": 1,
-      "mean_score": 76.09,
-      "best_score": 76.09
+      "mean_score": 75.78,
+      "best_score": 75.78
     },
     {
       "key": "1 Reyes 17:1-6",
       "samples": 2,
-      "mean_score": 75.94,
-      "best_score": 81.24
+      "mean_score": 75.44,
+      "best_score": 80.73
     },
     {
       "key": "Mateo 5:1-12",
       "samples": 2,
-      "mean_score": 75.58,
-      "best_score": 81.45
+      "mean_score": 75.27,
+      "best_score": 81.09
     },
     {
       "key": "Mateo 3:13-17",
       "samples": 1,
-      "mean_score": 75.4,
-      "best_score": 75.4
+      "mean_score": 74.87,
+      "best_score": 74.87
     },
     {
       "key": "Salmo 91",
       "samples": 2,
-      "mean_score": 73.94,
-      "best_score": 76.5
+      "mean_score": 73.66,
+      "best_score": 76.28
     },
     {
       "key": "Isaías 9",
       "samples": 2,
-      "mean_score": 71.54,
-      "best_score": 82.34
+      "mean_score": 71.04,
+      "best_score": 81.97
     },
     {
       "key": "Romanos 8:28",
       "samples": 2,
-      "mean_score": 70.12,
-      "best_score": 88.13
-    },
-    {
-      "key": "Mateo 11:28-30",
-      "samples": 2,
-      "mean_score": 68.23,
-      "best_score": 79.96
+      "mean_score": 69.82,
+      "best_score": 87.91
     },
     {
       "key": "Romanos 8:26-27",
       "samples": 1,
-      "mean_score": 64.78,
-      "best_score": 64.78
+      "mean_score": 64.42,
+      "best_score": 64.42
+    },
+    {
+      "key": "Filipenses 4:6-7",
+      "samples": 9,
+      "mean_score": 63.94,
+      "best_score": 83.24
+    },
+    {
+      "key": "Mateo 11:28-30",
+      "samples": 3,
+      "mean_score": 63.11,
+      "best_score": 79.73
     },
     {
       "key": "Salmo 46",
       "samples": 1,
-      "mean_score": 63.82,
-      "best_score": 63.82
-    },
-    {
-      "key": "Filipenses 4:6-7",
-      "samples": 10,
-      "mean_score": 61.83,
-      "best_score": 83.6
+      "mean_score": 61.59,
+      "best_score": 61.59
     },
     {
       "key": "Jonás 1-2",
       "samples": 2,
-      "mean_score": 61.56,
-      "best_score": 81.45
+      "mean_score": 61.09,
+      "best_score": 80.95
     },
     {
       "key": "Marcos 4:35-41",
       "samples": 1,
-      "mean_score": 41.05,
-      "best_score": 41.05
+      "mean_score": 40.41,
+      "best_score": 40.41
     }
   ],
   "family_weights": [
     {
       "key": "Juan 14 y la promesa de paz y esperanza",
       "samples": 1,
-      "mean_score": 88.62,
-      "best_score": 88.62
-    },
-    {
-      "key": "Juan 10 y Jesus como Buen Pastor — enfoque 4",
-      "samples": 1,
-      "mean_score": 88.14,
-      "best_score": 88.14
+      "mean_score": 88.4,
+      "best_score": 88.4
     },
     {
       "key": "Romanos 8 y la confianza en el obrar de Dios",
       "samples": 1,
-      "mean_score": 88.13,
-      "best_score": 88.13
+      "mean_score": 87.91,
+      "best_score": 87.91
+    },
+    {
+      "key": "Juan 10 y Jesus como Buen Pastor — enfoque 4",
+      "samples": 1,
+      "mean_score": 87.59,
+      "best_score": 87.59
     },
     {
       "key": "los gorriones y el cuidado de Dios, Mateo 10:29-31",
       "samples": 1,
-      "mean_score": 86.81,
-      "best_score": 86.81
+      "mean_score": 86.31,
+      "best_score": 86.31
     },
     {
       "key": "los pajaros y la confianza en Dios, reflexion sobre Mateo 6:25-34",
       "samples": 1,
-      "mean_score": 85.12,
-      "best_score": 85.12
+      "mean_score": 84.65,
+      "best_score": 84.65
     },
     {
       "key": "la parabola del buen samaritano",
-      "samples": 1,
-      "mean_score": 83.78,
-      "best_score": 83.78
-    },
-    {
-      "key": "Josue 1:9 y avanzar con valentia y confianza en Dios",
       "samples": 1,
       "mean_score": 83.6,
       "best_score": 83.6
     },
     {
+      "key": "Josue 1:9 y avanzar con valentia y confianza en Dios",
+      "samples": 1,
+      "mean_score": 83.24,
+      "best_score": 83.24
+    },
+    {
       "key": "Isaias 41:10 y no caminar dominado por el miedo",
       "samples": 1,
-      "mean_score": 83.53,
-      "best_score": 83.53
+      "mean_score": 83.17,
+      "best_score": 83.17
     },
     {
       "key": "Salmo 23 y caminar acompañado por Dios",
       "samples": 1,
-      "mean_score": 83.5,
-      "best_score": 83.5
+      "mean_score": 83.07,
+      "best_score": 83.07
     },
     {
       "key": "profecia mesianica de Miqueas 5",
       "samples": 1,
-      "mean_score": 83.28,
-      "best_score": 83.28
-    },
-    {
-      "key": "Juan 10 y Jesus como Buen Pastor — enfoque 3",
-      "samples": 1,
-      "mean_score": 82.8,
-      "best_score": 82.8
+      "mean_score": 82.93,
+      "best_score": 82.93
     },
     {
       "key": "profecia mesianica de Isaias 9",
       "samples": 1,
-      "mean_score": 82.34,
-      "best_score": 82.34
+      "mean_score": 81.97,
+      "best_score": 81.97
     },
     {
-      "key": "Isaias 41 y no vivir dominado por el miedo — enfoque 2",
+      "key": "Juan 10 y Jesus como Buen Pastor — enfoque 3",
       "samples": 1,
-      "mean_score": 81.79,
-      "best_score": 81.79
+      "mean_score": 81.7,
+      "best_score": 81.7
     },
     {
       "key": "perdon, misericordia y volver a empezar",
       "samples": 1,
-      "mean_score": 81.73,
-      "best_score": 81.73
+      "mean_score": 81.46,
+      "best_score": 81.46
     },
     {
       "key": "las bienaventuranzas y el Reino de Dios",
       "samples": 1,
-      "mean_score": 81.45,
-      "best_score": 81.45
+      "mean_score": 81.09,
+      "best_score": 81.09
     },
     {
       "key": "Jonas y el gran pez como relato de obediencia y misericordia, Jonas 1 y 2",
       "samples": 1,
-      "mean_score": 81.45,
-      "best_score": 81.45
-    },
-    {
-      "key": "Elias y los cuervos como relato del cuidado de Dios, 1 Reyes 17",
-      "samples": 1,
-      "mean_score": 81.24,
-      "best_score": 81.24
+      "mean_score": 80.95,
+      "best_score": 80.95
     },
     {
       "key": "1 Pedro 5:7 y entregar las preocupaciones a Dios",
       "samples": 1,
-      "mean_score": 81.17,
-      "best_score": 81.17
+      "mean_score": 80.81,
+      "best_score": 80.81
+    },
+    {
+      "key": "Elias y los cuervos como relato del cuidado de Dios, 1 Reyes 17",
+      "samples": 1,
+      "mean_score": 80.73,
+      "best_score": 80.73
+    },
+    {
+      "key": "Isaias 41 y no vivir dominado por el miedo — enfoque 2",
+      "samples": 1,
+      "mean_score": 80.62,
+      "best_score": 80.62
     },
     {
       "key": "Mateo 6 y vivir un dia a la vez",
       "samples": 1,
-      "mean_score": 80.97,
-      "best_score": 80.97
+      "mean_score": 80.46,
+      "best_score": 80.46
     },
     {
       "key": "Jesus llama a los cansados a encontrar descanso",
       "samples": 1,
-      "mean_score": 79.96,
-      "best_score": 79.96
+      "mean_score": 79.73,
+      "best_score": 79.73
     }
   ],
   "keyword_weights": [
     {
-      "key": "sobrepasa",
-      "samples": 1,
-      "mean_score": 88.62,
-      "best_score": 88.62
-    },
-    {
       "key": "entendimiento",
       "samples": 1,
-      "mean_score": 88.62,
-      "best_score": 88.62
+      "mean_score": 88.4,
+      "best_score": 88.4
+    },
+    {
+      "key": "sobrepasa",
+      "samples": 1,
+      "mean_score": 88.4,
+      "best_score": 88.4
     },
     {
       "key": "transforma",
       "samples": 1,
-      "mean_score": 88.62,
-      "best_score": 88.62
-    },
-    {
-      "key": "guiando",
-      "samples": 1,
-      "mean_score": 88.13,
-      "best_score": 88.13
-    },
-    {
-      "key": "quienes",
-      "samples": 1,
-      "mean_score": 88.13,
-      "best_score": 88.13
-    },
-    {
-      "key": "está",
-      "samples": 1,
-      "mean_score": 88.13,
-      "best_score": 88.13
+      "mean_score": 88.4,
+      "best_score": 88.4
     },
     {
       "key": "aman",
       "samples": 1,
-      "mean_score": 88.13,
-      "best_score": 88.13
-    },
-    {
-      "key": "obrar",
-      "samples": 1,
-      "mean_score": 88.13,
-      "best_score": 88.13
-    },
-    {
-      "key": "cosas",
-      "samples": 1,
-      "mean_score": 88.13,
-      "best_score": 88.13
-    },
-    {
-      "key": "todas",
-      "samples": 1,
-      "mean_score": 88.13,
-      "best_score": 88.13
+      "mean_score": 87.91,
+      "best_score": 87.91
     },
     {
       "key": "dispone",
       "samples": 1,
-      "mean_score": 88.13,
-      "best_score": 88.13
+      "mean_score": 87.91,
+      "best_score": 87.91
     },
     {
-      "key": "juan",
-      "samples": 4,
-      "mean_score": 87.06,
-      "best_score": 88.67
-    },
-    {
-      "key": "constante",
+      "key": "quienes",
       "samples": 1,
-      "mean_score": 86.81,
-      "best_score": 86.81
+      "mean_score": 87.91,
+      "best_score": 87.91
     },
     {
-      "key": "gorriones",
+      "key": "cosas",
       "samples": 1,
-      "mean_score": 86.81,
-      "best_score": 86.81
+      "mean_score": 87.91,
+      "best_score": 87.91
     },
     {
-      "key": "valor",
+      "key": "todas",
       "samples": 1,
-      "mean_score": 86.81,
-      "best_score": 86.81
+      "mean_score": 87.91,
+      "best_score": 87.91
+    },
+    {
+      "key": "está",
+      "samples": 1,
+      "mean_score": 87.91,
+      "best_score": 87.91
+    },
+    {
+      "key": "guiando",
+      "samples": 1,
+      "mean_score": 87.91,
+      "best_score": 87.91
+    },
+    {
+      "key": "obrar",
+      "samples": 1,
+      "mean_score": 87.91,
+      "best_score": 87.91
     },
     {
       "key": "personal",
       "samples": 1,
-      "mean_score": 86.81,
-      "best_score": 86.81
+      "mean_score": 86.31,
+      "best_score": 86.31
     },
     {
-      "key": "buen",
+      "key": "gorriones",
+      "samples": 1,
+      "mean_score": 86.31,
+      "best_score": 86.31
+    },
+    {
+      "key": "constante",
+      "samples": 1,
+      "mean_score": 86.31,
+      "best_score": 86.31
+    },
+    {
+      "key": "valor",
+      "samples": 1,
+      "mean_score": 86.31,
+      "best_score": 86.31
+    },
+    {
+      "key": "juan",
       "samples": 4,
-      "mean_score": 85.85,
-      "best_score": 88.67
+      "mean_score": 86.28,
+      "best_score": 88.4
     },
     {
       "key": "camino",
       "samples": 2,
-      "mean_score": 85.83,
-      "best_score": 88.13
+      "mean_score": 85.54,
+      "best_score": 87.91
+    },
+    {
+      "key": "buen",
+      "samples": 4,
+      "mean_score": 85.08,
+      "best_score": 87.59
     },
     {
       "key": "pastor",
       "samples": 4,
-      "mean_score": 85.72,
-      "best_score": 88.67
-    },
-    {
-      "key": "cielo",
-      "samples": 1,
-      "mean_score": 85.12,
-      "best_score": 85.12
-    },
-    {
-      "key": "pajaros",
-      "samples": 1,
-      "mean_score": 85.12,
-      "best_score": 85.12
-    },
-    {
-      "key": "reflexion",
-      "samples": 1,
-      "mean_score": 85.12,
-      "best_score": 85.12
-    },
-    {
-      "key": "solo",
-      "samples": 1,
-      "mean_score": 85.12,
-      "best_score": 85.12
+      "mean_score": 84.91,
+      "best_score": 87.59
     },
     {
       "key": "etapa",
       "samples": 1,
-      "mean_score": 85.12,
-      "best_score": 85.12
-    },
-    {
-      "key": "sobre",
-      "samples": 1,
-      "mean_score": 85.12,
-      "best_score": 85.12
-    },
-    {
-      "key": "estás",
-      "samples": 1,
-      "mean_score": 85.12,
-      "best_score": 85.12
+      "mean_score": 84.65,
+      "best_score": 84.65
     },
     {
       "key": "aves",
       "samples": 1,
-      "mean_score": 85.12,
-      "best_score": 85.12
+      "mean_score": 84.65,
+      "best_score": 84.65
     },
     {
-      "key": "cuidado",
-      "samples": 2,
-      "mean_score": 84.03,
-      "best_score": 86.81
+      "key": "cielo",
+      "samples": 1,
+      "mean_score": 84.65,
+      "best_score": 84.65
+    },
+    {
+      "key": "estás",
+      "samples": 1,
+      "mean_score": 84.65,
+      "best_score": 84.65
+    },
+    {
+      "key": "sobre",
+      "samples": 1,
+      "mean_score": 84.65,
+      "best_score": 84.65
+    },
+    {
+      "key": "solo",
+      "samples": 1,
+      "mean_score": 84.65,
+      "best_score": 84.65
+    },
+    {
+      "key": "reflexion",
+      "samples": 1,
+      "mean_score": 84.65,
+      "best_score": 84.65
+    },
+    {
+      "key": "pajaros",
+      "samples": 1,
+      "mean_score": 84.65,
+      "best_score": 84.65
+    },
+    {
+      "key": "acción",
+      "samples": 1,
+      "mean_score": 83.6,
+      "best_score": 83.6
     },
     {
       "key": "samaritano",
       "samples": 1,
-      "mean_score": 83.78,
-      "best_score": 83.78
+      "mean_score": 83.6,
+      "best_score": 83.6
     },
     {
-      "key": "parabola",
+      "key": "quién",
       "samples": 1,
-      "mean_score": 83.78,
-      "best_score": 83.78
+      "mean_score": 83.6,
+      "best_score": 83.6
     },
     {
       "key": "comienza",
