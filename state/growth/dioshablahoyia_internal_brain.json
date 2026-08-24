@@ -1,8 +1,8 @@
 {
   "version": "dios-internal-quality-cortex-v1",
-  "generated_at": "2026-08-24T11:45:18.701079+00:00",
-  "training_generation": 98,
-  "data_fingerprint": "7383860e72d02e05f6508650874f99cbd2b5bdb21b0d80394692dfe6ffda4d43",
+  "generated_at": "2026-08-24T13:15:32.305981+00:00",
+  "training_generation": 99,
+  "data_fingerprint": "da85e1f69359b4126731606a9b0a4ea5293f7eb9992546fc5ab00af4c79ff8de",
   "changed_since_previous": true,
   "training_mode": "local_only_zero_external_calls",
   "mission": {
@@ -23,13 +23,13 @@
     "publishing_must_continue": true
   },
   "memory": {
-    "uploaded_samples": 74,
+    "uploaded_samples": 75,
     "unique_references": 24,
-    "unique_families": 69,
+    "unique_families": 70,
     "recent_emotional_terms": [
       [
         "esperanza",
-        31
+        32
       ],
       [
         "paz",
@@ -52,11 +52,11 @@
         13
       ],
       [
-        "luz",
-        9
+        "acompaña",
+        10
       ],
       [
-        "acompaña",
+        "luz",
         9
       ],
       [
@@ -76,11 +76,11 @@
         3
       ],
       [
-        "valentía",
+        "valentia",
         3
       ],
       [
-        "valentia",
+        "valentía",
         3
       ],
       [
@@ -107,19 +107,19 @@
     "recent_teaching_terms": [
       [
         "enseñanza",
-        33
+        34
       ],
       [
         "decisión",
-        32
+        33
       ],
       [
         "aplicación",
-        28
+        29
       ],
       [
         "verdad",
-        22
+        23
       ],
       [
         "camino",
@@ -164,16 +164,16 @@
         3
       ],
       [
+        "Romanos 8:26-27",
+        3
+      ],
+      [
         "Mateo 5:1-12",
         3
       ],
       [
         "Juan 10:1-18",
         3
-      ],
-      [
-        "Romanos 8:26-27",
-        2
       ],
       [
         "Lucas 15:1-7",
