@@ -1,6 +1,6 @@
 {
   "version": "npu-seo-cortex-v1",
-  "generated_at": "2026-08-23T23:37:04.913124+00:00",
+  "generated_at": "2026-08-24T01:59:25.967486+00:00",
   "policy": {
     "first_party_priority": true,
     "external_signal_max_weight": 0.2,
@@ -12,452 +12,452 @@
   "videos_learned": 15,
   "keyword_weights": [
     {
-      "key": "corazón juan",
-      "seo_score": 88.62,
+      "key": "promesa",
+      "seo_score": 88.4,
       "evidence_points": 1
     },
     {
       "key": "promesa paz",
-      "seo_score": 88.62,
+      "seo_score": 88.4,
       "evidence_points": 1
     },
     {
-      "key": "paz transforma",
-      "seo_score": 88.62,
+      "key": "corazón juan",
+      "seo_score": 88.4,
       "evidence_points": 1
     },
     {
       "key": "transforma",
-      "seo_score": 88.62,
+      "seo_score": 88.4,
       "evidence_points": 1
     },
     {
       "key": "transforma corazón",
-      "seo_score": 88.62,
+      "seo_score": 88.4,
+      "evidence_points": 1
+    },
+    {
+      "key": "paz transforma",
+      "seo_score": 88.4,
       "evidence_points": 1
     },
     {
       "key": "juan promesa",
-      "seo_score": 88.62,
+      "seo_score": 88.4,
       "evidence_points": 1
     },
     {
-      "key": "paz esperanza",
-      "seo_score": 88.49,
-      "evidence_points": 3
-    },
-    {
-      "key": "enfoque paz",
-      "seo_score": 88.42,
-      "evidence_points": 2
-    },
-    {
       "key": "esperanza juan",
-      "seo_score": 88.4,
+      "seo_score": 88.03,
       "evidence_points": 2
     },
     {
       "key": "romanos confianza",
-      "seo_score": 88.13,
-      "evidence_points": 1
-    },
-    {
-      "key": "camino romanos",
-      "seo_score": 88.13,
-      "evidence_points": 1
-    },
-    {
-      "key": "romanos romanos",
-      "seo_score": 88.13,
-      "evidence_points": 1
-    },
-    {
-      "key": "está",
-      "seo_score": 88.13,
-      "evidence_points": 1
-    },
-    {
-      "key": "romanos",
-      "seo_score": 88.13,
+      "seo_score": 87.91,
       "evidence_points": 1
     },
     {
       "key": "confianza obrar",
-      "seo_score": 88.13,
+      "seo_score": 87.91,
       "evidence_points": 1
     },
     {
-      "key": "está guiando",
-      "seo_score": 88.13,
-      "evidence_points": 1
-    },
-    {
-      "key": "obrar romanos",
-      "seo_score": 88.13,
-      "evidence_points": 1
-    },
-    {
-      "key": "guiando",
-      "seo_score": 88.13,
-      "evidence_points": 1
-    },
-    {
-      "key": "obrar",
-      "seo_score": 88.13,
+      "key": "romanos",
+      "seo_score": 87.91,
       "evidence_points": 1
     },
     {
       "key": "guiando camino",
-      "seo_score": 88.13,
+      "seo_score": 87.91,
+      "evidence_points": 1
+    },
+    {
+      "key": "está",
+      "seo_score": 87.91,
+      "evidence_points": 1
+    },
+    {
+      "key": "guiando",
+      "seo_score": 87.91,
+      "evidence_points": 1
+    },
+    {
+      "key": "está guiando",
+      "seo_score": 87.91,
+      "evidence_points": 1
+    },
+    {
+      "key": "camino romanos",
+      "seo_score": 87.91,
+      "evidence_points": 1
+    },
+    {
+      "key": "obrar",
+      "seo_score": 87.91,
+      "evidence_points": 1
+    },
+    {
+      "key": "obrar romanos",
+      "seo_score": 87.91,
+      "evidence_points": 1
+    },
+    {
+      "key": "romanos romanos",
+      "seo_score": 87.91,
       "evidence_points": 1
     },
     {
       "key": "esperanza",
-      "seo_score": 87.12,
-      "evidence_points": 4
+      "seo_score": 87.83,
+      "evidence_points": 3
+    },
+    {
+      "key": "paz esperanza",
+      "seo_score": 87.83,
+      "evidence_points": 3
+    },
+    {
+      "key": "enfoque paz",
+      "seo_score": 87.51,
+      "evidence_points": 2
     },
     {
       "key": "juan",
-      "seo_score": 87.11,
+      "seo_score": 86.37,
       "evidence_points": 4
     },
     {
-      "key": "gorriones cuidado",
-      "seo_score": 86.81,
-      "evidence_points": 1
-    },
-    {
-      "key": "cuidado",
-      "seo_score": 86.81,
+      "key": "gorriones",
+      "seo_score": 86.31,
       "evidence_points": 1
     },
     {
       "key": "cuidado mateo",
-      "seo_score": 86.81,
-      "evidence_points": 1
-    },
-    {
-      "key": "gorriones",
-      "seo_score": 86.81,
-      "evidence_points": 1
-    },
-    {
-      "key": "descanso mateo",
-      "seo_score": 86.81,
+      "seo_score": 86.31,
       "evidence_points": 1
     },
     {
       "key": "mateo gorriones",
-      "seo_score": 86.81,
+      "seo_score": 86.31,
       "evidence_points": 1
     },
     {
-      "key": "juan buen",
-      "seo_score": 86.57,
-      "evidence_points": 3
+      "key": "descanso mateo",
+      "seo_score": 86.31,
+      "evidence_points": 1
     },
     {
-      "key": "buen pastor",
-      "seo_score": 86.57,
+      "key": "cuidado",
+      "seo_score": 86.31,
+      "evidence_points": 1
+    },
+    {
+      "key": "gorriones cuidado",
+      "seo_score": 86.31,
+      "evidence_points": 1
+    },
+    {
+      "key": "camino",
+      "seo_score": 85.89,
+      "evidence_points": 2
+    },
+    {
+      "key": "juan buen",
+      "seo_score": 85.61,
       "evidence_points": 3
     },
     {
       "key": "pastor",
-      "seo_score": 86.57,
+      "seo_score": 85.61,
+      "evidence_points": 3
+    },
+    {
+      "key": "enfoque",
+      "seo_score": 85.61,
+      "evidence_points": 3
+    },
+    {
+      "key": "buen pastor",
+      "seo_score": 85.61,
       "evidence_points": 3
     },
     {
       "key": "pastor enfoque",
-      "seo_score": 86.57,
+      "seo_score": 85.61,
       "evidence_points": 3
-    },
-    {
-      "key": "camino",
-      "seo_score": 86.16,
-      "evidence_points": 2
-    },
-    {
-      "key": "mateo mateo",
-      "seo_score": 86.01,
-      "evidence_points": 2
-    },
-    {
-      "key": "mateo",
-      "seo_score": 86.01,
-      "evidence_points": 2
-    },
-    {
-      "key": "paz",
-      "seo_score": 85.97,
-      "evidence_points": 6
-    },
-    {
-      "key": "buen",
-      "seo_score": 85.97,
-      "evidence_points": 4
     },
     {
       "key": "corazón",
-      "seo_score": 85.93,
-      "evidence_points": 4
-    },
-    {
-      "key": "confianza",
-      "seo_score": 85.85,
-      "evidence_points": 3
-    },
-    {
-      "key": "juan juan",
-      "seo_score": 85.83,
-      "evidence_points": 2
-    },
-    {
-      "key": "promesa",
-      "seo_score": 85.73,
-      "evidence_points": 2
-    },
-    {
-      "key": "enfoque",
       "seo_score": 85.57,
       "evidence_points": 4
     },
     {
-      "key": "enfoque juan",
-      "seo_score": 85.41,
+      "key": "confianza",
+      "seo_score": 85.52,
+      "evidence_points": 3
+    },
+    {
+      "key": "mateo mateo",
+      "seo_score": 85.52,
       "evidence_points": 2
     },
     {
+      "key": "juan juan",
+      "seo_score": 85.29,
+      "evidence_points": 2
+    },
+    {
+      "key": "buen",
+      "seo_score": 85.16,
+      "evidence_points": 4
+    },
+    {
+      "key": "paz",
+      "seo_score": 84.91,
+      "evidence_points": 7
+    },
+    {
       "key": "mensaje pajaros",
-      "seo_score": 85.12,
-      "evidence_points": 1
-    },
-    {
-      "key": "sobre",
-      "seo_score": 85.12,
-      "evidence_points": 1
-    },
-    {
-      "key": "estás solo",
-      "seo_score": 85.12,
-      "evidence_points": 1
-    },
-    {
-      "key": "etapa mensaje",
-      "seo_score": 85.12,
-      "evidence_points": 1
-    },
-    {
-      "key": "sobre mateo",
-      "seo_score": 85.12,
-      "evidence_points": 1
-    },
-    {
-      "key": "solo etapa",
-      "seo_score": 85.12,
+      "seo_score": 84.65,
       "evidence_points": 1
     },
     {
       "key": "solo",
-      "seo_score": 85.12,
+      "seo_score": 84.65,
       "evidence_points": 1
     },
     {
       "key": "pajaros confianza",
-      "seo_score": 85.12,
+      "seo_score": 84.65,
       "evidence_points": 1
     },
     {
       "key": "reflexion sobre",
-      "seo_score": 85.12,
+      "seo_score": 84.65,
       "evidence_points": 1
     },
     {
-      "key": "pajaros",
-      "seo_score": 85.12,
-      "evidence_points": 1
-    },
-    {
-      "key": "reflexion",
-      "seo_score": 85.12,
-      "evidence_points": 1
-    },
-    {
-      "key": "etapa",
-      "seo_score": 85.12,
-      "evidence_points": 1
-    },
-    {
-      "key": "estás",
-      "seo_score": 85.12,
+      "key": "sobre",
+      "seo_score": 84.65,
       "evidence_points": 1
     },
     {
       "key": "confianza reflexion",
-      "seo_score": 85.12,
+      "seo_score": 84.65,
       "evidence_points": 1
     },
     {
-      "key": "corazón necesita",
-      "seo_score": 84.77,
+      "key": "etapa",
+      "seo_score": 84.65,
+      "evidence_points": 1
+    },
+    {
+      "key": "estás solo",
+      "seo_score": 84.65,
+      "evidence_points": 1
+    },
+    {
+      "key": "estás",
+      "seo_score": 84.65,
+      "evidence_points": 1
+    },
+    {
+      "key": "reflexion",
+      "seo_score": 84.65,
+      "evidence_points": 1
+    },
+    {
+      "key": "sobre mateo",
+      "seo_score": 84.65,
+      "evidence_points": 1
+    },
+    {
+      "key": "solo etapa",
+      "seo_score": 84.65,
+      "evidence_points": 1
+    },
+    {
+      "key": "pajaros",
+      "seo_score": 84.65,
+      "evidence_points": 1
+    },
+    {
+      "key": "etapa mensaje",
+      "seo_score": 84.65,
+      "evidence_points": 1
+    },
+    {
+      "key": "enfoque juan",
+      "seo_score": 84.63,
+      "evidence_points": 2
+    },
+    {
+      "key": "necesita",
+      "seo_score": 84.33,
       "evidence_points": 3
     },
     {
-      "key": "descanso",
-      "seo_score": 84.77,
+      "key": "corazón necesita",
+      "seo_score": 84.33,
       "evidence_points": 3
     },
     {
       "key": "necesita descanso",
-      "seo_score": 84.77,
+      "seo_score": 84.33,
       "evidence_points": 3
     },
     {
-      "key": "necesita",
-      "seo_score": 84.77,
+      "key": "descanso",
+      "seo_score": 84.33,
       "evidence_points": 3
     },
     {
-      "key": "quién",
-      "seo_score": 83.78,
-      "evidence_points": 1
-    },
-    {
-      "key": "buen samaritano",
-      "seo_score": 83.78,
-      "evidence_points": 1
+      "key": "mateo",
+      "seo_score": 84.26,
+      "evidence_points": 3
     },
     {
       "key": "prójimo lección",
-      "seo_score": 83.78,
-      "evidence_points": 1
-    },
-    {
-      "key": "lección",
-      "seo_score": 83.78,
-      "evidence_points": 1
-    },
-    {
-      "key": "prójimo",
-      "seo_score": 83.78,
+      "seo_score": 83.6,
       "evidence_points": 1
     },
     {
       "key": "amor",
-      "seo_score": 83.78,
+      "seo_score": 83.6,
       "evidence_points": 1
     },
     {
-      "key": "parabola",
-      "seo_score": 83.78,
-      "evidence_points": 1
-    },
-    {
-      "key": "parabola buen",
-      "seo_score": 83.78,
-      "evidence_points": 1
-    },
-    {
-      "key": "lección amor",
-      "seo_score": 83.78,
-      "evidence_points": 1
-    },
-    {
-      "key": "quién prójimo",
-      "seo_score": 83.78,
-      "evidence_points": 1
-    },
-    {
-      "key": "samaritano",
-      "seo_score": 83.78,
+      "key": "quién",
+      "seo_score": 83.6,
       "evidence_points": 1
     },
     {
       "key": "amor parabola",
-      "seo_score": 83.78,
+      "seo_score": 83.6,
       "evidence_points": 1
     },
     {
-      "key": "filipenses",
+      "key": "parabola buen",
+      "seo_score": 83.6,
+      "evidence_points": 1
+    },
+    {
+      "key": "buen samaritano",
+      "seo_score": 83.6,
+      "evidence_points": 1
+    },
+    {
+      "key": "lección amor",
+      "seo_score": 83.6,
+      "evidence_points": 1
+    },
+    {
+      "key": "parabola",
+      "seo_score": 83.6,
+      "evidence_points": 1
+    },
+    {
+      "key": "quién prójimo",
+      "seo_score": 83.6,
+      "evidence_points": 1
+    },
+    {
+      "key": "samaritano",
+      "seo_score": 83.6,
+      "evidence_points": 1
+    },
+    {
+      "key": "lección",
+      "seo_score": 83.6,
+      "evidence_points": 1
+    },
+    {
+      "key": "prójimo",
       "seo_score": 83.6,
       "evidence_points": 1
     },
     {
       "key": "filipenses josue",
-      "seo_score": 83.6,
+      "seo_score": 83.24,
       "evidence_points": 1
     },
     {
       "key": "josue",
-      "seo_score": 83.6,
+      "seo_score": 83.24,
       "evidence_points": 1
     },
     {
-      "key": "valentia",
-      "seo_score": 83.6,
-      "evidence_points": 1
-    },
-    {
-      "key": "valentia confianza",
-      "seo_score": 83.6,
-      "evidence_points": 1
-    },
-    {
-      "key": "descanso filipenses",
-      "seo_score": 83.6,
+      "key": "avanzar valentia",
+      "seo_score": 83.24,
       "evidence_points": 1
     },
     {
       "key": "confianza filipenses",
-      "seo_score": 83.6,
+      "seo_score": 83.24,
+      "evidence_points": 1
+    },
+    {
+      "key": "valentia confianza",
+      "seo_score": 83.24,
+      "evidence_points": 1
+    },
+    {
+      "key": "valentia",
+      "seo_score": 83.24,
+      "evidence_points": 1
+    },
+    {
+      "key": "descanso filipenses",
+      "seo_score": 83.24,
       "evidence_points": 1
     }
   ],
   "title_length_patterns": [
     {
       "bucket": "medium_61_80",
-      "mean_growth_score": 86.2,
-      "samples": 3
+      "mean_growth_score": 87.51,
+      "samples": 2
     },
     {
       "bucket": "compact_35_60",
-      "mean_growth_score": 85.1,
+      "mean_growth_score": 84.67,
       "samples": 9
     },
     {
       "bucket": "short_lt35",
-      "mean_growth_score": 82.45,
-      "samples": 3
+      "mean_growth_score": 81.86,
+      "samples": 4
     }
   ],
   "title_structure_patterns": [
     {
       "pattern": "reference_not_in_title",
-      "mean_growth_score": 85.85,
+      "mean_growth_score": 85.29,
       "samples": 5
     },
     {
       "pattern": "has_separator",
-      "mean_growth_score": 84.96,
+      "mean_growth_score": 84.44,
       "samples": 13
     },
     {
       "pattern": "statement",
-      "mean_growth_score": 84.86,
+      "mean_growth_score": 84.35,
       "samples": 14
     },
     {
       "pattern": "has_reference",
-      "mean_growth_score": 84.26,
+      "mean_growth_score": 83.81,
       "samples": 10
     },
     {
       "pattern": "question",
-      "mean_growth_score": 83.78,
+      "mean_growth_score": 83.6,
       "samples": 1
     },
     {
       "pattern": "no_separator",
-      "mean_growth_score": 83.66,
+      "mean_growth_score": 83.38,
       "samples": 2
     }
   ]
