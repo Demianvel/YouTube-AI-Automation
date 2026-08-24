@@ -1,6 +1,6 @@
 {
   "version": "alien-npu-brain-v1",
-  "generated_at": "2026-08-24T10:06:06.453219+00:00",
+  "generated_at": "2026-08-24T10:55:15.491373+00:00",
   "architecture": {
     "type": "multi-cortex ensemble with quantum-inspired softmax exploration",
     "literal_consciousness": false,
@@ -697,14 +697,7 @@
         "seo_supported": true
       },
       {
-        "key": "transforma corazón",
-        "samples": 0,
-        "mean_score": 54.61,
-        "best_score": 88.4,
-        "seo_only": true
-      },
-      {
-        "key": "promesa paz",
+        "key": "promesa",
         "samples": 0,
         "mean_score": 54.61,
         "best_score": 88.4,
@@ -725,7 +718,7 @@
         "seo_only": true
       },
       {
-        "key": "promesa",
+        "key": "transforma corazón",
         "samples": 0,
         "mean_score": 54.61,
         "best_score": 88.4,
@@ -739,6 +732,13 @@
         "seo_only": true
       },
       {
+        "key": "promesa paz",
+        "samples": 0,
+        "mean_score": 54.61,
+        "best_score": 88.4,
+        "seo_only": true
+      },
+      {
         "key": "esperanza juan",
         "samples": 0,
         "mean_score": 54.56,
@@ -746,7 +746,14 @@
         "seo_only": true
       },
       {
-        "key": "romanos confianza",
+        "key": "confianza obrar",
+        "samples": 0,
+        "mean_score": 54.55,
+        "best_score": 87.91,
+        "seo_only": true
+      },
+      {
+        "key": "romanos",
         "samples": 0,
         "mean_score": 54.55,
         "best_score": 87.91,
@@ -760,13 +767,6 @@
         "seo_only": true
       },
       {
-        "key": "está guiando",
-        "samples": 0,
-        "mean_score": 54.55,
-        "best_score": 87.91,
-        "seo_only": true
-      },
-      {
         "key": "guiando camino",
         "samples": 0,
         "mean_score": 54.55,
@@ -774,14 +774,14 @@
         "seo_only": true
       },
       {
-        "key": "confianza obrar",
+        "key": "romanos confianza",
         "samples": 0,
         "mean_score": 54.55,
         "best_score": 87.91,
         "seo_only": true
       },
       {
-        "key": "romanos",
+        "key": "está guiando",
         "samples": 0,
         "mean_score": 54.55,
         "best_score": 87.91,
@@ -823,7 +823,7 @@
         "seo_only": true
       },
       {
-        "key": "descanso mateo",
+        "key": "cuidado",
         "samples": 0,
         "mean_score": 54.36,
         "best_score": 86.31,
