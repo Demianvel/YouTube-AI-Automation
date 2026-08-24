@@ -1,6 +1,6 @@
 {
   "version": "alien-npu-brain-v1",
-  "generated_at": "2026-08-24T01:59:26.198407+00:00",
+  "generated_at": "2026-08-24T03:18:03.473565+00:00",
   "architecture": {
     "type": "multi-cortex ensemble with quantum-inspired softmax exploration",
     "literal_consciousness": false,
@@ -697,21 +697,7 @@
         "seo_supported": true
       },
       {
-        "key": "promesa",
-        "samples": 0,
-        "mean_score": 54.61,
-        "best_score": 88.4,
-        "seo_only": true
-      },
-      {
-        "key": "promesa paz",
-        "samples": 0,
-        "mean_score": 54.61,
-        "best_score": 88.4,
-        "seo_only": true
-      },
-      {
-        "key": "corazón juan",
+        "key": "paz transforma",
         "samples": 0,
         "mean_score": 54.61,
         "best_score": 88.4,
@@ -725,14 +711,28 @@
         "seo_only": true
       },
       {
-        "key": "paz transforma",
+        "key": "juan promesa",
         "samples": 0,
         "mean_score": 54.61,
         "best_score": 88.4,
         "seo_only": true
       },
       {
-        "key": "juan promesa",
+        "key": "corazón juan",
+        "samples": 0,
+        "mean_score": 54.61,
+        "best_score": 88.4,
+        "seo_only": true
+      },
+      {
+        "key": "promesa",
+        "samples": 0,
+        "mean_score": 54.61,
+        "best_score": 88.4,
+        "seo_only": true
+      },
+      {
+        "key": "promesa paz",
         "samples": 0,
         "mean_score": 54.61,
         "best_score": 88.4,
@@ -760,7 +760,7 @@
         "seo_only": true
       },
       {
-        "key": "romanos",
+        "key": "camino romanos",
         "samples": 0,
         "mean_score": 54.55,
         "best_score": 87.91,
@@ -781,7 +781,7 @@
         "seo_only": true
       },
       {
-        "key": "camino romanos",
+        "key": "romanos romanos",
         "samples": 0,
         "mean_score": 54.55,
         "best_score": 87.91,
@@ -795,7 +795,7 @@
         "seo_only": true
       },
       {
-        "key": "romanos romanos",
+        "key": "romanos",
         "samples": 0,
         "mean_score": 54.55,
         "best_score": 87.91,
@@ -823,14 +823,14 @@
         "seo_only": true
       },
       {
-        "key": "cuidado mateo",
+        "key": "mateo gorriones",
         "samples": 0,
         "mean_score": 54.36,
         "best_score": 86.31,
         "seo_only": true
       },
       {
-        "key": "mateo gorriones",
+        "key": "cuidado",
         "samples": 0,
         "mean_score": 54.36,
         "best_score": 86.31,
