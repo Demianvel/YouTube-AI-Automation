@@ -13,7 +13,7 @@ HISTORY = ROOT / "state" / "history.jsonl"
 RECORDS = Path("/tmp/dios-sovereign-catchup/new-short-records.jsonl")
 TZ = ZoneInfo("America/Argentina/Buenos_Aires")
 DAILY_TARGET = 10
-PUBLISHER = ROOT / "scripts" / "publish_dios_sovereign.py"
+PUBLISHER = ROOT / "scripts" / "publish_dios_premium_v5.py"
 
 
 def _slot_attempts() -> int:
@@ -51,7 +51,7 @@ def checkpoint(baseline: list[str]) -> int:
     new_lines = [line for line in current[len(baseline):] if line.strip()]
     RECORDS.parent.mkdir(parents=True, exist_ok=True)
     RECORDS.write_text("".join(f"{line}\n" for line in new_lines), encoding="utf-8")
-    print(f"Checkpoint soberano: {len(new_lines)} nuevo(s) Short(s).", flush=True)
+    print(f"Checkpoint premium soberano: {len(new_lines)} nuevo(s) Short(s).", flush=True)
     return len(new_lines)
 
 
@@ -69,7 +69,7 @@ def main() -> int:
     print(f"Intentos de calidad permitidos por plaza: {attempts_per_slot}", flush=True)
 
     for index in range(1, missing + 1):
-        print(f"=== Plaza soberana {index}/{missing} ===", flush=True)
+        print(f"=== Plaza premium soberana {index}/{missing} ===", flush=True)
         published = False
         for attempt in range(1, attempts_per_slot + 1):
             print(
@@ -86,15 +86,15 @@ def main() -> int:
                 )
                 break
             print(
-                f"Candidato {attempt}/{attempts_per_slot} rechazado por un guard o error de generación; "
-                "se intentará una pieza nueva sin bajar los controles de calidad.",
+                f"Candidato {attempt}/{attempts_per_slot} rechazado por un guard o error de generacion; "
+                "se intentara una pieza nueva sin bajar los controles de calidad.",
                 file=sys.stderr,
                 flush=True,
             )
 
         if not published:
             print(
-                f"No se obtuvo un candidato válido para la plaza {index} después de "
+                f"No se obtuvo un candidato valido para la plaza {index} despues de "
                 f"{attempts_per_slot} intentos. Se detiene sin duplicar ni degradar calidad.",
                 file=sys.stderr,
             )
