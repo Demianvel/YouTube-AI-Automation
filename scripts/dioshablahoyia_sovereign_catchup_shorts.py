@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 import subprocess
 import sys
 from datetime import datetime
@@ -13,6 +14,14 @@ RECORDS = Path("/tmp/dios-sovereign-catchup/new-short-records.jsonl")
 TZ = ZoneInfo("America/Argentina/Buenos_Aires")
 DAILY_TARGET = 10
 PUBLISHER = ROOT / "scripts" / "publish_dios_sovereign.py"
+
+
+def _slot_attempts() -> int:
+    try:
+        value = int(os.getenv("DIOS_SOVEREIGN_SLOT_ATTEMPTS", "3"))
+    except ValueError:
+        value = 3
+    return max(1, min(5, value))
 
 
 def today_uploaded_count() -> int:
@@ -54,23 +63,47 @@ def main() -> int:
 
     actual = today_uploaded_count()
     missing = max(0, DAILY_TARGET - actual)
+    attempts_per_slot = _slot_attempts()
     print(f"Shorts confirmados hoy en Argentina: {actual}/{DAILY_TARGET}", flush=True)
     print(f"Faltan: {missing}", flush=True)
+    print(f"Intentos de calidad permitidos por plaza: {attempts_per_slot}", flush=True)
 
     for index in range(1, missing + 1):
-        print(f"=== Short soberano {index}/{missing} ===", flush=True)
-        result = subprocess.run([sys.executable, str(PUBLISHER)], cwd=ROOT, check=False)
-        checkpoint(baseline)
-        if result.returncode != 0:
+        print(f"=== Plaza soberana {index}/{missing} ===", flush=True)
+        published = False
+        for attempt in range(1, attempts_per_slot + 1):
             print(
-                f"El Short soberano {index} fallo; se detiene para no duplicar ni publicar material degradado.",
+                f"Generando candidato {attempt}/{attempts_per_slot} para la plaza {index}/{missing}",
+                flush=True,
+            )
+            result = subprocess.run([sys.executable, str(PUBLISHER)], cwd=ROOT, check=False)
+            checkpoint(baseline)
+            if result.returncode == 0:
+                published = True
+                print(
+                    f"Plaza {index}/{missing} publicada correctamente con candidato {attempt}.",
+                    flush=True,
+                )
+                break
+            print(
+                f"Candidato {attempt}/{attempts_per_slot} rechazado por un guard o error de generación; "
+                "se intentará una pieza nueva sin bajar los controles de calidad.",
+                file=sys.stderr,
+                flush=True,
+            )
+
+        if not published:
+            print(
+                f"No se obtuvo un candidato válido para la plaza {index} después de "
+                f"{attempts_per_slot} intentos. Se detiene sin duplicar ni degradar calidad.",
                 file=sys.stderr,
             )
-            return result.returncode or 1
+            return 1
 
     checkpoint(baseline)
-    print(f"Total confirmado hoy: {today_uploaded_count()}/{DAILY_TARGET}", flush=True)
-    return 0 if today_uploaded_count() >= DAILY_TARGET else 1
+    confirmed = today_uploaded_count()
+    print(f"Total confirmado hoy: {confirmed}/{DAILY_TARGET}", flush=True)
+    return 0 if confirmed >= DAILY_TARGET else 1
 
 
 if __name__ == "__main__":
