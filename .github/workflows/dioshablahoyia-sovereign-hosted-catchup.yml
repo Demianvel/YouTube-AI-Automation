@@ -95,6 +95,8 @@ jobs:
           python -m py_compile \
             app/dios_sovereign_ai.py \
             app/dios_sovereign_voice.py \
+            app/dios_sovereign_packaging.py \
+            app/hf_primary_router.py \
             scripts/publish_dios_sovereign.py \
             scripts/dioshablahoyia_sovereign_catchup_shorts.py
           test -n "$YOUTUBE_TOKEN_DIOSHABLAHOYIA"
@@ -104,6 +106,16 @@ jobs:
             assets/dioshablahoyia/reference/jesus_reference_c.jpg; do
             test -s "$ref"
           done
+          python - <<'PY'
+          import sys
+          import app.hf_primary_router as router
+          assert router._hf_video_available() is False
+          assert router._gemini_video_available() is False
+          assert 'gradio_client' not in sys.modules
+          assert 'app.hf_video' not in sys.modules
+          assert 'app.spiritual_hf_video' not in sys.modules
+          print('Sovereign offline preflight OK: optional remote video stack remains unloaded.')
+          PY
 
       - name: Generate and upload only today's missing Shorts
         run: python scripts/dioshablahoyia_sovereign_catchup_shorts.py
