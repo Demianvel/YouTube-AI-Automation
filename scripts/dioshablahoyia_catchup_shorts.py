@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 import subprocess
 import sys
 import time
@@ -14,6 +15,22 @@ RECORDS = Path("/tmp/dios-catchup/new-short-records.jsonl")
 TZ = ZoneInfo("America/Argentina/Buenos_Aires")
 DAILY_TARGET = 10
 LOCKED_PUBLISHER = ROOT / "scripts" / "publish_dios_locked.py"
+
+
+def _env_int(name: str, default: int, minimum: int, maximum: int) -> int:
+    try:
+        value = int(os.getenv(name, str(default)).strip())
+    except Exception:
+        value = default
+    return max(minimum, min(maximum, value))
+
+
+# Publishing takes priority over waiting on exhausted provider quota. The
+# workflow can raise these values explicitly for transient incidents, but the
+# normal recovery path tries once and immediately advances to the next locked
+# Algenib model instead of sleeping through repeated quota failures.
+PUBLISH_ATTEMPTS = _env_int("DIOS_CATCHUP_PUBLISH_ATTEMPTS", 1, 1, 3)
+RETRY_WAIT_SECONDS = _env_int("DIOS_CATCHUP_RETRY_WAIT_SECONDS", 0, 0, 75)
 
 
 def _today_uploaded_count() -> int:
@@ -66,13 +83,18 @@ def main() -> int:
     missing = max(0, DAILY_TARGET - actual)
     print(f"Shorts publicados hoy (Argentina): {actual}")
     print(f"Shorts faltantes para llegar a {DAILY_TARGET}: {missing}")
+    print(
+        f"Politica de recuperacion: {PUBLISH_ATTEMPTS} intento(s) por Short, "
+        f"espera {RETRY_WAIT_SECONDS}s entre intentos.",
+        flush=True,
+    )
 
     for index in range(1, missing + 1):
         print(f"=== Recuperando Short {index} de {missing} ===", flush=True)
         success = False
-        for attempt in range(1, 4):
+        for attempt in range(1, PUBLISH_ATTEMPTS + 1):
             print(
-                f"Intento {attempt}/3: Voz de Luz / Algenib obligatoria y Jesus realista guiado por referencia obligatorio",
+                f"Intento {attempt}/{PUBLISH_ATTEMPTS}: Voz de Luz / Algenib obligatoria y Jesus realista guiado por referencia obligatorio",
                 flush=True,
             )
             result = subprocess.run(
@@ -84,16 +106,16 @@ def main() -> int:
             if result.returncode == 0:
                 success = True
                 break
-            if attempt < 3:
+            if attempt < PUBLISH_ATTEMPTS and RETRY_WAIT_SECONDS > 0:
                 print(
-                    "Fallo temporal; esperando 75 s sin cambiar voz, sin usar Kokoro y sin sustituir la identidad visual.",
+                    f"Fallo temporal; esperando {RETRY_WAIT_SECONDS}s sin cambiar voz, sin usar Kokoro y sin sustituir la identidad visual.",
                     flush=True,
                 )
-                time.sleep(75)
+                time.sleep(RETRY_WAIT_SECONDS)
         if not success:
             _checkpoint(baseline)
             print(
-                f"No se pudo recuperar el Short {index} sin violar la voz fija o la identidad visual realista.",
+                f"No se pudo recuperar el Short {index} con este modelo sin violar la voz fija o la identidad visual realista; el workflow debe avanzar al siguiente modelo Algenib.",
                 file=sys.stderr,
             )
             return 1
