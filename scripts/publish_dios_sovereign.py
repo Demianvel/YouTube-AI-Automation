@@ -3,7 +3,7 @@ from __future__ import annotations
 import os
 from pathlib import Path
 
-from app import hf_primary_router, pipeline, spiritual_audio, spiritual_image, spiritual_tts
+from app import hf_primary_router, pipeline, spiritual_audio, spiritual_image, spiritual_tts, youtube as youtube_module
 from app import dios_sovereign_ai as sovereign
 from app import dios_sovereign_packaging as sovereign_packaging
 from app import dios_sovereign_visual_v3 as sovereign_visual
@@ -14,7 +14,10 @@ import scripts.publish_dios_fast as fast
 LOCAL_VOICE_PROFILE = sovereign_voice.VOICE_PROFILE
 LOCAL_VOICE_BRAND = sovereign_voice.VOICE_BRAND
 LOCAL_VOICE_LOCK_VERSION = sovereign_voice.VOICE_PROVIDER
+SOVEREIGN_MIN_VOICE_COVERAGE = 0.82
+SOVEREIGN_MAX_VOICE_SILENCE_SECONDS = 1.15
 _BASE_GROUND_OPTIMIZER = pipeline.ground_and_optimize_spiritual_metadata
+_BASE_VOICE_UPLOAD_GUARD = youtube_module._enforce_spiritual_voice_guard
 
 
 def _configure_offline_env() -> None:
@@ -53,6 +56,38 @@ def _enforce_local_voice(used: str) -> None:
         raise RuntimeError(f"VOICE_SOVEREIGN_LOCK: proveedor local inesperado: {used}")
     if any(marker in low for marker in ("gemini", "algenib", "kokoro", "espeak", "fallback")):
         raise RuntimeError(f"VOICE_SOVEREIGN_LOCK: se detecto una voz no soberana: {used}")
+
+
+def _enforce_sovereign_voice_upload_guard(channel: dict, metadata: dict, video_path: Path) -> None:
+    """Mirror the local continuity validator at the final YouTube boundary.
+
+    The local voice validator intentionally accepts a natural narration that covers
+    at least 82% of a 60-second Short and lets the background music fill the tail;
+    it never slows the narrator just to reach 60 seconds. The generic uploader had
+    a stale 96% threshold, so a track already marked continuity-passed could be
+    rejected later. Keep the strict silence and pass flags while using one policy.
+    """
+    if not youtube_module._is_spiritual_channel(channel) or youtube_module._is_native_gemini_clip(metadata):
+        _BASE_VOICE_UPLOAD_GUARD(channel, metadata, video_path)
+        return
+
+    passed = metadata.get("voice_continuity_passed")
+    coverage_raw = metadata.get("voice_coverage_ratio")
+    longest_raw = metadata.get("longest_voice_silence_seconds")
+    coverage = float(coverage_raw if coverage_raw is not None else 0.0)
+    longest = float(longest_raw if longest_raw is not None else 999.0)
+    if (
+        passed is not True
+        or coverage < SOVEREIGN_MIN_VOICE_COVERAGE
+        or longest > SOVEREIGN_MAX_VOICE_SILENCE_SECONDS
+    ):
+        raise RuntimeError(
+            "BLOQUEADO ANTES DE YOUTUBE: la narracion soberana no supero el control de continuidad "
+            f"(passed={passed}, coverage={coverage:.1%}, longest_silence={longest:.2f}s, "
+            f"min_coverage={SOVEREIGN_MIN_VOICE_COVERAGE:.0%}, "
+            f"max_silence={SOVEREIGN_MAX_VOICE_SILENCE_SECONDS:.2f}s)."
+        )
+    metadata["voice_continuity_guard_mode"] = "sovereign_natural_voice_policy_v1"
 
 
 def _apply_sovereign_audio(video: Path, out: Path, channel: dict, meta: dict, duration: int, seed: int) -> None:
@@ -100,6 +135,11 @@ def configure() -> None:
     # reference too. Visual/video remote paths are disabled by environment and
     # lazily imported, therefore the sovereign route has no remote inference need.
     hf_primary_router.apply_spiritual_audio = _apply_sovereign_audio
+
+    # upload_video resolves its guard from app.youtube at call time. Patch only the
+    # sovereign execution process so the final boundary uses the same natural-voice
+    # thresholds as fit_and_validate_spiritual_voice.
+    youtube_module._enforce_spiritual_voice_guard = _enforce_sovereign_voice_upload_guard
 
 
 def main() -> dict:

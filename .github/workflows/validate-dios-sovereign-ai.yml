@@ -10,6 +10,7 @@ on:
       - "app/dios_sovereign_visual_v3.py"
       - "app/hf_primary_router.py"
       - "scripts/dios_sovereign_*.py"
+      - "scripts/publish_dios_sovereign.py"
       - "scripts/dioshablahoyia_sovereign_catchup_shorts.py"
       - "config/dios_sovereign_ai.json"
       - "presets/dioshablahoyia_master_prompts.txt"
@@ -29,6 +30,7 @@ on:
       - "app/dios_sovereign_visual_v3.py"
       - "app/hf_primary_router.py"
       - "scripts/dios_sovereign_*.py"
+      - "scripts/publish_dios_sovereign.py"
       - "scripts/dioshablahoyia_sovereign_catchup_shorts.py"
       - "config/dios_sovereign_ai.json"
       - "presets/dioshablahoyia_master_prompts.txt"
@@ -101,6 +103,20 @@ jobs:
           assert '"gradio-client>=1.8.0"' in workflow
           assert 'sovereign_visual.generate_visual' in publisher
           print('Hosted sovereign isolation/config OK')
+          PY
+      - name: Validate sovereign voice guard policy
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          publisher = Path('scripts/publish_dios_sovereign.py').read_text(encoding='utf-8')
+          continuity = Path('app/spiritual_continuity.py').read_text(encoding='utf-8')
+          assert 'SOVEREIGN_MIN_VOICE_COVERAGE = 0.82' in publisher
+          assert 'SOVEREIGN_MAX_VOICE_SILENCE_SECONDS = 1.15' in publisher
+          assert 'youtube_module._enforce_spiritual_voice_guard = _enforce_sovereign_voice_upload_guard' in publisher
+          assert 'min_coverage: float = 0.82' in continuity
+          assert 'max_silence_seconds: float = 1.15' in continuity
+          assert 'coverage < SOVEREIGN_MIN_VOICE_COVERAGE' in publisher
+          print('Sovereign voice guard policy matches continuity validator')
           PY
       - name: Render six distinct local visual scenes
         env:
