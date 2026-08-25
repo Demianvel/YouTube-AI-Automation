@@ -4,13 +4,8 @@ import os
 from pathlib import Path
 
 from . import video as base_video
-from .gemini_spiritual_video import available as gemini_video_available
-from .gemini_spiritual_video import generate_gemini_spiritual_short
-from .hf_video import available as hf_video_available
-from .hf_video import generate_hf_short
 from .premium_audio import apply_audio as apply_premium_audio
 from .spiritual_audio import apply_spiritual_audio
-from .spiritual_hf_video import generate_spiritual_hf_short
 from .spiritual_image import generate_spiritual_short as generate_spiritual_image_short
 
 
@@ -39,6 +34,52 @@ def _restore(metadata: dict, originals: list[str]) -> None:
         scene["visual_prompt"] = original
 
 
+def _enabled(name: str, default: str = "false") -> bool:
+    return os.getenv(name, default).strip().lower() == "true"
+
+
+def _gemini_video_available() -> bool:
+    # Critical for sovereign/offline mode: do not even import the remote engine
+    # when it is disabled. This keeps its optional SDK dependency out of the
+    # zero-credit hosted runtime.
+    if not _enabled("GEMINI_VIDEO_ENABLED"):
+        return False
+    try:
+        from .gemini_spiritual_video import available
+        return bool(available())
+    except Exception as exc:
+        print(f"Gemini video opcional no disponible al cargar ({exc}).")
+        return False
+
+
+def _generate_gemini_spiritual_short(channel: dict, metadata: dict, workdir: Path, final: Path) -> None:
+    from .gemini_spiritual_video import generate_gemini_spiritual_short
+    generate_gemini_spiritual_short(channel, metadata, workdir, final)
+
+
+def _hf_video_available() -> bool:
+    # Same isolation policy for gradio_client/HF provider code. A disabled
+    # provider must never be able to crash an offline/local publisher at import.
+    if not _enabled("HF_VIDEO_ENABLED"):
+        return False
+    try:
+        from .hf_video import available
+        return bool(available())
+    except Exception as exc:
+        print(f"HF video opcional no disponible al cargar ({exc}).")
+        return False
+
+
+def _generate_hf_short(channel: dict, metadata: dict, workdir: Path, final: Path) -> None:
+    from .hf_video import generate_hf_short
+    generate_hf_short(channel, metadata, workdir, final, apply_premium_audio)
+
+
+def _generate_spiritual_hf_short(channel: dict, metadata: dict, workdir: Path, final: Path) -> None:
+    from .spiritual_hf_video import generate_spiritual_hf_short
+    generate_spiritual_hf_short(channel, metadata, workdir, final, apply_spiritual_audio)
+
+
 def _spiritual_fallback(channel: dict, metadata: dict, workdir: Path) -> Path:
     final = workdir / "short.mp4"
     workdir.mkdir(parents=True, exist_ok=True)
@@ -59,15 +100,14 @@ def generate_short(channel: dict, metadata: dict, workdir: Path) -> Path:
     if not eligible:
         return base_video.generate_short(channel, metadata, workdir)
 
-    # Dios Habla Hoy: Gemini Omni Flash es el motor principal porque puede usar
-    # las referencias del personaje y generar imagen, movimiento, voz y ambiente
-    # dentro de un mismo clip. Si la cuenta no tiene acceso/cuota, el pipeline
-    # conserva automaticamente el stack HF + audio + lip-sync como respaldo.
-    if spiritual and gemini_video_available():
+    # Remote engines are optional and loaded only after their feature flags pass.
+    # This is intentionally important for the sovereign hosted mode, where media
+    # generation must remain local and zero-credit while YouTube upload stays online.
+    if spiritual and _gemini_video_available():
         final = workdir / "short.mp4"
         workdir.mkdir(parents=True, exist_ok=True)
         try:
-            generate_gemini_spiritual_short(channel, metadata, workdir, final)
+            _generate_gemini_spiritual_short(channel, metadata, workdir, final)
             metadata["hf_fallback_used"] = False
             return final
         except Exception as exc:
@@ -75,7 +115,7 @@ def generate_short(channel: dict, metadata: dict, workdir: Path) -> Path:
             metadata["gemini_omni_primary"] = False
             print(f"Gemini Omni no pudo completar el Short ({exc}); usando stack espiritual de respaldo.")
 
-    if not hf_video_available():
+    if not _hf_video_available():
         if strict:
             raise RuntimeError("Hugging Face text-to-video esta deshabilitado y HF_VIDEO_STRICT=true.")
         metadata["hf_primary_failed"] = "HF video deshabilitado"
@@ -92,9 +132,9 @@ def generate_short(channel: dict, metadata: dict, workdir: Path) -> Path:
             originals = _brotavida_prompts(metadata)
 
         if spiritual:
-            generate_spiritual_hf_short(channel, metadata, workdir, final, apply_spiritual_audio)
+            _generate_spiritual_hf_short(channel, metadata, workdir, final)
         else:
-            generate_hf_short(channel, metadata, workdir, final, apply_premium_audio)
+            _generate_hf_short(channel, metadata, workdir, final)
 
         metadata["visual_source"] = (
             "huggingface_spiritual_text_to_video" if spiritual else
