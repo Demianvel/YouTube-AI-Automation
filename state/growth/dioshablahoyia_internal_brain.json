@@ -1,8 +1,8 @@
 {
   "version": "dios-internal-quality-cortex-v1",
-  "generated_at": "2026-08-25T17:46:47.214792+00:00",
-  "training_generation": 127,
-  "data_fingerprint": "b68228f3415f0011f1ea3afc46bc835a312bb5eeeaf4116e817a5910d6be0e35",
+  "generated_at": "2026-08-25T18:59:21.311567+00:00",
+  "training_generation": 128,
+  "data_fingerprint": "90a50197db6b0bbbba5e506df50c892451a714efa1d271992abf7bb38753ea53",
   "changed_since_previous": true,
   "training_mode": "local_only_zero_external_calls",
   "mission": {

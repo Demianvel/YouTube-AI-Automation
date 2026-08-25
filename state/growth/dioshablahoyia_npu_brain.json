@@ -1,6 +1,6 @@
 {
   "version": "alien-npu-brain-v1",
-  "generated_at": "2026-08-25T17:46:47.487001+00:00",
+  "generated_at": "2026-08-25T18:59:21.601156+00:00",
   "architecture": {
     "type": "multi-cortex ensemble with quantum-inspired softmax exploration",
     "literal_consciousness": false,
@@ -697,20 +697,6 @@
         "seo_supported": true
       },
       {
-        "key": "promesa",
-        "samples": 0,
-        "mean_score": 54.61,
-        "best_score": 88.4,
-        "seo_only": true
-      },
-      {
-        "key": "juan promesa",
-        "samples": 0,
-        "mean_score": 54.61,
-        "best_score": 88.4,
-        "seo_only": true
-      },
-      {
         "key": "promesa paz",
         "samples": 0,
         "mean_score": 54.61,
@@ -739,6 +725,20 @@
         "seo_only": true
       },
       {
+        "key": "juan promesa",
+        "samples": 0,
+        "mean_score": 54.61,
+        "best_score": 88.4,
+        "seo_only": true
+      },
+      {
+        "key": "promesa",
+        "samples": 0,
+        "mean_score": 54.61,
+        "best_score": 88.4,
+        "seo_only": true
+      },
+      {
         "key": "esperanza juan",
         "samples": 0,
         "mean_score": 54.56,
@@ -746,35 +746,7 @@
         "seo_only": true
       },
       {
-        "key": "romanos",
-        "samples": 0,
-        "mean_score": 54.55,
-        "best_score": 87.91,
-        "seo_only": true
-      },
-      {
-        "key": "confianza obrar",
-        "samples": 0,
-        "mean_score": 54.55,
-        "best_score": 87.91,
-        "seo_only": true
-      },
-      {
-        "key": "romanos romanos",
-        "samples": 0,
-        "mean_score": 54.55,
-        "best_score": 87.91,
-        "seo_only": true
-      },
-      {
-        "key": "camino romanos",
-        "samples": 0,
-        "mean_score": 54.55,
-        "best_score": 87.91,
-        "seo_only": true
-      },
-      {
-        "key": "está guiando",
+        "key": "obrar romanos",
         "samples": 0,
         "mean_score": 54.55,
         "best_score": 87.91,
@@ -788,7 +760,28 @@
         "seo_only": true
       },
       {
-        "key": "obrar romanos",
+        "key": "romanos",
+        "samples": 0,
+        "mean_score": 54.55,
+        "best_score": 87.91,
+        "seo_only": true
+      },
+      {
+        "key": "romanos romanos",
+        "samples": 0,
+        "mean_score": 54.55,
+        "best_score": 87.91,
+        "seo_only": true
+      },
+      {
+        "key": "confianza obrar",
+        "samples": 0,
+        "mean_score": 54.55,
+        "best_score": 87.91,
+        "seo_only": true
+      },
+      {
+        "key": "camino romanos",
         "samples": 0,
         "mean_score": 54.55,
         "best_score": 87.91,
@@ -802,14 +795,21 @@
         "seo_only": true
       },
       {
-        "key": "paz esperanza",
+        "key": "está guiando",
+        "samples": 0,
+        "mean_score": 54.55,
+        "best_score": 87.91,
+        "seo_only": true
+      },
+      {
+        "key": "esperanza",
         "samples": 0,
         "mean_score": 54.54,
         "best_score": 87.83,
         "seo_only": true
       },
       {
-        "key": "esperanza",
+        "key": "paz esperanza",
         "samples": 0,
         "mean_score": 54.54,
         "best_score": 87.83,
@@ -823,14 +823,14 @@
         "seo_only": true
       },
       {
-        "key": "mateo gorriones",
+        "key": "descanso mateo",
         "samples": 0,
         "mean_score": 54.36,
         "best_score": 86.31,
         "seo_only": true
       },
       {
-        "key": "cuidado mateo",
+        "key": "cuidado",
         "samples": 0,
         "mean_score": 54.36,
         "best_score": 86.31,
