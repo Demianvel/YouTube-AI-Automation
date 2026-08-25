@@ -1,7 +1,8 @@
 {
-  "version": "dhh-premium-human-v5",
+  "version": "dhh-sovereign-v1",
+  "premium_profile_version": "dhh-premium-human-v5",
   "channel": "dioshablahoyia",
-  "offline": false,
+  "offline": true,
   "image": {
     "mode": "photoreal_human_local_diffusion_or_reference_v5",
     "style_profile": "live_action_photoreal_symbolic_divine_v5",
@@ -9,8 +10,8 @@
     "lora_path": "models/dios_sovereign/image/lora/dios_jesus_identity.safetensors",
     "reference_dir": "assets/dioshablahoyia/reference",
     "hero_reference": "jesus_divine_reference_v5.jpg",
+    "hero_reference_payload": "jesus_divine_reference_v5.jpg.b64",
     "references": [
-      "jesus_divine_reference_v5.jpg",
       "jesus_reference_a.jpg",
       "jesus_reference_b.jpg",
       "jesus_reference_c.jpg"
@@ -24,6 +25,8 @@
     "negative_prompt": "3d, 3d render, CGI, game render, game asset, octane render, unreal engine look, animated, animation, anime, cartoon, illustration, painting, plastic skin, wax skin, doll, toy, stylized face, low-poly, fake beard, oversmoothed skin, deformed face, malformed hands, extra fingers, extra limbs, duplicate person, text, watermark, logo, low resolution, oversaturated"
   },
   "voice": {
+    "zero_credit_provider": "piper_local",
+    "exact_algenib": false,
     "primary_provider": "gemini_tts",
     "primary_voice": "Algenib",
     "primary_model": "gemini-3.1-flash-tts-preview",
@@ -50,8 +53,10 @@
   "publication": {
     "daily_shorts_target": 10,
     "weekend_long_target": 2,
+    "require_offline_media_generation": true,
     "require_local_visual_generation": true,
     "allow_remote_image_ai": false,
+    "allow_remote_tts": false,
     "prefer_remote_tts_for_brand_voice": true,
     "allow_local_tts_fallback": true
   }
