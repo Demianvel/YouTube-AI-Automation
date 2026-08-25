@@ -47,6 +47,8 @@ jobs:
       SPIRITUAL_VOICE_PROFILE: voz_de_luz_local_sovereign_v1
       SPIRITUAL_ALLOW_LOCAL_PROCEDURAL_VISUAL: "false"
       SPIRITUAL_ALLOW_STILL_FALLBACK: "true"
+      SPIRITUAL_REQUIRE_FRESH_VISUAL: "true"
+      SPIRITUAL_VISUAL_PHASH_MAX_DISTANCE: "18"
       SPIRITUAL_CTA_OVERLAY: "false"
       SPIRITUAL_SHORT_SECONDS: "60"
       SPIRITUAL_SHORT_SCENE_SECONDS: "10"
@@ -98,6 +100,8 @@ jobs:
             app/dios_sovereign_ai.py \
             app/dios_sovereign_voice.py \
             app/dios_sovereign_packaging.py \
+            app/dios_sovereign_scene.py \
+            app/dios_sovereign_visual_v3.py \
             app/hf_primary_router.py \
             scripts/publish_dios_sovereign.py \
             scripts/dioshablahoyia_sovereign_catchup_shorts.py
@@ -110,9 +114,11 @@ jobs:
           done
           python - <<'PY'
           import app.hf_primary_router as router
+          from app.dios_sovereign_scene import ENGINE_VERSION
           assert router._hf_video_available() is False
           assert router._gemini_video_available() is False
-          print('Sovereign offline preflight OK: remote inference feature flags are disabled.')
+          assert ENGINE_VERSION == 'dhh-sovereign-visual-diversity-v3'
+          print('Sovereign offline preflight OK:', ENGINE_VERSION, 'remote inference feature flags are disabled.')
           PY
 
       - name: Generate and upload only today's missing Shorts
