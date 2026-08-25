@@ -1,0 +1,1 @@
+2026-08-25 14:08 ART | EJECUTAR AHORA: recuperar Shorts faltantes de @dioshablahoyia con grupo independiente. Mantener Voz de Luz / Algenib. Gemini 2.5 Flash primero y 2.5 Pro si hace falta. Sin HF. Persistir cada video_id real inmediatamente. Objetivo maximo 10 Shorts del dia, sin duplicados.
