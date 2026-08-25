@@ -32,7 +32,13 @@ jobs:
       TRANSFORMERS_OFFLINE: "1"
       DIFFUSERS_OFFLINE: "1"
       DIOS_SOVEREIGN_OFFLINE: "true"
-      GEMINI_API_KEY: ""
+      # Visual/video generation remains local. Only the established Voz de Luz /
+      # Algenib TTS may use Gemini; if unavailable the publisher falls back to the
+      # local Piper model instead of changing to an unrelated voice.
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      GEMINI_TTS_MODEL: gemini-3.1-flash-tts-preview
+      GEMINI_TTS_VOICE: Algenib
+      SPIRITUAL_MALE_GEMINI_VOICE: Algenib
       HF_TOKEN: ""
       HF_ZERO_TOKEN: ""
       PEXELS_API_KEY: ""
@@ -43,12 +49,13 @@ jobs:
       HF_REFERENCE_EDITOR_ENABLED: "false"
       HF_TEXT_ZERO_ENABLED: "false"
       HF_INFERENCE_PROVIDER_ENABLED: "false"
-      TTS_PROVIDER: piper_local
+      TTS_PROVIDER: gemini_tts
       TTS_FALLBACK_KOKORO: "false"
       SPIRITUAL_VOICE_LOCKED: "true"
       SPIRITUAL_REQUIRE_PRIMARY_VOICE: "true"
-      SPIRITUAL_VOICE_BRAND: Voz de Luz Local
-      SPIRITUAL_VOICE_PROFILE: voz_de_luz_local_sovereign_v1
+      SPIRITUAL_VOICE_BRAND: Voz de Luz
+      SPIRITUAL_VOICE_PROFILE: voz_de_luz_serena_original_v1
+      SPIRITUAL_VISUAL_REFERENCE_PROFILE: dios-photoreal-human-v5
       SPIRITUAL_ALLOW_LOCAL_PROCEDURAL_VISUAL: "false"
       SPIRITUAL_ALLOW_STILL_FALLBACK: "true"
       SPIRITUAL_REQUIRE_FRESH_VISUAL: "true"
@@ -56,9 +63,9 @@ jobs:
       SPIRITUAL_CTA_OVERLAY: "false"
       SPIRITUAL_SHORT_SECONDS: "60"
       SPIRITUAL_SHORT_SCENE_SECONDS: "10"
-      DIOS_PIPER_TARGET_WPM: "126"
-      DIOS_PIPER_LENGTH_SCALE: "1.18"
-      DIOS_PIPER_SENTENCE_SILENCE: "0.05"
+      DIOS_PIPER_TARGET_WPM: "132"
+      DIOS_PIPER_LENGTH_SCALE: "1.12"
+      DIOS_PIPER_SENTENCE_SILENCE: "0.04"
       DIOS_SOVEREIGN_SLOT_ATTEMPTS: "3"
       MUSIC_PROVIDER: local
       YOUTUBE_TOKEN_DIOSHABLAHOYIA: ${{ secrets.YOUTUBE_TOKEN_DIOSHABLAHOYIA }}
@@ -111,7 +118,7 @@ jobs:
         if: steps.quota.outputs.missing == '0'
         run: echo "Dios Habla Hoy ya tiene 10/10 Shorts persistidos hoy; no se inicia generación."
 
-      - name: Install zero-credit hosted runtime
+      - name: Install premium hosted runtime
         if: steps.quota.outputs.missing != '0'
         run: |
           sudo apt-get update -qq
@@ -129,7 +136,7 @@ jobs:
             "gradio-client>=1.8.0" \
             "piper-tts>=1.2.0"
 
-      - name: Bootstrap only the local neural voice weights
+      - name: Bootstrap local voice fallback weights
         if: steps.quota.outputs.missing != '0'
         env:
           HF_HUB_OFFLINE: "0"
@@ -140,10 +147,11 @@ jobs:
           test -s models/dios_sovereign/voice/voz_de_luz_local.onnx.json
           command -v piper
 
-      - name: Lock generation offline after bootstrap
+      - name: Validate photoreal v5 media stack
         if: steps.quota.outputs.missing != '0'
         run: |
           python -m py_compile \
+            app/dios_photoreal_v5.py \
             app/dios_sovereign_ai.py \
             app/dios_sovereign_voice.py \
             app/dios_sovereign_packaging.py \
@@ -151,22 +159,40 @@ jobs:
             app/dios_sovereign_visual_v3.py \
             app/hf_primary_router.py \
             scripts/publish_dios_sovereign.py \
+            scripts/publish_dios_premium_v5.py \
             scripts/dioshablahoyia_sovereign_catchup_shorts.py
           test -n "$YOUTUBE_TOKEN_DIOSHABLAHOYIA"
           for ref in \
             assets/dioshablahoyia/reference/jesus_reference_a.jpg \
             assets/dioshablahoyia/reference/jesus_reference_b.jpg \
-            assets/dioshablahoyia/reference/jesus_reference_c.jpg; do
+            assets/dioshablahoyia/reference/jesus_reference_c.jpg \
+            assets/dioshablahoyia/reference/jesus_divine_reference_v5.jpg.b64; do
             test -s "$ref"
           done
           python - <<'PY'
+          import json
+          from PIL import Image
           import app.hf_primary_router as router
+          from app.dios_photoreal_v5 import MODEL_VERSION, materialize_approved_reference
           from app.dios_sovereign_scene import ENGINE_VERSION
+
+          ref = materialize_approved_reference()
+          with Image.open(ref) as image:
+              assert image.width >= 300 and image.height >= 500
+          config = json.load(open('config/dios_sovereign_ai.json', encoding='utf-8'))
+          negative = str(config['image']['negative_prompt']).lower()
+          assert '3d render' in negative and 'cgi' in negative and 'animation' in negative
+          assert config['image']['require_photoreal_human'] is True
           assert router._hf_video_available() is False
           assert router._gemini_video_available() is False
           assert ENGINE_VERSION == 'dhh-sovereign-visual-diversity-v3'
-          print('Sovereign offline preflight OK:', ENGINE_VERSION, 'remote inference feature flags are disabled.')
+          print('Premium v5 preflight OK:', MODEL_VERSION, ref, 'visual inference stays local/offline.')
           PY
+          if [ -n "$GEMINI_API_KEY" ]; then
+            echo "Voz principal disponible: Voz de Luz / Algenib. Fallback local listo."
+          else
+            echo "GEMINI_API_KEY no disponible: se usará Voz de Luz Local / Piper."
+          fi
 
       - name: Generate and upload only today's missing Shorts
         if: steps.quota.outputs.missing != '0'
@@ -208,4 +234,4 @@ jobs:
         run: |
           gh issue create \
             --title "Dios Habla Hoy - fallo catch-up soberano hosted" \
-            --body "El catch-up sin cuotas se detuvo para no duplicar ni degradar calidad. Revisar Actions run $GITHUB_RUN_ID."
+            --body "El catch-up premium/local se detuvo para no duplicar ni degradar calidad. Revisar Actions run $GITHUB_RUN_ID."
