@@ -1,35 +1,46 @@
 {
-  "version": "dhh-sovereign-v1",
+  "version": "dhh-premium-human-v5",
   "channel": "dioshablahoyia",
-  "offline": true,
+  "offline": false,
   "image": {
-    "mode": "local_diffusion_or_reference",
+    "mode": "photoreal_human_local_diffusion_or_reference_v5",
+    "style_profile": "live_action_photoreal_symbolic_divine_v5",
     "base_model_path": "models/dios_sovereign/image/base",
     "lora_path": "models/dios_sovereign/image/lora/dios_jesus_identity.safetensors",
     "reference_dir": "assets/dioshablahoyia/reference",
+    "hero_reference": "jesus_divine_reference_v5.jpg",
     "references": [
+      "jesus_divine_reference_v5.jpg",
       "jesus_reference_a.jpg",
       "jesus_reference_b.jpg",
       "jesus_reference_c.jpg"
     ],
     "width": 1080,
     "height": 1920,
-    "steps": 28,
-    "guidance_scale": 5.5,
-    "negative_prompt": "cartoon, anime, illustration, plastic skin, deformed face, extra fingers, extra limbs, duplicate person, text, watermark, logo, low resolution, oversaturated, fake beard, doll-like face"
+    "steps": 32,
+    "guidance_scale": 5.2,
+    "require_photoreal_human": true,
+    "forbid_3d_animation": true,
+    "negative_prompt": "3d, 3d render, CGI, game render, game asset, octane render, unreal engine look, animated, animation, anime, cartoon, illustration, painting, plastic skin, wax skin, doll, toy, stylized face, low-poly, fake beard, oversmoothed skin, deformed face, malformed hands, extra fingers, extra limbs, duplicate person, text, watermark, logo, low resolution, oversaturated"
   },
   "voice": {
-    "zero_credit_provider": "piper_local",
+    "primary_provider": "gemini_tts",
+    "primary_voice": "Algenib",
+    "primary_model": "gemini-3.1-flash-tts-preview",
+    "brand": "Voz de Luz",
+    "profile": "voz_de_luz_serena_original_v1",
+    "voice_lock_version": "voz-de-luz-algenib-v5-premium-human",
+    "fallback_provider": "piper_local",
+    "fallback_profile": "voz_de_luz_local_sovereign_v1",
     "model_path": "models/dios_sovereign/voice/voz_de_luz_local.onnx",
     "config_path": "models/dios_sovereign/voice/voz_de_luz_local.onnx.json",
-    "brand": "Voz de Luz Local",
-    "profile": "voz_de_luz_local_sovereign_v1",
-    "exact_algenib": false,
     "sample_rate": 22050,
-    "master_lufs": -16.5
+    "master_lufs": -16.5,
+    "allow_local_fallback_on_quota_or_provider_error": true,
+    "never_clone_real_person": true
   },
   "theme": {
-    "engine": "local_biblical_editorial_v1",
+    "engine": "local_biblical_editorial_v2",
     "history_path": "state/history.jsonl",
     "avoid_recent": 30,
     "short_seconds": 60,
@@ -39,8 +50,9 @@
   "publication": {
     "daily_shorts_target": 10,
     "weekend_long_target": 2,
-    "require_offline_media_generation": true,
+    "require_local_visual_generation": true,
     "allow_remote_image_ai": false,
-    "allow_remote_tts": false
+    "prefer_remote_tts_for_brand_voice": true,
+    "allow_local_tts_fallback": true
   }
 }
