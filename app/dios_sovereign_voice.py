@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import math
 import os
 import re
 import subprocess
@@ -14,8 +15,21 @@ VOICE_PROFILE = "voz_de_luz_local_sovereign_v1"
 VOICE_BRAND = "Voz de Luz Local"
 
 
+def _finish_sentence(text: str) -> str:
+    clean = " ".join(str(text or "").split()).strip().rstrip(" ,;:")
+    if clean and not re.search(r"[.!?]$", clean):
+        clean += "."
+    return clean
+
+
 def fit_script(text: str, duration: int, seed: int) -> tuple[str, dict]:
-    """Fit text to the calm local Piper cadence without post-stretching audio."""
+    """Fit text to the calm local Piper cadence without post-stretching audio.
+
+    The previous sentence-preserving trim could accidentally drop an expanded
+    script back below its minimum word budget. Hosted runs then varied from a
+    healthy ~87% narration coverage to ~80%. This fitter keeps a narrow empirical
+    budget and guarantees that trimming cannot undo the minimum/preferred target.
+    """
     clean = " ".join(str(text or "").split()).strip()
     try:
         target_wpm = int(os.getenv("DIOS_PIPER_TARGET_WPM", "126"))
@@ -23,51 +37,74 @@ def fit_script(text: str, duration: int, seed: int) -> tuple[str, dict]:
         target_wpm = 126
     target_wpm = max(112, min(142, target_wpm))
 
-    min_words = max(32, int(float(duration) * (target_wpm / 60.0) * 0.96))
-    max_words = max(min_words + 4, int(float(duration) * (target_wpm / 60.0) * 1.06))
+    base_words = float(duration) * (target_wpm / 60.0)
+    min_words = max(32, int(math.ceil(base_words * 0.99)))
+    preferred_words = max(min_words, int(math.ceil(base_words * 1.02)))
+    max_words = max(preferred_words + 1, int(math.ceil(base_words * 1.035)))
     original_words = len(clean.split())
 
-    if original_words < min_words:
+    # Ask the safe continuity expander for a little headroom. With its internal
+    # 0.98 factor this lands close to preferred_words instead of merely scraping
+    # the hard 82% audio threshold.
+    expansion_wpm = max(target_wpm, int(math.ceil(target_wpm * 1.04)))
+    if original_words < preferred_words:
         clean, expansion = ensure_spoken_text(
             clean,
             duration,
             seed=seed,
-            words_per_minute=target_wpm,
+            words_per_minute=expansion_wpm,
         )
     else:
         expansion = {
-            "target_words": min_words,
+            "target_words": preferred_words,
             "final_words": original_words,
             "continuity_expansions": 0,
         }
 
-    words = clean.split()
-    if len(words) > max_words:
-        # Prefer complete sentences when trimming.
+    expanded_words = clean.split()
+    expanded_count = len(expanded_words)
+    if expanded_count > max_words:
+        # Prefer complete sentences, but never allow that preference to shrink the
+        # result below the reliable budget. If the next complete sentence would
+        # overshoot, fill the remaining budget at a word boundary and close it.
         sentences = [s.strip() for s in re.split(r"(?<=[.!?])\s+", clean) if s.strip()]
         selected: list[str] = []
         count = 0
         for sentence in sentences:
             n = len(sentence.split())
-            if selected and count + n > max_words:
-                break
             if count + n <= max_words:
                 selected.append(sentence)
                 count += n
-        if selected:
-            clean = " ".join(selected)
+                continue
+            remaining = max_words - count
+            if remaining > 0 and count < preferred_words:
+                selected.append(_finish_sentence(" ".join(sentence.split()[:remaining])))
+                count += min(n, remaining)
+            break
+        candidate = " ".join(selected).strip()
+        if candidate and len(candidate.split()) >= min_words:
+            clean = candidate
         else:
-            clean = " ".join(words[:max_words]).rstrip(" ,;:") + "."
+            clean = _finish_sentence(" ".join(expanded_words[:max_words]))
 
-    final_words = len(clean.split())
+    # Regression guard: sentence trimming must never undo continuity expansion.
+    final_words_list = clean.split()
+    if len(final_words_list) < min_words and expanded_count >= min_words:
+        take = min(max_words, max(preferred_words, min_words))
+        clean = _finish_sentence(" ".join(expanded_words[:take]))
+        final_words_list = clean.split()
+
+    final_words = len(final_words_list)
     return clean, {
         **expansion,
         "original_words": original_words,
+        "expanded_words_before_trim": expanded_count,
         "final_words": final_words,
         "natural_voice_word_budget_min": min_words,
+        "natural_voice_word_budget_preferred": preferred_words,
         "natural_voice_word_budget_max": max_words,
         "script_adjusted_for_fixed_voice_cadence": final_words != original_words,
-        "voice_rate_policy": f"piper_local_fixed_calm_{target_wpm}wpm_no_post_stretch",
+        "voice_rate_policy": f"piper_local_fixed_calm_{target_wpm}wpm_empirical_budget_v2_no_post_stretch",
     }
 
 
