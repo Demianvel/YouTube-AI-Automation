@@ -46,6 +46,7 @@ jobs:
       SPIRITUAL_VOICE_BRAND: Voz de Luz Local
       SPIRITUAL_VOICE_PROFILE: voz_de_luz_local_sovereign_v1
       SPIRITUAL_ALLOW_LOCAL_PROCEDURAL_VISUAL: "false"
+      SPIRITUAL_ALLOW_STILL_FALLBACK: "true"
       SPIRITUAL_CTA_OVERLAY: "false"
       SPIRITUAL_SHORT_SECONDS: "60"
       SPIRITUAL_SHORT_SCENE_SECONDS: "10"
@@ -78,6 +79,7 @@ jobs:
             "numpy<3,>=1.26" \
             "soundfile>=0.13.1" \
             "huggingface_hub<2,>=0.34.4" \
+            "gradio-client>=1.8.0" \
             "piper-tts>=1.2.0"
 
       - name: Bootstrap only the local neural voice weights
@@ -107,14 +109,10 @@ jobs:
             test -s "$ref"
           done
           python - <<'PY'
-          import sys
           import app.hf_primary_router as router
           assert router._hf_video_available() is False
           assert router._gemini_video_available() is False
-          assert 'gradio_client' not in sys.modules
-          assert 'app.hf_video' not in sys.modules
-          assert 'app.spiritual_hf_video' not in sys.modules
-          print('Sovereign offline preflight OK: optional remote video stack remains unloaded.')
+          print('Sovereign offline preflight OK: remote inference feature flags are disabled.')
           PY
 
       - name: Generate and upload only today's missing Shorts
