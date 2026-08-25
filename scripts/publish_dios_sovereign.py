@@ -6,6 +6,7 @@ from pathlib import Path
 from app import hf_primary_router, pipeline, spiritual_audio, spiritual_image, spiritual_tts
 from app import dios_sovereign_ai as sovereign
 from app import dios_sovereign_packaging as sovereign_packaging
+from app import dios_sovereign_visual_v3 as sovereign_visual
 from app import dios_sovereign_voice as sovereign_voice
 import scripts.publish_dios_fast as fast
 
@@ -65,6 +66,7 @@ def _apply_sovereign_audio(video: Path, out: Path, channel: dict, meta: dict, du
     meta["voice_expected_provider"] = "Piper local / Voz de Luz Local"
     meta["voice_remote_ai_used"] = False
     meta["sovereign_ai_version"] = sovereign.ENGINE_VERSION
+    meta["sovereign_visual_version"] = sovereign_visual.VISUAL_PROVIDER
 
 
 def configure() -> None:
@@ -80,7 +82,10 @@ def configure() -> None:
     pipeline.generate_metadata = _local_metadata
     pipeline.ground_and_optimize_spiritual_metadata = _local_ground_and_package
     pipeline.attach_visual_pack = fast.attach_visual_pack_v3
-    spiritual_image._download = sovereign.generate_visual
+    # v3: use local diffusion+LoRA when installed; otherwise one recurring human
+    # Jesus composite plus original local symbolic/nature scenes with a freshness
+    # pre-check. The final FRESH_VISUAL_GUARD remains unchanged.
+    spiritual_image._download = sovereign_visual.generate_visual
     spiritual_image._animate = fast._fast_animate
 
     spiritual_audio.make_spiritual_spanish_voice = sovereign_voice.make_voice
@@ -93,7 +98,7 @@ def configure() -> None:
 
     # hf_primary_router imported the audio function by value, so replace that
     # reference too. Visual/video remote paths are disabled by environment and
-    # lazily imported, therefore the sovereign route has no gradio/HF dependency.
+    # lazily imported, therefore the sovereign route has no remote inference need.
     hf_primary_router.apply_spiritual_audio = _apply_sovereign_audio
 
 
