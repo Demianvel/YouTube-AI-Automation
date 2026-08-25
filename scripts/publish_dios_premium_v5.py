@@ -17,6 +17,7 @@ PRIMARY_PROFILE = spiritual_tts.SPIRITUAL_VOICE_PROFILE
 PRIMARY_LOCK_VERSION = spiritual_tts.VOICE_LOCK_VERSION
 LOCAL_PROVIDER = local_voice.VOICE_PROVIDER
 _GEMINI_MAKE_VOICE = spiritual_tts.make_spiritual_spanish_voice
+_ORIGINAL_NATURAL_FIT = spiritual_audio._fit_text_for_natural_short_voice
 
 
 def _allow_local_fallback() -> bool:
@@ -136,6 +137,7 @@ def configure() -> None:
     spiritual_audio.make_spiritual_spanish_voice = _make_premium_voice
     spiritual_tts.make_spiritual_spanish_voice = _make_premium_voice
     spiritual_audio._enforce_voice_identity = _enforce_premium_voice
+    spiritual_audio._fit_text_for_natural_short_voice = _ORIGINAL_NATURAL_FIT
     spiritual_audio.EXPECTED_VOICE = PRIMARY_BRAND
     spiritual_audio.EXPECTED_PROFILE = PRIMARY_PROFILE
     spiritual_audio.VOICE_LOCK_VERSION = PRIMARY_LOCK_VERSION
