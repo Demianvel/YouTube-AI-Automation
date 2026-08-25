@@ -2,6 +2,10 @@ name: Dios Habla Hoy - Catch-up soberano sin cuotas
 
 on:
   workflow_dispatch:
+  schedule:
+    # 09:17, 15:17 y 21:17 de Argentina (UTC-3). Si ya hay 10/10,
+    # el job corta antes de instalar el runtime pesado.
+    - cron: "17 0,12,18 * * *"
   push:
     branches: [main]
     paths:
@@ -55,6 +59,7 @@ jobs:
       DIOS_PIPER_TARGET_WPM: "126"
       DIOS_PIPER_LENGTH_SCALE: "1.18"
       DIOS_PIPER_SENTENCE_SILENCE: "0.05"
+      DIOS_SOVEREIGN_SLOT_ATTEMPTS: "3"
       MUSIC_PROVIDER: local
       YOUTUBE_TOKEN_DIOSHABLAHOYIA: ${{ secrets.YOUTUBE_TOKEN_DIOSHABLAHOYIA }}
 
@@ -67,7 +72,47 @@ jobs:
         with:
           python-version: "3.11"
 
+      - name: Check today's persisted Short target before heavy setup
+        id: quota
+        shell: bash
+        run: |
+          python - <<'PY' >> "$GITHUB_OUTPUT"
+          import json
+          from datetime import datetime
+          from pathlib import Path
+          from zoneinfo import ZoneInfo
+
+          history = Path('state/history.jsonl')
+          tz = ZoneInfo('America/Argentina/Buenos_Aires')
+          today = datetime.now(tz).date()
+          count = 0
+          if history.exists():
+              for raw in history.read_text(encoding='utf-8').splitlines():
+                  try:
+                      row = json.loads(raw)
+                      dt = datetime.fromisoformat(str(row.get('created_at', '')).replace('Z', '+00:00'))
+                      if dt.tzinfo is None:
+                          dt = dt.replace(tzinfo=ZoneInfo('UTC'))
+                  except Exception:
+                      continue
+                  if (
+                      row.get('channel') == 'dioshablahoyia'
+                      and dt.astimezone(tz).date() == today
+                      and (str(row.get('status') or '').lower() == 'uploaded' or bool(row.get('video_id')))
+                  ):
+                      count += 1
+          missing = max(0, 10 - count)
+          print(f"count={count}")
+          print(f"missing={missing}")
+          PY
+          echo "Persistidos hoy: ${{ steps.quota.outputs.count || 'calculando' }}/10"
+
+      - name: Daily target already complete
+        if: steps.quota.outputs.missing == '0'
+        run: echo "Dios Habla Hoy ya tiene 10/10 Shorts persistidos hoy; no se inicia generación."
+
       - name: Install zero-credit hosted runtime
+        if: steps.quota.outputs.missing != '0'
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y -qq ffmpeg libsndfile1 fonts-dejavu-core git >/dev/null
@@ -85,6 +130,7 @@ jobs:
             "piper-tts>=1.2.0"
 
       - name: Bootstrap only the local neural voice weights
+        if: steps.quota.outputs.missing != '0'
         env:
           HF_HUB_OFFLINE: "0"
         run: |
@@ -95,6 +141,7 @@ jobs:
           command -v piper
 
       - name: Lock generation offline after bootstrap
+        if: steps.quota.outputs.missing != '0'
         run: |
           python -m py_compile \
             app/dios_sovereign_ai.py \
@@ -122,10 +169,11 @@ jobs:
           PY
 
       - name: Generate and upload only today's missing Shorts
+        if: steps.quota.outputs.missing != '0'
         run: python scripts/dioshablahoyia_sovereign_catchup_shorts.py
 
       - name: Persist every successful sovereign upload
-        if: always()
+        if: always() && steps.quota.outputs.missing != '0'
         shell: bash
         run: |
           RECORDS="/tmp/dios-sovereign-catchup/new-short-records.jsonl"
@@ -154,7 +202,7 @@ jobs:
           exit 1
 
       - name: Open issue if sovereign catch-up fails
-        if: failure()
+        if: failure() && steps.quota.outputs.missing != '0'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
