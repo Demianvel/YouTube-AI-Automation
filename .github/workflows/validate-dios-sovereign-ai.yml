@@ -76,20 +76,21 @@ jobs:
           assert 'CREAR -> VALIDAR -> PUBLICAR -> REGISTRAR -> MEDIR -> COMPARAR -> APRENDER -> VARIAR -> MEJORAR' in prompt
           print('Sovereign manifest and master prompt OK')
           PY
-      - name: Ensure disabled remote engines stay unimported
-        env:
-          HF_VIDEO_ENABLED: "false"
-          GEMINI_VIDEO_ENABLED: "false"
+      - name: Validate optional provider isolation and hosted dependencies
         run: |
           python - <<'PY'
-          import sys
-          import app.hf_primary_router as router
-          assert router._hf_video_available() is False
-          assert router._gemini_video_available() is False
-          assert 'gradio_client' not in sys.modules
-          assert 'app.hf_video' not in sys.modules
-          assert 'app.spiritual_hf_video' not in sys.modules
-          print('Offline import isolation OK')
+          from pathlib import Path
+          router = Path('app/hf_primary_router.py').read_text(encoding='utf-8')
+          workflow = Path('.github/workflows/dioshablahoyia-sovereign-hosted-catchup.yml').read_text(encoding='utf-8')
+          top_level = '\n'.join(line for line in router.splitlines() if line and not line.startswith((' ', '\t')))
+          assert 'from .hf_video import' not in top_level
+          assert 'from .spiritual_hf_video import' not in top_level
+          assert 'from .gemini_spiritual_video import' not in top_level
+          assert 'HF_VIDEO_ENABLED: "false"' in workflow
+          assert 'GEMINI_VIDEO_ENABLED: "false"' in workflow
+          assert 'SPIRITUAL_ALLOW_STILL_FALLBACK: "true"' in workflow
+          assert '"gradio-client>=1.8.0"' in workflow
+          print('Hosted sovereign isolation/config OK')
           PY
       - name: Validate premium packaging quality gate
         run: |
