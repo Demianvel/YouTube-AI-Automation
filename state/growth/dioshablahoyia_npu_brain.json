@@ -1,6 +1,6 @@
 {
   "version": "alien-npu-brain-v1",
-  "generated_at": "2026-08-25T10:51:26.506250+00:00",
+  "generated_at": "2026-08-25T11:46:00.497727+00:00",
   "architecture": {
     "type": "multi-cortex ensemble with quantum-inspired softmax exploration",
     "literal_consciousness": false,
@@ -697,6 +697,13 @@
         "seo_supported": true
       },
       {
+        "key": "paz transforma",
+        "samples": 0,
+        "mean_score": 54.61,
+        "best_score": 88.4,
+        "seo_only": true
+      },
+      {
         "key": "promesa",
         "samples": 0,
         "mean_score": 54.61,
@@ -705,13 +712,6 @@
       },
       {
         "key": "transforma corazón",
-        "samples": 0,
-        "mean_score": 54.61,
-        "best_score": 88.4,
-        "seo_only": true
-      },
-      {
-        "key": "paz transforma",
         "samples": 0,
         "mean_score": 54.61,
         "best_score": 88.4,
@@ -760,6 +760,34 @@
         "seo_only": true
       },
       {
+        "key": "guiando camino",
+        "samples": 0,
+        "mean_score": 54.55,
+        "best_score": 87.91,
+        "seo_only": true
+      },
+      {
+        "key": "romanos confianza",
+        "samples": 0,
+        "mean_score": 54.55,
+        "best_score": 87.91,
+        "seo_only": true
+      },
+      {
+        "key": "obrar romanos",
+        "samples": 0,
+        "mean_score": 54.55,
+        "best_score": 87.91,
+        "seo_only": true
+      },
+      {
+        "key": "romanos",
+        "samples": 0,
+        "mean_score": 54.55,
+        "best_score": 87.91,
+        "seo_only": true
+      },
+      {
         "key": "romanos romanos",
         "samples": 0,
         "mean_score": 54.55,
@@ -774,42 +802,14 @@
         "seo_only": true
       },
       {
-        "key": "romanos confianza",
-        "samples": 0,
-        "mean_score": 54.55,
-        "best_score": 87.91,
-        "seo_only": true
-      },
-      {
-        "key": "guiando camino",
-        "samples": 0,
-        "mean_score": 54.55,
-        "best_score": 87.91,
-        "seo_only": true
-      },
-      {
-        "key": "romanos",
-        "samples": 0,
-        "mean_score": 54.55,
-        "best_score": 87.91,
-        "seo_only": true
-      },
-      {
-        "key": "obrar romanos",
-        "samples": 0,
-        "mean_score": 54.55,
-        "best_score": 87.91,
-        "seo_only": true
-      },
-      {
-        "key": "paz esperanza",
+        "key": "esperanza",
         "samples": 0,
         "mean_score": 54.54,
         "best_score": 87.83,
         "seo_only": true
       },
       {
-        "key": "esperanza",
+        "key": "paz esperanza",
         "samples": 0,
         "mean_score": 54.54,
         "best_score": 87.83,
