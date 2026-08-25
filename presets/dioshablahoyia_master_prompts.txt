@@ -1,8 +1,78 @@
-PROMPT VISUAL BASE:
-Representación artística reverente y original de Jesús como personaje principal, inspirada en las referencias visuales aportadas por el canal: hombre adulto de apariencia serena, cabello largo castaño oscuro y ondulado, barba prolija y completa, ojos cálidos, túnica de lino clara o beige, a veces con manto rojo apagado o crema, iluminación dorada al amanecer o atardecer, halo o resplandor espiritual sutil, paisajes naturales como montañas, ríos, lagos, valles, colinas, árboles, caminos de piedra y cielos luminosos. Estilo cinematográfico premium, espiritual, emotivo, realista y armonioso. Expresión amable, compasiva, esperanzadora y sabia. Mantener un mismo diseño facial y vestuario base entre escenas para que se perciba como el mismo personaje recurrente. No basarlo en un actor real específico. Sin logos, sin marcas de agua, sin texto incrustado.
+DIOS HABLA HOY — PROMPT MAESTRO SOBERANO PREMIUM V2
+Versión: dioshablahoyia-master-v2
+Objetivo: crear contenido cristiano original, humano, reverente, cinematográfico y competitivo para YouTube Shorts y videos largos. Optimizar calidad, retención, CTR, satisfacción, comentarios, guardados, compartidos y crecimiento sin prometer viralidad ni usar clickbait engañoso.
 
-PROMPT SHORT:
-Crea un Short vertical 9:16 para Dios Habla Hoy IA sobre fe cristiana, Dios, Jesucristo, Biblia, esperanza, oración, profecía bíblica o consuelo espiritual. Gancho emocional claro en los primeros 2 segundos. Mostrar a Jesús como personaje central usando el perfil visual definido del canal. Narración en español clara, cálida, profunda, serena y humana. Puede incluir una paráfrasis bíblica, reflexión, oración breve o enseñanza sencilla. Si se menciona una profecía, indicar el pasaje o contexto y evitar convertirla en una predicción fechada sobre noticias actuales. Tono esperanzador, amoroso, reverente y cercano. Escenas cinematográficas de naturaleza, luz divina, manos extendidas, caminos, montañas, lagos, cielo dorado, nubes y momentos contemplativos. Música instrumental original suave y ambiente espiritual sutil. Cierre invitando a reflexionar, orar o comentar Amén. No copiar voces, actores, películas, canales o personajes existentes.
+1. IDENTIDAD EDITORIAL
+Canal: Dios Habla Hoy.
+Idioma: español castellano natural, cálido y cercano; preferencia rioplatense suave cuando no afecte la comprensión internacional.
+Tema central: Dios, Jesucristo, Biblia, fe, esperanza, oración, amor, perdón, consuelo, fortaleza y aplicación práctica de enseñanzas bíblicas.
+Tono: humano, sereno, emotivo, esperanzador, reverente, claro, profesional y memorable.
+Regla de verdad: no inventar milagros garantizados, fechas proféticas, promesas económicas, noticias religiosas falsas ni afirmaciones manipuladoras.
 
-PROMPT LONG:
-Crea un video largo para YouTube de Dios Habla Hoy IA de 10, 20, 30 o 40 minutos sobre Biblia, enseñanzas de Jesús, fe, esperanza, oración, profecía bíblica, fortaleza en momentos difíciles, promesas de Dios, amor de Cristo o consuelo espiritual. Estructura por capítulos con introducción, desarrollo, aplicación práctica, transición espiritual y cierre. Mantener a Jesús como personaje visual recurrente con el perfil visual definido del canal. Narración humana, cálida, profunda, pausada y espiritual. Visuales cinematográficos con paisajes, luz dorada, montañas, valles, ríos, cielos, nubes, caminatas, templos antiguos genéricos y gestos compasivos. Usar referencias bíblicas claras y preferir paráfrasis; las citas textuales deben ser breves. Para profecías, explicar contexto y distintas interpretaciones cuando corresponda, sin fijar fechas ni presentar especulación como certeza. Música original suave, sin canciones de terceros. El video debe transmitir paz, esperanza y reflexión y cerrar invitando a orar y confiar en Dios.
+2. CEREBRO IA / APRENDIZAJE CONTINUO
+Antes de elegir tema, título o enfoque, analizar el historial local del canal y las métricas disponibles de los videos anteriores. Priorizar señales reales de primera parte: retención, porcentaje medio visto, tiempo de reproducción, comentarios, compartidos, nuevos suscriptores, vistas por hora y rendimiento relativo.
+Usar el cerebro local NPU/cortex del proyecto para equilibrar: resonancia de audiencia, satisfacción, novedad, encaje con el canal, oportunidad temática y similitud con ganadores anteriores.
+Nunca copiar un ganador. Aprender patrones útiles y producir una variante nueva con diferente escritura, estructura, visuales y encuadre.
+Ciclo obligatorio: CREAR -> VALIDAR -> PUBLICAR -> REGISTRAR -> MEDIR -> COMPARAR -> APRENDER -> VARIAR -> MEJORAR.
+Si faltan métricas, continuar con criterio editorial neutral; no inventar resultados.
+
+3. ESTRUCTURA SHORT PREMIUM 9:16
+Duración objetivo: hasta 60 segundos.
+Gancho: primeros 1-2 segundos. Debe abrir una necesidad real, una pregunta o una verdad bíblica clara, sin miedo artificial ni engaño.
+Desarrollo: una sola idea central; referencia bíblica identificable; explicación sencilla; conexión emocional; aplicación concreta.
+Payoff: resolver la promesa del inicio con esperanza, aprendizaje o una oración breve.
+CTA: preferentemente en descripción/comentario cuando el tiempo de narración sea limitado. Invitar de forma natural a comentar “Amén”, guardar, compartir o dejar una intención de oración.
+No repetir la misma introducción, cierre, pasaje, composición visual o frase en publicaciones cercanas.
+
+4. GUION Y VOZ
+Narración: voz masculina humana sintética de alta calidad, cálida, dulce, profunda, serena, melódica y cercana; ritmo natural, sin sonar robótica, agresiva o comercial.
+Perfil soberano: Voz de Luz Local. No afirmar que es una voz externa concreta ni imitar una persona real.
+Cadencia recomendada: aproximadamente 118-132 palabras por minuto para contenido reflexivo.
+Dicción: vocales claras, pausas naturales, énfasis emocional moderado y respiración creíble.
+Mastering: voz al frente, sin clipping, música por debajo, claridad en móviles, loudness uniforme entre videos.
+Evitar: gritos, susurro excesivo, teatralidad artificial, frases atropelladas y silencios largos.
+
+5. PROMPT VISUAL BASE — JESÚS HUMANO FOTORREALISTA
+Representación artística sintética y original de Jesús, sin copiar actor o persona real: hombre adulto de apariencia de Medio Oriente/Mediterráneo, expresión serena y compasiva, piel humana con poros y textura natural, ojos cálidos, cabello largo castaño oscuro ondulado con hebras individuales, barba completa cuidada, proporciones anatómicas naturales, manos realistas con cinco dedos, túnica de lino crema o marfil y manto beige o rojo apagado según la escena.
+Estética: live-action cinematográfico premium, lente de cine, luz física plausible, profundidad de campo realista, exposición natural, detalle de piel, tela, cabello, agua, árboles, polvo, nubes y piedras.
+Movimiento: respiración visible sutil, parpadeo, enfoque ocular, giro de cabeza, movimiento de mandíbula, hombros, manos y cuerpo; caminar natural cuando corresponda; ropa y cabello reaccionando al viento.
+Cámara: variar entre primer plano, medio, cuerpo entero, perfil, contrapicado suave, travelling, dolly-in, orbit lento y plano general. No repetir exactamente el encuadre de la escena anterior.
+Entornos: montañas, lagos, ríos, costa, valles, olivares, caminos de piedra, desierto, bosque, jardín, amanecer, atardecer, noche estrellada, lluvia que se calma, luz atravesando nubes.
+Dios Padre: preferir representación simbólica reverente mediante luz, creación, cielo, cruz, Biblia, agua, paloma, camino, fuego cálido o presencia luminosa. Si se usa forma humana artística, debe quedar claramente como representación sintética y no como registro literal.
+Negativo: cartoon, anime, ilustración, pintura, plástico CGI, videojuego, muñeco, piel encerada, manos deformes, dedos extra, extremidades duplicadas, ojos asimétricos, texto, subtítulos incrustados, logos, marcas de agua, celebridades, actores reconocibles, política, noticias, marcas comerciales.
+
+6. GENERACIÓN VISUAL SOBERANA
+Prioridad A: modelo local de difusión + LoRA de identidad del canal cuando los pesos estén instalados y exista GPU adecuada.
+Prioridad B: banco visual original aprobado del canal + transformación cinematográfica local + movimiento Ken Burns/dolly/parallax/zoom/pan suave cuando el runner sea CPU.
+Nunca bloquear la publicación por la ausencia de una dependencia remota desactivada.
+Los motores remotos deben cargarse de forma diferida y únicamente si su feature flag está activado.
+Si la calidad visual cae por debajo del umbral interno, no publicar ese render; regenerar con otra semilla/composición o usar una referencia aprobada distinta.
+
+7. EDICIÓN DE VIDEO
+Formato Short: 1080x1920, H.264, 30 fps o superior cuando el origen lo permita, audio AAC, faststart.
+Escenas: movimiento continuo, transiciones invisibles o suaves, sin flashes agresivos, sin texto obligatorio sobre imagen.
+Ritmo: cambio visual cada 5-10 segundos en piezas reflexivas de 60 s, conservando continuidad del personaje.
+Audio: música instrumental original o local con piano, cuerdas, pads o ambiente espiritual; volumen bajo para no competir con la voz.
+Lip-sync: usar sincronización fonema-a-fonema únicamente cuando exista un runner CUDA preparado. Sin GPU, priorizar movimiento facial natural no exagerado y planos que no prometan sincronización exacta.
+
+8. SEO + CTR + ENGAGEMENT
+Generar al menos 3 candidatos de título y elegir el de mayor score editorial adaptativo.
+Título recomendado: 42-78 caracteres cuando sea posible; incluir Dios/Jesús o la referencia bíblica de forma natural; promesa emocional honesta; sin MAYÚSCULAS excesivas ni urgencia falsa.
+Descripción: explicar el tema y referencia bíblica, aportar contexto útil y cerrar con CTA natural. No revelar infraestructura técnica, proveedores, modelos ni créditos internos del pipeline.
+Tags base: Dios Habla Hoy, Dios, Jesucristo, Jesús, Biblia, Fe, Oración, Esperanza, Reflexión Cristiana, Palabra de Dios, Mensaje de Dios, Cristiano, Shorts Cristianos, Jesus, Cristo, más referencia y tema específico.
+Hashtags recomendados: #Dios #Jesús #Fe #Biblia #DiosHablaHoy.
+Comentario destacado candidato: breve, emocional, respetuoso, relacionado con el pasaje, invitando a “Amén” o intención de oración. La API de YouTube puede publicar el comentario si el OAuth tiene alcance; fijarlo queda manual cuando la API no ofrece método de pin.
+
+9. CONTROL DE CALIDAD ANTES DE PUBLICAR
+Validar obligatoriamente: orientación vertical, duración, stream de audio, continuidad de voz, volumen, referencia bíblica, ausencia de duplicado reciente, variedad visual, identidad consistente del personaje, título no engañoso, descripción completa, tags/hashtags y comentario candidato.
+Asignar packaging_quality_score de 0 a 100. Objetivo >= 80. No publicar si el paquete cae a un nivel claramente degradado.
+Registrar proveedor visual, proveedor TTS, semilla, hash del prompt maestro, score editorial, título usado, referencia, video_id y métricas posteriores para alimentar el aprendizaje.
+
+10. PROMPT SHORT MAESTRO
+Crea un Short vertical 9:16 premium para Dios Habla Hoy sobre una enseñanza bíblica específica. Seleccioná un pasaje no repetido recientemente y un enfoque útil para una necesidad humana concreta. Abrí con un gancho honesto en 1-2 segundos. Construí una narración cálida, profunda y natural que quepa realmente en la duración. Mostrá una representación sintética fotorrealista y cinematográfica de Jesús con anatomía humana realista, continuidad facial y variedad de planos, intercalando símbolos bíblicos y naturaleza. Voz masculina sintética cálida y serena, música instrumental original baja, edición limpia, sin texto ni logos incrustados. Cerrá con una enseñanza práctica. Después generá 3 títulos, descripción SEO, tags, hashtags y comentario destacado candidato. Evaluá el paquete con el cerebro local y elegí la variante con mejor combinación de claridad, retención potencial, novedad, encaje con el canal y aprendizaje histórico. No garantices viralidad.
+
+11. PROMPT VIDEO LARGO MAESTRO
+Crea un video cristiano premium 16:9 de 10, 15, 20, 25 o 30 minutos para Dios Habla Hoy. Estructura: cold open -> introducción -> contexto bíblico -> enseñanza por capítulos -> aplicación práctica -> oración/reflexión -> recap -> cierre. Mantener voz y personaje visual consistentes pero variar escenarios, distancias de cámara y acciones. Incluir naturaleza cinematográfica, Biblia, cruz, caminos, agua, amanecer, noche y escenas humanas de esperanza sin convertir el video en una sucesión de imágenes estáticas. Título y miniatura deben ser claros y emocionales, no engañosos. Generar tres opciones A/B para videos largos cuando la plataforma permita test. Optimizar satisfacción y tiempo de reproducción, no solamente clic inicial.
+
+12. REGLA FINAL
+La misión no es “publicar por publicar”. La misión es producir cada vez mejor usando aprendizaje medible, variedad real y controles de calidad. Ningún sistema puede garantizar un video viral; el objetivo profesional es maximizar la probabilidad de buen rendimiento sin sacrificar verdad, identidad cristiana ni calidad.

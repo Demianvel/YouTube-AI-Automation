@@ -5,6 +5,7 @@ from pathlib import Path
 
 from app import hf_primary_router, pipeline, spiritual_audio, spiritual_image, spiritual_tts
 from app import dios_sovereign_ai as sovereign
+from app import dios_sovereign_packaging as sovereign_packaging
 from app import dios_sovereign_voice as sovereign_voice
 import scripts.publish_dios_fast as fast
 
@@ -12,6 +13,7 @@ import scripts.publish_dios_fast as fast
 LOCAL_VOICE_PROFILE = sovereign_voice.VOICE_PROFILE
 LOCAL_VOICE_BRAND = sovereign_voice.VOICE_BRAND
 LOCAL_VOICE_LOCK_VERSION = sovereign_voice.VOICE_PROVIDER
+_BASE_GROUND_OPTIMIZER = pipeline.ground_and_optimize_spiritual_metadata
 
 
 def _configure_offline_env() -> None:
@@ -37,6 +39,11 @@ def _configure_offline_env() -> None:
 def _local_metadata(channel: dict, previous: list[dict], retries: int = 5) -> dict:
     del retries
     return sovereign.build_theme_metadata(channel, previous)
+
+
+def _local_ground_and_package(metadata: dict, previous: list[dict], content_type: str = "short") -> dict:
+    metadata = _BASE_GROUND_OPTIMIZER(metadata, previous, content_type=content_type)
+    return sovereign_packaging.apply_premium_packaging(metadata, previous)
 
 
 def _enforce_local_voice(used: str) -> None:
@@ -71,6 +78,7 @@ def configure() -> None:
         )
 
     pipeline.generate_metadata = _local_metadata
+    pipeline.ground_and_optimize_spiritual_metadata = _local_ground_and_package
     pipeline.attach_visual_pack = fast.attach_visual_pack_v3
     spiritual_image._download = sovereign.generate_visual
     spiritual_image._animate = fast._fast_animate
@@ -84,7 +92,8 @@ def configure() -> None:
     spiritual_audio.VOICE_LOCK_VERSION = LOCAL_VOICE_LOCK_VERSION
 
     # hf_primary_router imported the audio function by value, so replace that
-    # reference too. Visual/video remote paths are disabled by environment.
+    # reference too. Visual/video remote paths are disabled by environment and
+    # lazily imported, therefore the sovereign route has no gradio/HF dependency.
     hf_primary_router.apply_spiritual_audio = _apply_sovereign_audio
 
 
