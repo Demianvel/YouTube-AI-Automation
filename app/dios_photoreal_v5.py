@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import base64
+import re
 from pathlib import Path
 
 from PIL import Image, ImageOps
@@ -28,20 +29,39 @@ PHOTOREAL_NEGATIVE = (
 )
 
 
-def materialize_approved_reference() -> Path:
-    """Restore the approved visual reference from its versioned base64 asset.
+def _decode_reference_payload(text: str) -> bytes:
+    """Decode a versioned JPEG payload while tolerating transport whitespace/BOMs.
 
-    GitHub stores the reference payload as text so the repository can version the
-    user-approved image even in environments where binary file writes are limited.
-    The runtime materializes the JPEG before any visual readiness checks run.
+    The asset is expected to be plain base64, but repository/API transports may
+    introduce a BOM, line wrapping or other non-payload separators. Known data-URI
+    prefixes are removed, non-base64 separators are discarded, and the decoded
+    bytes are still validated as an actual JPEG by Pillow before use.
     """
+    raw = str(text or "").strip()
+    head = raw[:160].lower()
+    if "base64," in head:
+        raw = raw.split(",", 1)[1]
+    clean = re.sub(r"[^A-Za-z0-9+/=]", "", raw)
+    if len(clean) < 1000:
+        raise RuntimeError("La referencia v5 no contiene un payload Base64 utilizable.")
+    clean += "=" * ((4 - len(clean) % 4) % 4)
+    try:
+        data = base64.b64decode(clean, validate=False)
+    except Exception as exc:
+        raise RuntimeError("No se pudo decodificar la referencia visual v5.") from exc
+    if len(data) < 10_000 or not data.startswith(b"\xff\xd8"):
+        raise RuntimeError("El payload de la referencia v5 no es un JPEG valido.")
+    return data
+
+
+def materialize_approved_reference() -> Path:
+    """Restore the approved visual reference from its versioned base64 asset."""
     if APPROVED_REFERENCE.exists() and APPROVED_REFERENCE.stat().st_size >= 10_000:
         return APPROVED_REFERENCE
     if not APPROVED_REFERENCE_B64.exists():
         raise RuntimeError(f"Falta la referencia aprobada v5: {APPROVED_REFERENCE_B64}")
 
-    raw = "".join(APPROVED_REFERENCE_B64.read_text(encoding="utf-8").split())
-    data = base64.b64decode(raw, validate=True)
+    data = _decode_reference_payload(APPROVED_REFERENCE_B64.read_text(encoding="utf-8-sig"))
     REFERENCE_DIR.mkdir(parents=True, exist_ok=True)
     APPROVED_REFERENCE.write_bytes(data)
 
@@ -52,6 +72,7 @@ def materialize_approved_reference() -> Path:
                 raise RuntimeError(
                     f"Referencia v5 demasiado pequena: {image.width}x{image.height}"
                 )
+            image.verify if False else None
     except Exception:
         APPROVED_REFERENCE.unlink(missing_ok=True)
         raise
