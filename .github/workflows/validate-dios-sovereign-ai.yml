@@ -5,9 +5,12 @@ on:
     paths:
       - "app/dios_sovereign_ai.py"
       - "app/dios_sovereign_voice.py"
+      - "app/dios_sovereign_packaging.py"
+      - "app/hf_primary_router.py"
       - "scripts/dios_sovereign_*.py"
       - "scripts/dioshablahoyia_sovereign_catchup_shorts.py"
       - "config/dios_sovereign_ai.json"
+      - "presets/dioshablahoyia_master_prompts.txt"
       - "models/dios_sovereign/**"
       - ".github/workflows/dios-sovereign-local-ai.yml"
       - ".github/workflows/dios-sovereign-bootstrap.yml"
@@ -19,9 +22,12 @@ on:
     paths:
       - "app/dios_sovereign_ai.py"
       - "app/dios_sovereign_voice.py"
+      - "app/dios_sovereign_packaging.py"
+      - "app/hf_primary_router.py"
       - "scripts/dios_sovereign_*.py"
       - "scripts/dioshablahoyia_sovereign_catchup_shorts.py"
       - "config/dios_sovereign_ai.json"
+      - "presets/dioshablahoyia_master_prompts.txt"
       - "models/dios_sovereign/**"
       - ".github/workflows/dioshablahoyia-sovereign-hosted-catchup.yml"
 
@@ -41,6 +47,8 @@ jobs:
           python -m py_compile \
             app/dios_sovereign_ai.py \
             app/dios_sovereign_voice.py \
+            app/dios_sovereign_packaging.py \
+            app/hf_primary_router.py \
             scripts/dios_sovereign_bootstrap_weights.py \
             scripts/dios_sovereign_bootstrap_voice.py \
             scripts/dios_sovereign_prepare_dataset.py \
@@ -63,5 +71,44 @@ jobs:
           for ref in refs:
               assert ref.exists() and ref.stat().st_size > 1000, ref
           assert cfg['voice']['exact_algenib'] is False
-          print('Sovereign manifest OK')
+          prompt = Path('presets/dioshablahoyia_master_prompts.txt').read_text(encoding='utf-8')
+          assert 'PROMPT MAESTRO SOBERANO PREMIUM V2' in prompt
+          assert 'CREAR -> VALIDAR -> PUBLICAR -> REGISTRAR -> MEDIR -> COMPARAR -> APRENDER -> VARIAR -> MEJORAR' in prompt
+          print('Sovereign manifest and master prompt OK')
+          PY
+      - name: Ensure disabled remote engines stay unimported
+        env:
+          HF_VIDEO_ENABLED: "false"
+          GEMINI_VIDEO_ENABLED: "false"
+        run: |
+          python - <<'PY'
+          import sys
+          import app.hf_primary_router as router
+          assert router._hf_video_available() is False
+          assert router._gemini_video_available() is False
+          assert 'gradio_client' not in sys.modules
+          assert 'app.hf_video' not in sys.modules
+          assert 'app.spiritual_hf_video' not in sys.modules
+          print('Offline import isolation OK')
+          PY
+      - name: Validate premium packaging quality gate
+        run: |
+          python - <<'PY'
+          from app.dios_sovereign_packaging import apply_premium_packaging
+          meta = {
+              'title': 'Una palabra para hoy | Juan 14:27',
+              'topic': 'Juan 14 y la paz de Jesus',
+              'content_family': 'paz de Jesus',
+              'bible_reference': 'Juan 14:27',
+              'hook': 'Si hoy necesitás paz, recordá esta enseñanza de Jesús.',
+              'scenes': [{'narration': 'Dios puede acompañarte en este momento.'} for _ in range(6)],
+          }
+          out = apply_premium_packaging(meta, [])
+          assert out['packaging_quality_gate_passed'] is True
+          assert out['packaging_quality_score'] >= 72
+          assert len(out['tags']) >= 8
+          assert len(out['hashtags']) >= 3
+          assert out['pinned_comment_candidate']
+          assert out['master_prompt_sha256']
+          print('Premium packaging gate OK:', out['packaging_quality_score'])
           PY
