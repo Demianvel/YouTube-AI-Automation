@@ -1,8 +1,8 @@
 {
   "version": "dios-internal-quality-cortex-v1",
-  "generated_at": "2026-08-25T21:45:33.226147+00:00",
-  "training_generation": 131,
-  "data_fingerprint": "74c773f3e18a6fa2ab418bbc5c609c3a1e395a12dbfa31a174e5e18fd18faa14",
+  "generated_at": "2026-08-25T22:47:16.565906+00:00",
+  "training_generation": 132,
+  "data_fingerprint": "fa984346db6bcb67fe96cbae1303f88d76454a1e6a4a21fb77f9e4e563974c8f",
   "changed_since_previous": true,
   "training_mode": "local_only_zero_external_calls",
   "mission": {
@@ -23,17 +23,17 @@
     "publishing_must_continue": true
   },
   "memory": {
-    "uploaded_samples": 75,
+    "uploaded_samples": 78,
     "unique_references": 24,
-    "unique_families": 70,
+    "unique_families": 73,
     "recent_emotional_terms": [
       [
         "esperanza",
-        32
+        35
       ],
       [
         "paz",
-        27
+        28
       ],
       [
         "corazón",
@@ -53,14 +53,18 @@
       ],
       [
         "acompaña",
-        10
+        12
       ],
       [
         "luz",
-        9
+        10
       ],
       [
         "refugio",
+        6
+      ],
+      [
+        "misericordia",
         6
       ],
       [
@@ -68,19 +72,15 @@
         6
       ],
       [
-        "misericordia",
-        5
-      ],
-      [
         "gratitud",
         3
       ],
       [
-        "valentia",
+        "valentía",
         3
       ],
       [
-        "valentía",
+        "valentia",
         3
       ],
       [
@@ -107,23 +107,23 @@
     "recent_teaching_terms": [
       [
         "enseñanza",
-        34
+        37
       ],
       [
         "decisión",
-        33
+        36
       ],
       [
         "aplicación",
-        29
+        32
       ],
       [
         "verdad",
-        23
+        25
       ],
       [
         "camino",
-        13
+        14
       ],
       [
         "recordá",
@@ -141,7 +141,7 @@
     "most_used_references": [
       [
         "Filipenses 4:6-7",
-        20
+        21
       ],
       [
         "Mateo 6:25-34",
@@ -156,6 +156,14 @@
         4
       ],
       [
+        "Mateo 5:1-12",
+        4
+      ],
+      [
+        "Juan 10:1-18",
+        4
+      ],
+      [
         "Isaías 9",
         3
       ],
@@ -165,14 +173,6 @@
       ],
       [
         "Romanos 8:26-27",
-        3
-      ],
-      [
-        "Mateo 5:1-12",
-        3
-      ],
-      [
-        "Juan 10:1-18",
         3
       ],
       [
