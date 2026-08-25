@@ -6,6 +6,8 @@ on:
       - "app/dios_sovereign_ai.py"
       - "app/dios_sovereign_voice.py"
       - "app/dios_sovereign_packaging.py"
+      - "app/dios_sovereign_scene.py"
+      - "app/dios_sovereign_visual_v3.py"
       - "app/hf_primary_router.py"
       - "scripts/dios_sovereign_*.py"
       - "scripts/dioshablahoyia_sovereign_catchup_shorts.py"
@@ -23,6 +25,8 @@ on:
       - "app/dios_sovereign_ai.py"
       - "app/dios_sovereign_voice.py"
       - "app/dios_sovereign_packaging.py"
+      - "app/dios_sovereign_scene.py"
+      - "app/dios_sovereign_visual_v3.py"
       - "app/hf_primary_router.py"
       - "scripts/dios_sovereign_*.py"
       - "scripts/dioshablahoyia_sovereign_catchup_shorts.py"
@@ -42,12 +46,16 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
+      - name: Install lightweight visual test runtime
+        run: pip install -q "Pillow>=11.0.0" "numpy<3,>=1.26"
       - name: Compile sovereign Python sources
         run: |
           python -m py_compile \
             app/dios_sovereign_ai.py \
             app/dios_sovereign_voice.py \
             app/dios_sovereign_packaging.py \
+            app/dios_sovereign_scene.py \
+            app/dios_sovereign_visual_v3.py \
             app/hf_primary_router.py \
             scripts/dios_sovereign_bootstrap_weights.py \
             scripts/dios_sovereign_bootstrap_voice.py \
@@ -81,6 +89,7 @@ jobs:
           python - <<'PY'
           from pathlib import Path
           router = Path('app/hf_primary_router.py').read_text(encoding='utf-8')
+          publisher = Path('scripts/publish_dios_sovereign.py').read_text(encoding='utf-8')
           workflow = Path('.github/workflows/dioshablahoyia-sovereign-hosted-catchup.yml').read_text(encoding='utf-8')
           top_level = '\n'.join(line for line in router.splitlines() if line and not line.startswith((' ', '\t')))
           assert 'from .hf_video import' not in top_level
@@ -90,7 +99,47 @@ jobs:
           assert 'GEMINI_VIDEO_ENABLED: "false"' in workflow
           assert 'SPIRITUAL_ALLOW_STILL_FALLBACK: "true"' in workflow
           assert '"gradio-client>=1.8.0"' in workflow
+          assert 'sovereign_visual.generate_visual' in publisher
           print('Hosted sovereign isolation/config OK')
+          PY
+      - name: Render six distinct local visual scenes
+        env:
+          GITHUB_RUN_ID: visual-diversity-ci
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          import app.dios_visual_integrity as integrity
+          from app.dios_sovereign_scene import render_unique_scene
+
+          root = Path('.')
+          cfg = json.loads(Path('config/dios_sovereign_ai.json').read_text(encoding='utf-8'))
+          refs = [root / cfg['image']['reference_dir'] / name for name in cfg['image']['references']]
+          empty = Path('/tmp/dhh-empty-history.jsonl')
+          empty.write_text('', encoding='utf-8')
+          integrity.SHORT_HISTORY = empty
+          integrity.LONG_HISTORY = empty
+          outdir = Path('/tmp/dhh-v3-scenes')
+          outdir.mkdir(parents=True, exist_ok=True)
+          prompts = [
+              'Jesus praying beside an olive tree at sunrise',
+              'Norwegian fjord under aurora borealis',
+              'open Bible and rays of morning light',
+              'clear river through a green valley',
+              'narrow stone path illuminated ahead',
+              'storm clouds opening to sunlight over the sea',
+          ]
+          hashes=[]
+          for index, prompt in enumerate(prompts, 1):
+              path = outdir / f'spiritual_generated_{index}.jpg'
+              provider = render_unique_scene(path, prompt, 9000 + index, references=refs, width=360, height=640)
+              assert path.exists() and path.stat().st_size > 5000
+              assert 'fresh-distance:' in provider
+              hashes.append(integrity.fingerprint_image(path)['dhash'])
+          for i, left in enumerate(hashes):
+              for right in hashes[i+1:]:
+                  assert (int(left, 16) ^ int(right, 16)).bit_count() > 18
+          print('Visual diversity v3 OK:', len(set(hashes)), 'unique scenes')
           PY
       - name: Validate premium packaging quality gate
         run: |
