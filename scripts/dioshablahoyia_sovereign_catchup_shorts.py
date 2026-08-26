@@ -24,6 +24,14 @@ def _slot_attempts() -> int:
     return max(1, min(5, value))
 
 
+def _manual_force_one() -> bool:
+    explicit = os.getenv("DIOS_FORCE_ONE_PREMIUM_V5", "").strip().lower() == "true"
+    # This workflow only receives push events for its dedicated manual trigger file,
+    # so a push means the owner explicitly asked for a fresh premium-v5 piece.
+    trigger_push = os.getenv("GITHUB_EVENT_NAME", "").strip().lower() == "push"
+    return explicit or trigger_push
+
+
 def today_uploaded_count() -> int:
     if not HISTORY.exists():
         return 0
@@ -62,10 +70,16 @@ def main() -> int:
     checkpoint(baseline)
 
     actual = today_uploaded_count()
-    missing = max(0, DAILY_TARGET - actual)
+    force_one = _manual_force_one()
+    normal_missing = max(0, DAILY_TARGET - actual)
+    missing = max(1 if force_one else 0, normal_missing)
+    completion_target = max(DAILY_TARGET, actual + 1) if force_one and normal_missing == 0 else DAILY_TARGET
     attempts_per_slot = _slot_attempts()
+
     print(f"Shorts confirmados hoy en Argentina: {actual}/{DAILY_TARGET}", flush=True)
-    print(f"Faltan: {missing}", flush=True)
+    print(f"Faltan por objetivo diario: {normal_missing}", flush=True)
+    print(f"Forzar una pieza premium v5 por trigger manual: {force_one}", flush=True)
+    print(f"Piezas a generar en este run: {missing}", flush=True)
     print(f"Intentos de calidad permitidos por plaza: {attempts_per_slot}", flush=True)
 
     for index in range(1, missing + 1):
@@ -102,8 +116,8 @@ def main() -> int:
 
     checkpoint(baseline)
     confirmed = today_uploaded_count()
-    print(f"Total confirmado hoy: {confirmed}/{DAILY_TARGET}", flush=True)
-    return 0 if confirmed >= DAILY_TARGET else 1
+    print(f"Total confirmado hoy: {confirmed}. Objetivo de este run: {completion_target}.", flush=True)
+    return 0 if confirmed >= completion_target else 1
 
 
 if __name__ == "__main__":
