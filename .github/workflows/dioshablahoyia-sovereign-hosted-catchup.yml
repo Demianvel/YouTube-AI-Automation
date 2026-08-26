@@ -32,6 +32,7 @@ jobs:
       TRANSFORMERS_OFFLINE: "1"
       DIFFUSERS_OFFLINE: "1"
       DIOS_SOVEREIGN_OFFLINE: "true"
+      DIOS_FORCE_ONE_PREMIUM_V5: ${{ github.event_name == 'push' && 'true' || 'false' }}
       # Visual/video generation remains local. Only the established Voz de Luz /
       # Algenib TTS may use Gemini; if unavailable the publisher falls back to the
       # local Piper model instead of changing to an unrelated voice.
@@ -85,6 +86,7 @@ jobs:
         run: |
           python - <<'PY' >> "$GITHUB_OUTPUT"
           import json
+          import os
           from datetime import datetime
           from pathlib import Path
           from zoneinfo import ZoneInfo
@@ -108,15 +110,19 @@ jobs:
                       and (str(row.get('status') or '').lower() == 'uploaded' or bool(row.get('video_id')))
                   ):
                       count += 1
-          missing = max(0, 10 - count)
+          force_one = os.getenv('DIOS_FORCE_ONE_PREMIUM_V5', '').strip().lower() == 'true'
+          normal_missing = max(0, 10 - count)
+          missing = max(1 if force_one else 0, normal_missing)
           print(f"count={count}")
           print(f"missing={missing}")
+          print(f"force_one={'true' if force_one else 'false'}")
           PY
           echo "Persistidos hoy: ${{ steps.quota.outputs.count || 'calculando' }}/10"
+          echo "Forzar pieza v5 manual: ${{ steps.quota.outputs.force_one || 'false' }}"
 
       - name: Daily target already complete
         if: steps.quota.outputs.missing == '0'
-        run: echo "Dios Habla Hoy ya tiene 10/10 Shorts persistidos hoy; no se inicia generación."
+        run: echo "Dios Habla Hoy ya tiene 10/10 Shorts persistidos hoy; no se inicia generación programada."
 
       - name: Install premium hosted runtime
         if: steps.quota.outputs.missing != '0'
