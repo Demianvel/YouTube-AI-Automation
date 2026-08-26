@@ -1,6 +1,6 @@
 {
   "version": "alien-npu-brain-v1",
-  "generated_at": "2026-08-25T23:40:10.850030+00:00",
+  "generated_at": "2026-08-26T02:00:17.754505+00:00",
   "architecture": {
     "type": "multi-cortex ensemble with quantum-inspired softmax exploration",
     "literal_consciousness": false,
@@ -697,35 +697,7 @@
         "seo_supported": true
       },
       {
-        "key": "promesa paz",
-        "samples": 0,
-        "mean_score": 54.61,
-        "best_score": 88.4,
-        "seo_only": true
-      },
-      {
-        "key": "corazón juan",
-        "samples": 0,
-        "mean_score": 54.61,
-        "best_score": 88.4,
-        "seo_only": true
-      },
-      {
-        "key": "promesa",
-        "samples": 0,
-        "mean_score": 54.61,
-        "best_score": 88.4,
-        "seo_only": true
-      },
-      {
         "key": "paz transforma",
-        "samples": 0,
-        "mean_score": 54.61,
-        "best_score": 88.4,
-        "seo_only": true
-      },
-      {
-        "key": "transforma corazón",
         "samples": 0,
         "mean_score": 54.61,
         "best_score": 88.4,
@@ -739,6 +711,34 @@
         "seo_only": true
       },
       {
+        "key": "promesa paz",
+        "samples": 0,
+        "mean_score": 54.61,
+        "best_score": 88.4,
+        "seo_only": true
+      },
+      {
+        "key": "promesa",
+        "samples": 0,
+        "mean_score": 54.61,
+        "best_score": 88.4,
+        "seo_only": true
+      },
+      {
+        "key": "transforma corazón",
+        "samples": 0,
+        "mean_score": 54.61,
+        "best_score": 88.4,
+        "seo_only": true
+      },
+      {
+        "key": "corazón juan",
+        "samples": 0,
+        "mean_score": 54.61,
+        "best_score": 88.4,
+        "seo_only": true
+      },
+      {
         "key": "esperanza juan",
         "samples": 0,
         "mean_score": 54.56,
@@ -746,14 +746,7 @@
         "seo_only": true
       },
       {
-        "key": "romanos",
-        "samples": 0,
-        "mean_score": 54.55,
-        "best_score": 87.91,
-        "seo_only": true
-      },
-      {
-        "key": "confianza obrar",
+        "key": "romanos confianza",
         "samples": 0,
         "mean_score": 54.55,
         "best_score": 87.91,
@@ -767,14 +760,7 @@
         "seo_only": true
       },
       {
-        "key": "romanos romanos",
-        "samples": 0,
-        "mean_score": 54.55,
-        "best_score": 87.91,
-        "seo_only": true
-      },
-      {
-        "key": "está guiando",
+        "key": "confianza obrar",
         "samples": 0,
         "mean_score": 54.55,
         "best_score": 87.91,
@@ -795,21 +781,35 @@
         "seo_only": true
       },
       {
-        "key": "romanos confianza",
+        "key": "romanos",
         "samples": 0,
         "mean_score": 54.55,
         "best_score": 87.91,
         "seo_only": true
       },
       {
-        "key": "esperanza",
+        "key": "está guiando",
+        "samples": 0,
+        "mean_score": 54.55,
+        "best_score": 87.91,
+        "seo_only": true
+      },
+      {
+        "key": "romanos romanos",
+        "samples": 0,
+        "mean_score": 54.55,
+        "best_score": 87.91,
+        "seo_only": true
+      },
+      {
+        "key": "paz esperanza",
         "samples": 0,
         "mean_score": 54.54,
         "best_score": 87.83,
         "seo_only": true
       },
       {
-        "key": "paz esperanza",
+        "key": "esperanza",
         "samples": 0,
         "mean_score": 54.54,
         "best_score": 87.83,
@@ -830,7 +830,7 @@
         "seo_only": true
       },
       {
-        "key": "gorriones cuidado",
+        "key": "cuidado mateo",
         "samples": 0,
         "mean_score": 54.36,
         "best_score": 86.31,
