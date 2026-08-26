@@ -26,8 +26,6 @@ def _slot_attempts() -> int:
 
 def _manual_force_one() -> bool:
     explicit = os.getenv("DIOS_FORCE_ONE_PREMIUM_V5", "").strip().lower() == "true"
-    # This workflow only receives push events for its dedicated manual trigger file,
-    # so a push means the owner explicitly asked for a fresh premium-v5 piece.
     trigger_push = os.getenv("GITHUB_EVENT_NAME", "").strip().lower() == "push"
     return explicit or trigger_push
 
@@ -63,6 +61,23 @@ def checkpoint(baseline: list[str]) -> int:
     return len(new_lines)
 
 
+def _publisher_env(slot: int, attempt: int, baseline_size: int) -> dict[str, str]:
+    env = os.environ.copy()
+    run_marker = (
+        env.get("GITHUB_RUN_ID")
+        or env.get("GITHUB_RUN_NUMBER")
+        or datetime.now(TZ).strftime("local-%Y%m%d-%H%M%S")
+    )
+    nonce = f"{run_marker}-slot-{slot}-attempt-{attempt}-baseline-{baseline_size}"
+    env["DIOS_SOVEREIGN_VARIATION_NONCE"] = nonce
+    # Keep visual/video inference local; this nonce only diversifies the local
+    # editorial ranking so the existing anti-spam guard receives new candidates.
+    env["GEMINI_VIDEO_ENABLED"] = "false"
+    env["HF_VIDEO_ENABLED"] = "false"
+    print(f"Nonce editorial: {nonce}", flush=True)
+    return env
+
+
 def main() -> int:
     HISTORY.parent.mkdir(parents=True, exist_ok=True)
     HISTORY.touch(exist_ok=True)
@@ -90,7 +105,13 @@ def main() -> int:
                 f"Generando candidato {attempt}/{attempts_per_slot} para la plaza {index}/{missing}",
                 flush=True,
             )
-            result = subprocess.run([sys.executable, str(PUBLISHER)], cwd=ROOT, check=False)
+            env = _publisher_env(index, attempt, len(baseline))
+            result = subprocess.run(
+                [sys.executable, str(PUBLISHER)],
+                cwd=ROOT,
+                env=env,
+                check=False,
+            )
             checkpoint(baseline)
             if result.returncode == 0:
                 published = True
