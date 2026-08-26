@@ -12,6 +12,7 @@ MODEL_VERSION = "dios-photoreal-human-v5"
 REFERENCE_DIR = ROOT / "assets" / "dioshablahoyia" / "reference"
 APPROVED_REFERENCE = REFERENCE_DIR / "jesus_divine_reference_v5.jpg"
 APPROVED_REFERENCE_B64 = REFERENCE_DIR / "jesus_divine_reference_v5.jpg.b64"
+APPROVED_REFERENCE_PARTS = REFERENCE_DIR / "v5_parts"
 
 PHOTOREAL_PROMPT_PREFIX = (
     "live-action photographic biblical cinema, human adult Jesus, physically plausible human anatomy, "
@@ -48,25 +49,44 @@ def _decode_reference_payload(text: str) -> bytes:
     return data
 
 
-def materialize_approved_reference() -> Path:
-    """Restore and validate the approved photoreal visual reference."""
-    if APPROVED_REFERENCE.exists() and APPROVED_REFERENCE.stat().st_size >= 10_000:
-        return APPROVED_REFERENCE
-    if not APPROVED_REFERENCE_B64.exists():
-        raise RuntimeError(f"Falta la referencia aprobada v5: {APPROVED_REFERENCE_B64}")
+def _reference_payload_text() -> str:
+    """Prefer small versioned chunks so Git transports cannot truncate the JPEG."""
+    parts = sorted(APPROVED_REFERENCE_PARTS.glob("part*.b64")) if APPROVED_REFERENCE_PARTS.exists() else []
+    if parts:
+        payload = "".join(part.read_text(encoding="utf-8-sig").strip() for part in parts)
+        if len(payload) >= 10_000:
+            return payload
+    if APPROVED_REFERENCE_B64.exists():
+        return APPROVED_REFERENCE_B64.read_text(encoding="utf-8-sig")
+    raise RuntimeError(
+        "Falta la referencia aprobada v5: no hay partes versionadas ni payload monolitico."
+    )
 
-    data = _decode_reference_payload(APPROVED_REFERENCE_B64.read_text(encoding="utf-8-sig"))
+
+def materialize_approved_reference() -> Path:
+    """Restore and fully validate the approved photoreal visual reference."""
+    if APPROVED_REFERENCE.exists() and APPROVED_REFERENCE.stat().st_size >= 10_000:
+        try:
+            with Image.open(APPROVED_REFERENCE) as opened:
+                opened.load()
+                if opened.width >= 300 and opened.height >= 500:
+                    return APPROVED_REFERENCE
+        except Exception:
+            APPROVED_REFERENCE.unlink(missing_ok=True)
+
+    data = _decode_reference_payload(_reference_payload_text())
     REFERENCE_DIR.mkdir(parents=True, exist_ok=True)
     APPROVED_REFERENCE.write_bytes(data)
 
     try:
         with Image.open(APPROVED_REFERENCE) as opened:
+            opened.load()
             image = ImageOps.exif_transpose(opened).convert("RGB")
+            image.load()
             if image.width < 300 or image.height < 500:
                 raise RuntimeError(
                     f"Referencia v5 demasiado pequena: {image.width}x{image.height}"
                 )
-            image.load()
     except Exception:
         APPROVED_REFERENCE.unlink(missing_ok=True)
         raise
