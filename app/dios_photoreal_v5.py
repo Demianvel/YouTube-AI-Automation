@@ -30,13 +30,7 @@ PHOTOREAL_NEGATIVE = (
 
 
 def _decode_reference_payload(text: str) -> bytes:
-    """Decode a versioned JPEG payload while tolerating transport whitespace/BOMs.
-
-    The asset is expected to be plain base64, but repository/API transports may
-    introduce a BOM, line wrapping or other non-payload separators. Known data-URI
-    prefixes are removed, non-base64 separators are discarded, and the decoded
-    bytes are still validated as an actual JPEG by Pillow before use.
-    """
+    """Decode the versioned JPEG while tolerating transport separators/BOMs."""
     raw = str(text or "").strip()
     head = raw[:160].lower()
     if "base64," in head:
@@ -55,7 +49,7 @@ def _decode_reference_payload(text: str) -> bytes:
 
 
 def materialize_approved_reference() -> Path:
-    """Restore the approved visual reference from its versioned base64 asset."""
+    """Restore and validate the approved photoreal visual reference."""
     if APPROVED_REFERENCE.exists() and APPROVED_REFERENCE.stat().st_size >= 10_000:
         return APPROVED_REFERENCE
     if not APPROVED_REFERENCE_B64.exists():
@@ -72,7 +66,7 @@ def materialize_approved_reference() -> Path:
                 raise RuntimeError(
                     f"Referencia v5 demasiado pequena: {image.width}x{image.height}"
                 )
-            image.verify if False else None
+            image.load()
     except Exception:
         APPROVED_REFERENCE.unlink(missing_ok=True)
         raise
