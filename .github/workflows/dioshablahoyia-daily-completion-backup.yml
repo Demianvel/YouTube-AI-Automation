@@ -1,15 +1,7 @@
-name: Dios Habla Hoy IA - Backup cierre 10 Shorts
+name: Dios Habla Hoy IA - Backup cierre 10 Shorts manual
 
 on:
   workflow_dispatch:
-  schedule:
-    # GitHub cron usa UTC; estas pasadas equivalen a 20:45, 21:45,
-    # 22:45 y 23:35 en America/Argentina/Buenos_Aires.
-    # La guardia cuenta lo ya publicado y completa solo hasta exactamente 10.
-    - cron: "45 23 * * *"
-    - cron: "45 0 * * *"
-    - cron: "45 1 * * *"
-    - cron: "35 2 * * *"
 
 permissions:
   actions: write
