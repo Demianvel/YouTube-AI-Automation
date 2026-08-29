@@ -1,21 +1,7 @@
-name: Dios Habla Hoy IA - Alien NPU Brain 24x7 Local
+name: Dios Habla Hoy IA - Alien NPU Brain manual
 
 on:
   workflow_dispatch:
-  schedule:
-    # One local learning cycle every hour, every day of the year.
-    - cron: "17 * * * *"
-  push:
-    branches: [main]
-    paths:
-      - "app/alien_npu_brain.py"
-      - "app/npu_seo_cortex.py"
-      - "app/npu_internal_cortex.py"
-      - "app/fast_spiritual_metadata.py"
-      - "scripts/npu_brain_learn.py"
-      - "scripts/npu_seo_train.py"
-      - "scripts/npu_internal_train.py"
-      - ".github/workflows/dioshablahoyia-alien-npu.yml"
 
 permissions:
   contents: write
