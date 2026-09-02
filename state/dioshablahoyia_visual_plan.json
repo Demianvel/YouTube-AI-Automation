@@ -1,21 +1,21 @@
 {
-  "generated_at": "2026-09-01T14:14:34.074944+00:00",
-  "date": "2026-09-01",
+  "generated_at": "2026-09-02T13:47:19.347879+00:00",
+  "date": "2026-09-02",
   "family_order": [
-    "symbols_of_faith",
-    "jesus_and_prayer",
     "biblical_stories",
     "creation_and_nature",
+    "symbols_of_faith",
+    "jesus_and_prayer",
     "norway"
   ],
-  "featured_location": "symbols_of_faith",
+  "featured_location": "biblical_stories",
   "featured_norway_regions": [
     "Lofoten",
     "Geirangerfjord",
     "Tromso",
     "Senja"
   ],
-  "featured_biblical_story": "Noah's Ark",
+  "featured_biblical_story": "rotating biblical story",
   "forced_daily_visual_family": null,
   "semantic_rotation_required": true,
   "policy": "daily deterministic rotation informed by aggregate channel signals; no family is forced every day; no autonomous model retraining",
