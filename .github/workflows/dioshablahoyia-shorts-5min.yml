@@ -2,10 +2,10 @@ name: Dios Habla Hoy IA - 10 Shorts diarios
 
 on:
   schedule:
-    # Argentina UTC-3: 07:30, 09:00, 10:30, 12:00, 13:30,
-    # 15:00, 16:30, 18:00, 19:30 y 21:00.
-    - cron: "30 10,13,16,19,22 * * *"
-    - cron: "0 0,12,15,18,21 * * *"
+    # Watch hourly from 07:20 through 23:20 Argentina (UTC-3).
+    # This is a watchdog, not an instruction to exceed the 10/day cap.
+    - cron: "20 10-23 * * *"
+    - cron: "20 0-2 * * *"
   workflow_dispatch:
   push:
     paths:
@@ -25,6 +25,7 @@ jobs:
     timeout-minutes: 10
     env:
       PYTHONPATH: .
+      TZ: America/Argentina/Buenos_Aires
     steps:
       - uses: actions/checkout@v4
         with:
@@ -34,7 +35,7 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Check daily 10-Short cap
+      - name: Check real daily 10-Short target
         id: quota
         shell: bash
         run: |
@@ -42,29 +43,49 @@ jobs:
           echo "$REPORT"
           ACTUAL="$(printf '%s' "$REPORT" | python -c 'import json,sys; print(json.load(sys.stdin)["short_actual"])')"
           TARGET="$(printf '%s' "$REPORT" | python -c 'import json,sys; print(json.load(sys.stdin)["daily_short_target"])')"
+          echo "actual=$ACTUAL" >> "$GITHUB_OUTPUT"
+          echo "target=$TARGET" >> "$GITHUB_OUTPUT"
           if [ "$ACTUAL" -ge "$TARGET" ]; then
             echo "launch=false" >> "$GITHUB_OUTPUT"
-            echo "Ya hay $ACTUAL/$TARGET Shorts publicados hoy en Argentina; no se supera el tope diario."
+            echo "Objetivo completo: $ACTUAL/$TARGET Shorts reales hoy."
           else
             echo "launch=true" >> "$GITHUB_OUTPUT"
-            echo "Hay $ACTUAL/$TARGET Shorts publicados hoy; se habilita este slot."
+            echo "Faltan $((TARGET-ACTUAL)) Shorts: $ACTUAL/$TARGET confirmados."
           fi
 
-      - name: Lanzar Short fotorrealista biblico
+      - name: Check active premium publishers
         if: steps.quota.outputs.launch == 'true'
+        id: active
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
-          echo "Lanzando Short de @dioshablahoyia: $(date -u +%FT%TZ)"
-          gh workflow run shorts.yml \
-            -R "$GITHUB_REPOSITORY" \
-            --ref main \
-            -f channel=dioshablahoyia \
-            -f content_mode=voice \
-            -f dry_run=false
-          echo "Generacion/publicacion solicitada correctamente."
+          active_for() {
+            gh run list -R "$GITHUB_REPOSITORY" --workflow "$1" --limit 20 --json status \
+              --jq '[.[] | select(.status=="queued" or .status=="pending" or .status=="waiting" or .status=="in_progress")] | length' 2>/dev/null || echo 0
+          }
+          CANON="$(active_for dioshablahoyia-algenib-emergency.yml)"
+          MANUAL="$(active_for dioshablahoyia-two-premium-now.yml)"
+          if [ "$CANON" -gt 0 ] || [ "$MANUAL" -gt 0 ]; then
+            echo "dispatch=false" >> "$GITHUB_OUTPUT"
+            echo "Ya existe publisher premium activo (canonical=$CANON manual=$MANUAL); no se duplica."
+          else
+            echo "dispatch=true" >> "$GITHUB_OUTPUT"
+            echo "No hay publisher activo; se habilita recuperacion premium."
+          fi
 
-      - name: Daily target already complete
-        if: steps.quota.outputs.launch != 'true'
-        run: echo "Objetivo diario de 10 Shorts ya cumplido; este slot se omite."
+      - name: Launch canonical premium hybrid recovery
+        if: steps.quota.outputs.launch == 'true' && steps.active.outputs.dispatch == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          echo "Solicitando recuperacion premium para completar ${ACTUAL:-${{ steps.quota.outputs.actual }}}/${TARGET:-${{ steps.quota.outputs.target }}} -> 10/10"
+          gh workflow run dioshablahoyia-algenib-emergency.yml \
+            -R "$GITHUB_REPOSITORY" \
+            --ref main
+          echo "Publisher premium Algenib/Qwen solicitado."
+
+      - name: No launch required
+        if: steps.quota.outputs.launch != 'true' || steps.active.outputs.dispatch != 'true'
+        run: echo "Sin lanzamiento adicional: objetivo completo o publisher ya activo."
