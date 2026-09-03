@@ -209,10 +209,17 @@ def validate_short_visuals(workdir: Path, previous: list[dict], metadata: dict) 
         nearest = min(near_recent, near_current)
         provider = providers[index] if index < len(providers) else ""
         effective_threshold = _provider_distance_threshold(provider, threshold)
-        if strict and nearest <= effective_threshold:
+        direct_locked_transform = "direct cinematic reference transform" in provider.lower()
+        too_close = (
+            nearest < effective_threshold
+            if direct_locked_transform
+            else nearest <= effective_threshold
+        )
+        if strict and too_close:
+            comparator = "<" if direct_locked_transform else "<="
             raise RuntimeError(
                 f"FRESH_VISUAL_GUARD: {path.name} es demasiado parecida a una imagen anterior "
-                f"(distancia perceptual {nearest} <= {effective_threshold})."
+                f"(distancia perceptual {nearest} {comparator} {effective_threshold})."
             )
 
         current_exact.add(exact)
@@ -237,7 +244,7 @@ def validate_short_visuals(workdir: Path, previous: list[dict], metadata: dict) 
     metadata["visual_asset_sha256"] = sha_values
     metadata["visual_asset_dhash"] = dhash_values
     metadata["visual_freshness_verified"] = True
-    metadata["visual_fingerprint_mode"] = "sha256_plus_256bit_dhash_plus_provider_aware_threshold_v5"
+    metadata["visual_fingerprint_mode"] = "sha256_plus_256bit_dhash_plus_provider_aware_threshold_v6"
     metadata["visual_perceptual_distance_threshold"] = threshold
     metadata["visual_perceptual_applied_thresholds"] = applied_thresholds
     metadata["visual_perceptual_nearest_distances"] = perceptual_distances
