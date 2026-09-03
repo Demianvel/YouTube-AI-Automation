@@ -11,9 +11,11 @@ TOKEN_FILE="${TMPDIR:-$HOME}/yt-dioshablahoyia-token.json"
 DOWNLOAD_DIR="/storage/emulated/0/Download"
 REQUIRED_COMMENT_SCOPE="https://www.googleapis.com/auth/youtube.force-ssl"
 BACKFILL_VIDEO_ID="${DIOS_BACKFILL_VIDEO_ID:-A4p_vWPLfMI}"
+HISTORY_TMP="${TMPDIR:-$HOME}/dioshablahoyia-history.jsonl"
+TRIGGER_PATH="triggers/dioshablahoyia-algenib-emergency.txt"
 
 cleanup() {
-  rm -f "$TOKEN_FILE"
+  rm -f "$TOKEN_FILE" "$HISTORY_TMP"
 }
 trap cleanup EXIT
 
@@ -143,8 +145,83 @@ fi
 echo "OAuth verify run: $VERIFY_RUN"
 gh run watch -R "$REPO" "$VERIFY_RUN" --exit-status
 
+# Publicar tiene prioridad. Tras renovar OAuth, cuenta solo Shorts de hoy con
+# video_id real y activa exclusivamente el recuperador Algenib mediante su
+# trigger si no existe un exact-two manual ni otro Algenib activo.
 echo ""
-echo "OAuth confirmado. Reparando el comentario CTA del Short ya publicado $BACKFILL_VIDEO_ID..."
+echo "OAuth confirmado. Verificando objetivo diario de 10 Shorts premium..."
+gh api "repos/$REPO/contents/state/history.jsonl?ref=main" --jq .content \
+  | tr -d '\n' \
+  | base64 -d > "$HISTORY_TMP"
+
+TODAY_COUNT="$(python - "$HISTORY_TMP" <<'PY'
+import json
+import sys
+from datetime import datetime, timezone
+from pathlib import Path
+from zoneinfo import ZoneInfo
+
+path = Path(sys.argv[1])
+zone = ZoneInfo("America/Argentina/Buenos_Aires")
+today = datetime.now(zone).date()
+count = 0
+for raw in path.read_text(encoding="utf-8").splitlines():
+    try:
+        row = json.loads(raw)
+        if row.get("channel") != "dioshablahoyia" or not str(row.get("video_id") or "").strip():
+            continue
+        dt = datetime.fromisoformat(str(row.get("created_at") or "").replace("Z", "+00:00"))
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        if dt.astimezone(zone).date() == today:
+            count += 1
+    except Exception:
+        continue
+print(count)
+PY
+)"
+rm -f "$HISTORY_TMP"
+echo "Shorts confirmados hoy con video_id real: $TODAY_COUNT/10"
+
+active_for() {
+  gh run list \
+    -R "$REPO" \
+    --workflow "$1" \
+    --limit 30 \
+    --json status \
+    --jq '[.[] | select(.status == "queued" or .status == "pending" or .status == "waiting" or .status == "in_progress")] | length' \
+    2>/dev/null || echo 0
+}
+
+MANUAL_ACTIVE="$(active_for dioshablahoyia-two-premium-now.yml)"
+CANONICAL_ACTIVE="$(active_for dioshablahoyia-algenib-emergency.yml)"
+echo "Publishers activos: exact-two=$MANUAL_ACTIVE algenib=$CANONICAL_ACTIVE"
+
+if [ "$TODAY_COUNT" -ge 10 ]; then
+  echo "Objetivo diario ya completo; no se dispara ningun publisher."
+elif [ "$MANUAL_ACTIVE" -gt 0 ]; then
+  echo "El exact-two premium esta activo; se respeta prioridad y no se dispara otro publisher."
+elif [ "$CANONICAL_ACTIVE" -gt 0 ]; then
+  echo "Ya existe un Algenib canonico activo; no se duplica."
+else
+  echo "Faltan Shorts y no hay publisher canonico activo. Activando SOLO el trigger Algenib."
+  TRIGGER_SHA="$(gh api "repos/$REPO/contents/$TRIGGER_PATH?ref=main" --jq .sha)"
+  TRIGGER_TEXT="$(TZ=America/Argentina/Buenos_Aires date '+%Y-%m-%d %H:%M ART') | OAuth renovado y verificado. Recuperar solo Shorts faltantes hasta 10/10 con video_id real. Voz de Luz / Algenib obligatoria, sin Kokoro, identidad realista de Jesus bloqueada, sin videos largos, Alien NPU local-only zero-external-calls fail-open."
+  TRIGGER_B64="$(printf '%s\n' "$TRIGGER_TEXT" | base64 | tr -d '\n')"
+  gh api \
+    --method PUT \
+    "repos/$REPO/contents/$TRIGGER_PATH" \
+    -f message="chore: resume Algenib Shorts after OAuth reconnect" \
+    -f content="$TRIGGER_B64" \
+    -f sha="$TRIGGER_SHA" \
+    -f branch="main" >/dev/null
+  sleep 5
+  EMERGENCY_RUN="$(gh run list -R "$REPO" --workflow dioshablahoyia-algenib-emergency.yml --limit 1 --json databaseId,status --jq '.[0].databaseId')"
+  echo "Algenib recovery run solicitado: $EMERGENCY_RUN"
+fi
+
+echo ""
+echo "Reparando el comentario CTA del Short ya publicado $BACKFILL_VIDEO_ID..."
 gh workflow run dioshablahoyia-comment.yml \
   -R "$REPO" \
   --ref main \
@@ -163,6 +240,7 @@ echo "Conexion completada."
 echo "Canal verificado: $EXPECTED_HANDLE"
 echo "Secret GitHub actualizado: $SECRET_NAME"
 echo "Scope de comentarios verificado: youtube.force-ssl"
+echo "Recuperacion premium: preparada para completar hasta 10/10 sin duplicar publishers."
 echo "Comentario CTA solicitado para: $BACKFILL_VIDEO_ID"
 echo "NOTA: la API oficial permite publicar el comentario superior, pero no fijarlo/pinnearlo automaticamente."
 echo "El token OAuth fue guardado cifrado en GitHub Actions y el archivo temporal fue eliminado."
