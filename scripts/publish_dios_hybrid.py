@@ -1,7 +1,10 @@
 from __future__ import annotations
 
 import os
+import time
 from pathlib import Path
+
+from googleapiclient.http import MediaFileUpload
 
 from app import pipeline, spiritual_audio, spiritual_image, spiritual_tts, youtube as youtube_module
 from app import spiritual_reference_generation as reference_generation
@@ -115,6 +118,27 @@ def _premium_uniqueness(metadata: dict, previous: list[dict]) -> dict:
     return _ORIGINAL_PIPELINE_UNIQUENESS(metadata, previous)
 
 
+def _set_thumbnail_verified(channel: dict, video_id: str, thumbnail: Path) -> tuple[int, dict]:
+    last_exc: Exception | None = None
+    for attempt in range(1, 6):
+        try:
+            youtube = youtube_module._youtube_for_channel(channel)
+            response = youtube.thumbnails().set(
+                videoId=video_id,
+                media_body=MediaFileUpload(str(thumbnail), mimetype="image/jpeg", resumable=False),
+            ).execute()
+            items = response.get("items") or []
+            if not items:
+                raise RuntimeError(f"YouTube thumbnails.set respondio sin items: {response}")
+            return attempt, response
+        except Exception as exc:
+            last_exc = exc
+            if attempt >= 5:
+                break
+            time.sleep(min(20, 2 * attempt + 1))
+    raise RuntimeError(f"No se pudo confirmar miniatura tras 5 intentos: {last_exc}")
+
+
 def _premium_upload(channel: dict, metadata: dict, video_path: Path) -> str:
     global _LAST_THUMBNAIL_FIELDS
     thumbnail = build_auto_thumbnail(
@@ -126,20 +150,27 @@ def _premium_upload(channel: dict, metadata: dict, video_path: Path) -> str:
     video_id = _ORIGINAL_PIPELINE_UPLOAD(channel, metadata, video_path)
 
     try:
-        youtube_module.set_custom_thumbnail(channel, video_id, thumbnail)
-        metadata["thumbnail_status"] = "uploaded_to_youtube"
-        metadata["thumbnail_upload_status"] = "set"
-        print(f"Miniatura premium 9:16 unica aplicada a {video_id}: {thumbnail.name}")
+        attempts, response = _set_thumbnail_verified(channel, video_id, thumbnail)
+        metadata["thumbnail_status"] = "uploaded_to_youtube_verified_response"
+        metadata["thumbnail_upload_status"] = "set_verified"
+        metadata["thumbnail_upload_attempts"] = attempts
+        metadata["thumbnail_youtube_response_items"] = len(response.get("items") or [])
+        metadata["thumbnail_repair_required"] = False
+        print(f"Miniatura premium 9:16 verificada en YouTube para {video_id}: {thumbnail.name}")
     except Exception as exc:
-        metadata["thumbnail_status"] = f"upload_failed_nonfatal:{type(exc).__name__}"
+        metadata["thumbnail_status"] = f"upload_failed_after_retries:{type(exc).__name__}"
         metadata["thumbnail_upload_status"] = metadata["thumbnail_status"]
-        print(f"Short {video_id} publicado; miniatura personalizada no aplicada: {exc}")
+        metadata["thumbnail_repair_required"] = True
+        metadata["thumbnail_upload_error"] = str(exc)[:700]
+        print(f"Short {video_id} publicado; miniatura requiere reparacion automatica: {exc}")
 
     keys = (
-        "thumbnail_status", "thumbnail_upload_status", "thumbnail_sha256", "thumbnail_dhash",
-        "thumbnail_nearest_distance", "thumbnail_source", "thumbnail_provider",
-        "thumbnail_prompt_hash", "thumbnail_style_id", "thumbnail_layout_id",
-        "thumbnail_aspect", "thumbnail_ai_policy", "thumbnail_openai_fallback_reason",
+        "thumbnail_status", "thumbnail_upload_status", "thumbnail_upload_attempts",
+        "thumbnail_youtube_response_items", "thumbnail_repair_required", "thumbnail_upload_error",
+        "thumbnail_sha256", "thumbnail_dhash", "thumbnail_nearest_distance",
+        "thumbnail_source", "thumbnail_provider", "thumbnail_prompt_hash",
+        "thumbnail_style_id", "thumbnail_layout_id", "thumbnail_aspect",
+        "thumbnail_ai_policy", "thumbnail_openai_fallback_reason",
     )
     _LAST_THUMBNAIL_FIELDS = {key: metadata.get(key) for key in keys if metadata.get(key) is not None}
     return video_id
