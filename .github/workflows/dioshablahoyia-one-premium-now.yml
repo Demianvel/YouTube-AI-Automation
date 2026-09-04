@@ -36,7 +36,7 @@ jobs:
       SPIRITUAL_VOICE_LOCKED: "true"
       SPIRITUAL_VOICEOVER_MODE: "true"
       SPIRITUAL_REQUIRE_PRIMARY_VOICE: "true"
-      SPIRITUAL_ALLOW_QWEN_BACKUP: "true"
+      SPIRITUAL_ALLOW_QWEN_BACKUP: "false"
       TTS_PROVIDER: gemini_tts
       TTS_FALLBACK_KOKORO: "false"
 
@@ -96,7 +96,7 @@ jobs:
           path: ~/.cache/huggingface
           key: dios-qwen3-tts-0.6b-${{ runner.os }}-v2
 
-      - name: Install premium runtime
+      - name: Install fast premium runtime
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y -qq ffmpeg libsndfile1 fonts-dejavu-core git >/dev/null
@@ -111,8 +111,7 @@ jobs:
             "numpy<3,>=1.26" \
             "soundfile>=0.13.1" \
             "huggingface_hub<2,>=0.34.4" \
-            "gradio_client<3,>=1.11.0" \
-            "qwen-tts"
+            "gradio_client<3,>=1.11.0"
 
       - name: Compile exact-one publisher
         run: |
@@ -146,7 +145,21 @@ jobs:
           print('OAUTH_OK @dioshablahoyia')
           PY
 
-      - name: Publish exactly one premium Short now
+      - name: Publish exactly one premium Short with Algenib
+        id: algenib
+        continue-on-error: true
+        env:
+          SPIRITUAL_ALLOW_QWEN_BACKUP: "false"
+        run: python scripts/dioshablahoyia_publish_one_now.py
+
+      - name: Install Qwen backup only if Algenib could not publish
+        if: steps.algenib.outcome != 'success'
+        run: pip install -q "qwen-tts"
+
+      - name: Retry exactly one Short with Qwen backup enabled
+        if: steps.algenib.outcome != 'success'
+        env:
+          SPIRITUAL_ALLOW_QWEN_BACKUP: "true"
         run: python scripts/dioshablahoyia_publish_one_now.py
 
       - name: Persist confirmed Short
