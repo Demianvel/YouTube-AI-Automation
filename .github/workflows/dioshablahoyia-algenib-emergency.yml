@@ -62,10 +62,7 @@ jobs:
       SPIRITUAL_ALLOW_SYMBOLIC_JESUS_FALLBACK: "false"
       SPIRITUAL_ALLOW_LOCAL_PROCEDURAL_VISUAL: "false"
 
-      # ChatGPT/OpenAI image generation is the first thumbnail provider when
-      # OPENAI_API_KEY exists. If the secret is absent or the image call fails,
-      # the publisher automatically falls back to a fresh premium video visual.
-      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY || secrets.OPENAI_KEY || secrets.OPENAI_API_TOKEN || secrets.OPENAI_TOKEN || secrets.CHATGPT_API_KEY }}
       OPENAI_IMAGE_MODEL: gpt-image-2
 
       TTS_PROVIDER: gemini_tts
@@ -127,9 +124,13 @@ jobs:
             app/spiritual_auto_thumbnail.py \
             app/spiritual_thumbnail.py \
             app/dios_premium_editorial_v8.py \
+            scripts/probe_openai_image_api.py \
             scripts/publish_dios_hybrid.py \
             scripts/dioshablahoyia_catchup_shorts_hybrid.py \
             scripts/dioshablahoyia_watchdog.py
+
+      - name: Probe OpenAI image provider
+        run: python scripts/probe_openai_image_api.py || true
 
       - name: Verify OAuth and channel identity
         run: |
