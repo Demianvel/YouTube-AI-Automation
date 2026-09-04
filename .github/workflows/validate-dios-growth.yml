@@ -10,6 +10,7 @@ on:
       - "scripts/publish_dios_*.py"
       - "scripts/dioshablahoyia_catchup_shorts_hybrid.py"
       - "scripts/dioshablahoyia_watchdog.py"
+      - "scripts/validate_dios_realistic_visual_policy.py"
       - "config/dioshablahoyia_bible_references.json"
       - "assets/dioshablahoyia/reference/*.jpg"
       - ".github/workflows/dioshablahoyia-*.yml"
@@ -42,6 +43,9 @@ jobs:
       - name: Compile spiritual Python modules
         run: |
           python -m compileall -q app scripts
+
+      - name: Validate realistic biblical visual policy
+        run: python scripts/validate_dios_realistic_visual_policy.py
 
       - name: Validate continuous voice quality gate
         shell: bash
@@ -142,4 +146,6 @@ jobs:
           grep -q 'scripts/dioshablahoyia_catchup_shorts_hybrid.py' .github/workflows/dioshablahoyia-algenib-emergency.yml
           grep -q 'Qwen/Qwen3-TTS-12Hz-0.6B-CustomVoice' .github/workflows/dioshablahoyia-algenib-emergency.yml
           grep -q 'black-forest-labs/FLUX.1-schnell' .github/workflows/dioshablahoyia-algenib-emergency.yml
+          grep -q 'realistic_biblical_premium_v5' .github/workflows/dioshablahoyia-shorts-5min.yml
+          grep -q 'validate_dios_realistic_visual_policy.py' .github/workflows/dioshablahoyia-shorts-5min.yml
           echo "Current 10-Short premium architecture validation OK"
