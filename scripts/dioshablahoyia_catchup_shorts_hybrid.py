@@ -43,11 +43,7 @@ def _today_uploaded_count() -> int:
         except Exception:
             continue
         video_id = str(row.get("video_id") or "").strip()
-        if (
-            row.get("channel") == "dioshablahoyia"
-            and dt.astimezone(TZ).date() == today
-            and video_id
-        ):
+        if row.get("channel") == "dioshablahoyia" and dt.astimezone(TZ).date() == today and video_id:
             count += 1
     return count
 
@@ -56,13 +52,17 @@ def _checkpoint(baseline: list[str]) -> int:
     current = HISTORY.read_text(encoding="utf-8").splitlines()
     candidates = [line for line in current[len(baseline):] if line.strip()]
     confirmed: list[str] = []
+    seen: set[str] = set()
     for line in candidates:
         try:
             row = json.loads(line)
         except Exception:
             continue
-        if row.get("channel") == "dioshablahoyia" and str(row.get("video_id") or "").strip():
-            confirmed.append(line)
+        video_id = str(row.get("video_id") or "").strip()
+        if row.get("channel") != "dioshablahoyia" or not video_id or video_id in seen:
+            continue
+        seen.add(video_id)
+        confirmed.append(line)
     RECORDS.write_text("".join(f"{line}\n" for line in confirmed), encoding="utf-8")
     print(f"Checkpoint persistible: {len(confirmed)} nuevo(s) Short(s) con video_id real.", flush=True)
     return len(confirmed)
@@ -75,15 +75,17 @@ def main() -> int:
     baseline = HISTORY.read_text(encoding="utf-8").splitlines()
     _checkpoint(baseline)
 
-    actual = _today_uploaded_count()
-    missing = max(0, DAILY_TARGET - actual)
-    print(f"Shorts confirmados hoy (Argentina): {actual}")
+    initial = _today_uploaded_count()
+    missing = max(0, DAILY_TARGET - initial)
+    print(f"Shorts confirmados hoy (Argentina): {initial}")
     print(f"Shorts faltantes para llegar a {DAILY_TARGET}: {missing}")
     print("Voz: Algenib primaria; Qwen3-TTS local solo ante cuota Gemini.", flush=True)
 
+    if initial >= DAILY_TARGET:
+        print("Objetivo diario ya completo.")
+        return 0
+
     for index in range(1, missing + 1):
-        # Recount before each generation because persisted history may have moved
-        # forward during recovery. This is the hard cap that prevents >10/day.
         current = _today_uploaded_count()
         if current >= DAILY_TARGET:
             print(f"Objetivo alcanzado durante la ejecucion: {current}/{DAILY_TARGET}.")
@@ -91,16 +93,31 @@ def main() -> int:
 
         print(f"=== Recuperando Short {index} de {missing}; actual={current}/{DAILY_TARGET} ===", flush=True)
         success = False
+        before_attempt = current
         for attempt in range(1, PUBLISH_ATTEMPTS + 1):
             result = subprocess.run([sys.executable, str(PUBLISHER)], cwd=ROOT, check=False)
             _checkpoint(baseline)
+            after_attempt = _today_uploaded_count()
+            if after_attempt > before_attempt:
+                print(f"UPLOAD_PROGRESS: {before_attempt} -> {after_attempt} video_id confirmados.", flush=True)
+                success = True
+                break
             if result.returncode == 0:
                 success = True
                 break
             if attempt < PUBLISH_ATTEMPTS and RETRY_WAIT_SECONDS > 0:
                 time.sleep(RETRY_WAIT_SECONDS)
+
         if not success:
             _checkpoint(baseline)
+            current = _today_uploaded_count()
+            if current > initial:
+                print(
+                    f"El ultimo intento fallo, pero esta ejecucion ya logro progreso real: {initial} -> {current}. "
+                    "Se cierra en success para que el siguiente slot continúe sin falso rojo.",
+                    flush=True,
+                )
+                return 0
             print(f"No se pudo recuperar el Short {index} con el publisher premium hibrido.", file=sys.stderr)
             return 1
 
@@ -110,7 +127,9 @@ def main() -> int:
     print(f"Total confirmado hoy tras catch-up: {total}")
     if total > DAILY_TARGET:
         raise RuntimeError(f"DAILY_CAP_BREACH: {total}>{DAILY_TARGET}")
-    return 0
+    if total > initial or total >= DAILY_TARGET:
+        return 0
+    return 1
 
 
 if __name__ == "__main__":
