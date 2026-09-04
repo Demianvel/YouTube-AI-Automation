@@ -22,7 +22,7 @@ jobs:
       PYTHONPATH: .
       TZ: America/Argentina/Buenos_Aires
       YOUTUBE_TOKEN_DIOSHABLAHOYIA: ${{ secrets.YOUTUBE_TOKEN_DIOSHABLAHOYIA }}
-      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY || secrets.OPENAI_KEY || secrets.OPENAI_API_TOKEN || secrets.OPENAI_TOKEN || secrets.CHATGPT_API_KEY }}
       OPENAI_IMAGE_MODEL: gpt-image-2
       SPIRITUAL_THUMBNAIL_DHASH_MIN_DISTANCE: "20"
 
@@ -43,7 +43,10 @@ jobs:
             "google-auth>=2.40.0" \
             "Pillow>=11.0.0" \
             "requests>=2.32.0"
-          python -m py_compile app/spiritual_auto_thumbnail.py scripts/repair_dios_short_thumbnail.py
+          python -m py_compile app/spiritual_auto_thumbnail.py scripts/probe_openai_image_api.py scripts/repair_dios_short_thumbnail.py
+
+      - name: Probe OpenAI image provider
+        run: python scripts/probe_openai_image_api.py || true
 
       - name: Repair and verify custom thumbnail
         run: |
