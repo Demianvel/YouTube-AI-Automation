@@ -39,7 +39,7 @@ jobs:
           python-version: "3.11"
 
       - name: Compile daily guard
-        run: python -m py_compile scripts/dioshablahoyia_watchdog.py
+        run: python -m py_compile scripts/dioshablahoyia_watchdog.py app/dios_realistic_visual_policy.py
 
       - name: Count confirmed Shorts
         id: quota
@@ -68,21 +68,23 @@ jobs:
             gh run list -R "$GITHUB_REPOSITORY" --workflow "$1" --limit 30 --json status --jq '[.[] | select(.status == "queued" or .status == "pending" or .status == "waiting" or .status == "in_progress")] | length'
           }
           CANONICAL="$(active_count dioshablahoyia-algenib-emergency.yml)"
-          MANUAL="$(active_count dioshablahoyia-two-premium-now.yml)"
+          TWO_MANUAL="$(active_count dioshablahoyia-two-premium-now.yml)"
+          ONE_MANUAL="$(active_count dioshablahoyia-one-premium-now.yml)"
           echo "canonical=$CANONICAL" >> "$GITHUB_OUTPUT"
-          echo "manual=$MANUAL" >> "$GITHUB_OUTPUT"
-          if [ "$CANONICAL" -eq 0 ] && [ "$MANUAL" -eq 0 ]; then
+          echo "two_manual=$TWO_MANUAL" >> "$GITHUB_OUTPUT"
+          echo "one_manual=$ONE_MANUAL" >> "$GITHUB_OUTPUT"
+          if [ "$CANONICAL" -eq 0 ] && [ "$TWO_MANUAL" -eq 0 ] && [ "$ONE_MANUAL" -eq 0 ]; then
             echo "ready=true" >> "$GITHUB_OUTPUT"
           else
             echo "ready=false" >> "$GITHUB_OUTPUT"
-            echo "Publisher premium ya activo; no se crea duplicado. canonical=$CANONICAL manual=$MANUAL"
+            echo "Publisher premium ya activo; no se crea duplicado. canonical=$CANONICAL two_manual=$TWO_MANUAL one_manual=$ONE_MANUAL"
           fi
 
       - name: Trigger canonical premium recovery through file
         if: steps.quota.outputs.missing == 'true' && steps.active.outputs.ready == 'true'
         shell: bash
         run: |
-          printf '%s\n' "$(TZ=America/Argentina/Buenos_Aires date '+%Y-%m-%d %H:%M ART') | Continue only missing Dios Habla Hoy IA Shorts until exactly 10/10 real video_id. Premium v8. Algenib first, local Qwen backup only when needed, no Kokoro. Fresh unique thumbnails and fresh diverse realistic synthetic biblical visuals. No long videos while below target." > triggers/dioshablahoyia-algenib-emergency.txt
+          printf '%s\n' "$(TZ=America/Argentina/Buenos_Aires date '+%Y-%m-%d %H:%M ART') | Continue only missing Dios Habla Hoy IA Shorts until exactly 10/10 real video_id. Premium realistic_biblical_premium_v5. Algenib first, local Qwen backup only when needed, no Kokoro. GPT-Image-2 premium thumbnails. Fresh realistic synthetic Jesus variants and beautiful landscapes: Norway fjords, mountains, lakes, Noah's Ark and believable biblical environments. No triangles, sacred geometry, cartoon, clipart or abstract-symbol main visuals. Rotate character, location, lighting and composition. No long videos while below target." > triggers/dioshablahoyia-algenib-emergency.txt
           git config user.name youtube-ai-bot
           git config user.email actions@users.noreply.github.com
           git add triggers/dioshablahoyia-algenib-emergency.txt
