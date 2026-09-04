@@ -43,10 +43,10 @@ def _local_day(value: str):
         return None
 
 
-def _is_uploaded(row: dict) -> bool:
-    status = str(row.get("status") or row.get("publish_status") or "").lower()
-    video_id = str(row.get("video_id") or "").strip()
-    return status in {"uploaded", "published", "success"} or bool(video_id)
+def _is_confirmed_upload(row: dict) -> bool:
+    # A green workflow, a generated file or a textual status is not proof of a
+    # YouTube publication. The daily target counts only a concrete video id.
+    return bool(str(row.get("video_id") or "").strip())
 
 
 def main() -> None:
@@ -58,7 +58,7 @@ def main() -> None:
         1
         for row in _rows(SHORT_HISTORY)
         if str(row.get("channel")) == "dioshablahoyia"
-        and _is_uploaded(row)
+        and _is_confirmed_upload(row)
         and _local_day(str(row.get("created_at") or "")) == today
     )
 
@@ -66,11 +66,11 @@ def main() -> None:
     long_actual = sum(
         1
         for row in _rows(LONG_HISTORY)
-        if _is_uploaded(row)
+        if _is_confirmed_upload(row)
         and _local_day(str(row.get("created_at") or row.get("published_at") or "")) == today
     )
 
-    short_missing = max(0, short_expected - short_actual)
+    short_missing = max(0, DAILY_SHORT_TARGET - short_actual)
     long_missing = max(0, long_expected - long_actual)
     recovery_minutes = None
     if long_missing:
@@ -89,6 +89,7 @@ def main() -> None:
         "long_actual": long_actual,
         "long_missing": long_missing,
         "long_recovery_minutes": recovery_minutes,
+        "confirmation_rule": "non_empty_video_id_only",
     }
     print(json.dumps(result, ensure_ascii=False))
 
