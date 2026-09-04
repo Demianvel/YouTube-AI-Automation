@@ -15,8 +15,6 @@ on:
   push:
     paths: ["triggers/dioshablahoyia-long.txt"]
   schedule:
-    # GitHub cron usa UTC. 18:00 UTC = 15:00 en Argentina (UTC-3).
-    # Normalmente publica sabado y domingo. El limite semanal impide superar 2 largos.
     - cron: "0 18 * * 6"
     - cron: "0 18 * * 0"
 
@@ -50,10 +48,15 @@ jobs:
       SPIRITUAL_LONG_LIPSYNC_ENABLED: "false"
       SPIRITUAL_REQUIRE_FRESH_VISUAL: "true"
       SPIRITUAL_VISUAL_PHASH_MAX_DISTANCE: "7"
+      SPIRITUAL_THUMBNAIL_DHASH_MIN_DISTANCE: "20"
       SPIRITUAL_ALLOW_FREE_FRESH_FALLBACK: "true"
       SPIRITUAL_ALLOW_STILL_FALLBACK: "true"
       SPIRITUAL_VISUAL_VARIETY_LEVEL: maximum
       SPIRITUAL_EDITORIAL_VARIETY_LEVEL: high
+
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      OPENAI_IMAGE_MODEL: gpt-image-2
+
       TTS_PROVIDER: gemini_tts
       TTS_FALLBACK_KOKORO: "false"
       KOKORO_VOICE: em_alex
@@ -170,7 +173,7 @@ jobs:
           test "$GEMINI_TTS_VOICE" = "Algenib"
           test "$SPIRITUAL_REQUIRE_PRIMARY_VOICE" = "true"
           test "$SPIRITUAL_VOICE_LOCKED" = "true"
-          python -m py_compile app/spiritual_long_fresh_visual.py app/spiritual_long_resilience.py app/spiritual_tts.py app/dios_visual_integrity.py scripts/publish_dios_long_fresh.py
+          python -m py_compile app/spiritual_auto_thumbnail.py app/spiritual_long_fresh_visual.py app/spiritual_long_resilience.py app/spiritual_tts.py app/dios_visual_integrity.py scripts/publish_dios_long_fresh.py
 
       - name: Publish fresh long video
         if: env.SKIP_LONG != 'true'
