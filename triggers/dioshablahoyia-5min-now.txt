@@ -1,2 +1,1 @@
-trigger scheduler repair verification - 2026-08-15T14:49-03:00
-Objetivo: validar watchdog con PYTHONPATH y respetar el limite diario de 10 Shorts.
+2026-09-03 21:09 ART | Verify repaired 10 Shorts scheduler. Count only real non-empty video_id for @dioshablahoyia. If below 10/10 and no canonical or exact-two publisher is active, dispatch only dioshablahoyia-algenib-emergency.yml on main. Premium v8: Algenib first, Qwen local quota backup, unique thumbnail guard, mixed fresh FLUX symbolic biblical visuals plus locked recurring synthetic Jesus identity, no Kokoro, no duplicate publisher, hard stop at 10/10.
