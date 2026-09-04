@@ -1,0 +1,177 @@
+name: Dios Habla Hoy IA - 1 Short premium ahora
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "triggers/dioshablahoyia-one-premium-now.txt"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: dioshablahoyia-algenib-emergency-publisher
+  cancel-in-progress: true
+
+jobs:
+  publish_one:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    env:
+      PYTHONPATH: .
+      TZ: America/Argentina/Buenos_Aires
+      CHANNEL: dioshablahoyia
+      CONTENT_MODE: voice
+
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      GEMINI_TEXT_MODEL: gemini-3.6-flash
+      GEMINI_TTS_MODEL: gemini-2.5-flash-preview-tts
+      GEMINI_TTS_VOICE: Algenib
+      GEMINI_TTS_MAX_ATTEMPTS: "2"
+      SPIRITUAL_MALE_GEMINI_VOICE: Algenib
+      SPIRITUAL_VOICE_PROFILE: voz_de_luz_serena_original_v1
+      SPIRITUAL_VOICE_BRAND: Voz de Luz
+      SPIRITUAL_VOICE_REFERENCE_MODE: fixed_original_identity_no_speaker_clone
+      SPIRITUAL_VOICE_LOCKED: "true"
+      SPIRITUAL_VOICEOVER_MODE: "true"
+      SPIRITUAL_REQUIRE_PRIMARY_VOICE: "true"
+      SPIRITUAL_ALLOW_QWEN_BACKUP: "true"
+      TTS_PROVIDER: gemini_tts
+      TTS_FALLBACK_KOKORO: "false"
+
+      HF_QWEN_TTS_MODEL: Qwen/Qwen3-TTS-12Hz-0.6B-CustomVoice
+      HF_QWEN_TTS_SPEAKER: Ryan
+      HF_QWEN_TTS_LANGUAGE: Spanish
+      HF_QWEN_TTS_DEVICE: cpu
+      HF_QWEN_CPU_THREADS: "2"
+
+      SPIRITUAL_SHORT_SECONDS: "60"
+      SPIRITUAL_SHORT_SCENE_SECONDS: "10"
+      SPIRITUAL_SHORT_AI_CLIPS: "0"
+      SPIRITUAL_ALLOW_STILL_FALLBACK: "true"
+      SPIRITUAL_FAST_RENDER: "true"
+      SPIRITUAL_VISUAL_VARIETY_LEVEL: maximum
+      SPIRITUAL_EDITORIAL_VARIETY_LEVEL: maximum
+      SPIRITUAL_CTA_OVERLAY: "false"
+      SPIRITUAL_REQUIRE_FRESH_VISUAL: "true"
+      SPIRITUAL_VISUAL_PHASH_MAX_DISTANCE: "18"
+      SPIRITUAL_LOCAL_VISUAL_PHASH_MAX_DISTANCE: "4"
+      SPIRITUAL_THUMBNAIL_DHASH_MIN_DISTANCE: "20"
+      SPIRITUAL_VISUAL_REFERENCE_LOCKED: "true"
+      SPIRITUAL_VISUAL_REFERENCE_PROFILE: realistic_synthetic_jesus_reference_abc_v1
+      SPIRITUAL_ALLOW_SYMBOLIC_JESUS_FALLBACK: "false"
+      SPIRITUAL_ALLOW_LOCAL_PROCEDURAL_VISUAL: "false"
+
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY || secrets.OPENAI_KEY || secrets.OPENAI_API_TOKEN || secrets.OPENAI_TOKEN || secrets.CHATGPT_API_KEY }}
+      OPENAI_IMAGE_MODEL: gpt-image-2
+
+      HF_TOKEN: ${{ secrets.HF_TOKEN }}
+      HF_ZERO_TOKEN: ${{ secrets.HF_ZERO_TOKEN }}
+      HF_REFERENCE_IMAGE_ENABLED: "true"
+      HF_REFERENCE_EDITOR_ENABLED: "true"
+      HF_REFERENCE_ZERO_SPACE_FIRST: "true"
+      HF_REFERENCE_ZERO_SPACE: black-forest-labs/FLUX.1-Kontext-Dev
+      HF_TEXT_ZERO_ENABLED: "true"
+      HF_TEXT_ZERO_SPACE: black-forest-labs/FLUX.1-schnell
+      HF_INFERENCE_PROVIDER_ENABLED: "false"
+      HF_REMOTE_CIRCUIT_BREAKER: "true"
+      HF_VIDEO_ENABLED: "false"
+
+      MUSIC_PROVIDER: local
+      YOUTUBE_TOKEN_DIOSHABLAHOYIA: ${{ secrets.YOUTUBE_TOKEN_DIOSHABLAHOYIA }}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Cache local Hugging Face voice model
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/huggingface
+          key: dios-qwen3-tts-0.6b-${{ runner.os }}-v2
+
+      - name: Install premium runtime
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg libsndfile1 fonts-dejavu-core git >/dev/null
+          python -m pip install -q --upgrade pip
+          pip install -q \
+            "google-genai>=2.3.0" \
+            "google-api-python-client>=2.170.0" \
+            "google-auth>=2.40.0" \
+            "google-auth-oauthlib>=1.2.2" \
+            "Pillow>=11.0.0" \
+            "requests>=2.32.0" \
+            "numpy<3,>=1.26" \
+            "soundfile>=0.13.1" \
+            "huggingface_hub<2,>=0.34.4" \
+            "gradio_client<3,>=1.11.0" \
+            "qwen-tts"
+
+      - name: Compile exact-one publisher
+        run: |
+          python -m py_compile \
+            app/qwen_voice.py \
+            app/spiritual_auto_thumbnail.py \
+            app/dios_premium_editorial_v8.py \
+            scripts/probe_openai_image_api.py \
+            scripts/publish_dios_hybrid.py \
+            scripts/dioshablahoyia_publish_one_now.py
+
+      - name: Require OpenAI GPT-Image-2
+        run: python scripts/probe_openai_image_api.py --required
+
+      - name: Verify YouTube OAuth
+        run: |
+          test -n "$YOUTUBE_TOKEN_DIOSHABLAHOYIA"
+          python - <<'PY'
+          import json, os
+          from google.oauth2.credentials import Credentials
+          from googleapiclient.discovery import build
+          payload = json.loads(os.environ['YOUTUBE_TOKEN_DIOSHABLAHOYIA'])
+          creds = Credentials.from_authorized_user_info(payload, scopes=payload.get('scopes'))
+          yt = build('youtube', 'v3', credentials=creds, cache_discovery=False)
+          items = yt.channels().list(part='id,snippet', mine=True).execute().get('items') or []
+          if not items:
+              raise SystemExit('OAuth no devolvio ningun canal')
+          actual = str((items[0].get('snippet') or {}).get('customUrl') or '').lower().lstrip('/')
+          if actual != '@dioshablahoyia':
+              raise SystemExit(f'Canal OAuth incorrecto: {actual}')
+          print('OAUTH_OK @dioshablahoyia')
+          PY
+
+      - name: Publish exactly one premium Short now
+        run: python scripts/dioshablahoyia_publish_one_now.py
+
+      - name: Persist confirmed Short
+        if: always()
+        shell: bash
+        run: |
+          RECORDS=/tmp/dios-one-premium/new-short-records.jsonl
+          test -s "$RECORDS" || exit 0
+          cp "$RECORDS" /tmp/dios-one-premium-copy.jsonl
+          git config user.name youtube-ai-bot
+          git config user.email actions@users.noreply.github.com
+          for attempt in 1 2 3 4 5; do
+            git fetch origin main
+            git reset --hard origin/main
+            mkdir -p state
+            touch state/history.jsonl
+            while IFS= read -r record; do
+              test -n "$record" || continue
+              VIDEO_ID="$(printf '%s' "$record" | python -c 'import json,sys; print(str(json.load(sys.stdin).get("video_id") or "").strip())' 2>/dev/null || true)"
+              test -n "$VIDEO_ID" || continue
+              grep -Fq "\"video_id\": \"$VIDEO_ID\"" state/history.jsonl || printf '%s\n' "$record" >> state/history.jsonl
+            done < /tmp/dios-one-premium-copy.jsonl
+            git add state/history.jsonl
+            git diff --cached --quiet && exit 0
+            git commit -m "chore: persist forced one premium Short"
+            git push origin HEAD:main && exit 0
+          done
+          exit 1
