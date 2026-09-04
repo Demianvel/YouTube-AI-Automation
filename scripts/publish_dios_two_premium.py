@@ -4,15 +4,16 @@ import os
 
 from app import pipeline, spiritual_image
 from app.spiritual_visual_motion import render_still_motion
-import scripts.publish_dios_locked as locked
+import scripts.publish_dios_hybrid as hybrid
 
 
 def _premium_animate(source, out, duration: int, index: int) -> None:
     """Higher-quality motion render for manual premium Shorts.
 
-    Keep the existing cinematic motion engine but use a per-Short salt plus
-    smoother 30 fps and a higher-quality H.264 encode. This prevents two manual
-    premium Shorts from reusing the same camera-motion sequence.
+    The manual two-Short publisher now shares the canonical hybrid publisher,
+    so voice identity, premium visual guards, automatic unique thumbnails and
+    YouTube thumbnail verification are identical to the daily recovery path.
+    Only the animation quality is overridden here.
     """
     short_salt = os.getenv("SPIRITUAL_MOTION_SALT", "manual-premium").strip() or "manual-premium"
     label = render_still_motion(
@@ -25,15 +26,16 @@ def _premium_animate(source, out, duration: int, index: int) -> None:
         fps=30,
         preset="medium",
         crf=17,
-        salt=f"dios-premium-v5|{short_salt}",
+        salt=f"dios-premium-v6|{short_salt}",
     )
     print(f"Movimiento premium escena {index + 1}: {label}", flush=True)
 
 
 def main() -> dict:
-    locked.configure_locked_publisher()
-    # Override only animation quality. Voice and realistic Jesus identity stay
-    # under the permanent locks installed by configure_locked_publisher().
+    hybrid.configure_hybrid_publisher()
+    # Override only animation quality. The canonical hybrid publisher keeps
+    # Algenib/Voz de Luz, locked synthetic biblical visuals, thumbnail
+    # generation/deduplication and verified YouTube thumbnails.
     spiritual_image._animate = _premium_animate
     result = pipeline.run("dioshablahoyia", dry_run=False, content_mode="voice")
     print(result)
