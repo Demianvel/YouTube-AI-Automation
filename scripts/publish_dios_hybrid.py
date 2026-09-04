@@ -25,7 +25,6 @@ def _allow_qwen_backup() -> bool:
 
 
 def _premium_hybrid_voice(path: Path, text: str) -> str:
-    """Prefer Algenib; use local Qwen3-TTS only when Gemini is quota-blocked."""
     locked._assert_permanent_voice_environment()
     try:
         used = spiritual_tts._gemini_spiritual_voice(path, text)
@@ -57,7 +56,6 @@ def _is_jesus_scene(prompt: str) -> bool:
 
 
 def _premium_visual_download(prompt: str, out: Path, seed: int) -> str:
-    """Use reference identity only when Jesus is visible; generate other scenes fresh."""
     if _is_jesus_scene(prompt):
         return locked._locked_reference_download(prompt, out, seed)
 
@@ -113,8 +111,6 @@ def _premium_visual_upload_guard(channel: dict, metadata: dict) -> None:
 
 
 def _premium_uniqueness(metadata: dict, previous: list[dict]) -> dict:
-    # Generic SEO is useful, but its high-scoring templates can converge. Restore
-    # the least-repetitive v8 packaging immediately before the final spam gate.
     metadata = editorial_v8.restore_unique_packaging(metadata, previous)
     return _ORIGINAL_PIPELINE_UNIQUENESS(metadata, previous)
 
@@ -130,15 +126,14 @@ def _premium_upload(channel: dict, metadata: dict, video_path: Path) -> str:
             metadata["thumbnail_status"] = "uploaded_to_youtube"
             print(f"Miniatura premium unica aplicada a {video_id}: {thumbnail.name}")
         except Exception as exc:
-            # A thumbnail failure must never duplicate or invalidate an already
-            # uploaded Short.
             metadata["thumbnail_status"] = f"upload_failed_nonfatal:{type(exc).__name__}"
             print(f"Short {video_id} publicado; miniatura personalizada no aplicada: {exc}")
 
     keys = (
         "thumbnail_status", "thumbnail_sha256", "thumbnail_dhash",
         "thumbnail_nearest_distance", "thumbnail_source_scene",
-        "thumbnail_provider", "thumbnail_prompt_hash",
+        "thumbnail_provider", "thumbnail_prompt_hash", "thumbnail_layout_id",
+        "thumbnail_unique_policy",
     )
     _LAST_THUMBNAIL_FIELDS = {key: metadata.get(key) for key in keys if metadata.get(key) is not None}
     return video_id
@@ -152,15 +147,12 @@ def _append_history_with_thumbnail(path, record: dict) -> None:
 
 def configure_hybrid_publisher() -> None:
     locked.configure_locked_publisher()
-
     pipeline.generate_metadata = editorial_v8.generate_metadata
     pipeline.validate_spiritual_uniqueness = _premium_uniqueness
     pipeline.upload_video = _premium_upload
     pipeline.append_history = _append_history_with_thumbnail
-
     spiritual_image._download = _premium_visual_download
     youtube_module._enforce_spiritual_visual_guard = _premium_visual_upload_guard
-
     spiritual_audio.make_spiritual_spanish_voice = _premium_hybrid_voice
     spiritual_tts.make_spiritual_spanish_voice = _premium_hybrid_voice
 
