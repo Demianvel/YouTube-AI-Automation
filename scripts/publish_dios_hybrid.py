@@ -7,7 +7,7 @@ from app import pipeline, spiritual_audio, spiritual_image, spiritual_tts, youtu
 from app import spiritual_reference_generation as reference_generation
 from app import dios_premium_editorial_v8 as editorial_v8
 from app.qwen_voice import generate_qwen_premium_voice
-from app.spiritual_thumbnail import build_unique_short_thumbnail
+from app.spiritual_auto_thumbnail import build_auto_thumbnail
 import scripts.publish_dios_fast as fast
 import scripts.publish_dios_locked as locked
 
@@ -117,23 +117,29 @@ def _premium_uniqueness(metadata: dict, previous: list[dict]) -> dict:
 
 def _premium_upload(channel: dict, metadata: dict, video_path: Path) -> str:
     global _LAST_THUMBNAIL_FIELDS
-    thumbnail = build_unique_short_thumbnail(video_path.parent, metadata)
+    thumbnail = build_auto_thumbnail(
+        video_path.parent,
+        metadata,
+        content_type="short",
+        video_path=video_path,
+    )
     video_id = _ORIGINAL_PIPELINE_UPLOAD(channel, metadata, video_path)
 
-    if thumbnail is not None:
-        try:
-            youtube_module.set_custom_thumbnail(channel, video_id, thumbnail)
-            metadata["thumbnail_status"] = "uploaded_to_youtube"
-            print(f"Miniatura premium unica aplicada a {video_id}: {thumbnail.name}")
-        except Exception as exc:
-            metadata["thumbnail_status"] = f"upload_failed_nonfatal:{type(exc).__name__}"
-            print(f"Short {video_id} publicado; miniatura personalizada no aplicada: {exc}")
+    try:
+        youtube_module.set_custom_thumbnail(channel, video_id, thumbnail)
+        metadata["thumbnail_status"] = "uploaded_to_youtube"
+        metadata["thumbnail_upload_status"] = "set"
+        print(f"Miniatura premium 9:16 unica aplicada a {video_id}: {thumbnail.name}")
+    except Exception as exc:
+        metadata["thumbnail_status"] = f"upload_failed_nonfatal:{type(exc).__name__}"
+        metadata["thumbnail_upload_status"] = metadata["thumbnail_status"]
+        print(f"Short {video_id} publicado; miniatura personalizada no aplicada: {exc}")
 
     keys = (
-        "thumbnail_status", "thumbnail_sha256", "thumbnail_dhash",
-        "thumbnail_nearest_distance", "thumbnail_source_scene",
-        "thumbnail_provider", "thumbnail_prompt_hash", "thumbnail_layout_id",
-        "thumbnail_unique_policy",
+        "thumbnail_status", "thumbnail_upload_status", "thumbnail_sha256", "thumbnail_dhash",
+        "thumbnail_nearest_distance", "thumbnail_source", "thumbnail_provider",
+        "thumbnail_prompt_hash", "thumbnail_style_id", "thumbnail_layout_id",
+        "thumbnail_aspect", "thumbnail_ai_policy", "thumbnail_openai_fallback_reason",
     )
     _LAST_THUMBNAIL_FIELDS = {key: metadata.get(key) for key in keys if metadata.get(key) is not None}
     return video_id
