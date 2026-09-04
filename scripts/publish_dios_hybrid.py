@@ -7,11 +7,17 @@ from app import pipeline, spiritual_audio, spiritual_image, spiritual_tts, youtu
 from app import spiritual_reference_generation as reference_generation
 from app import dios_premium_editorial_v8 as editorial_v8
 from app.qwen_voice import generate_qwen_premium_voice
+from app.spiritual_thumbnail import build_unique_short_thumbnail
 import scripts.publish_dios_fast as fast
 import scripts.publish_dios_locked as locked
 
 SYMBOLIC_VISUAL_VERSION = "dios-symbolic-ai-v1"
 SYMBOLIC_FALLBACK_VERSION = "dios-symbolic-fresh-fallback-v1"
+
+_ORIGINAL_PIPELINE_UPLOAD = pipeline.upload_video
+_ORIGINAL_PIPELINE_UNIQUENESS = pipeline.validate_spiritual_uniqueness
+_ORIGINAL_APPEND_HISTORY = pipeline.append_history
+_LAST_THUMBNAIL_FIELDS: dict = {}
 
 
 def _allow_qwen_backup() -> bool:
@@ -21,7 +27,6 @@ def _allow_qwen_backup() -> bool:
 def _premium_hybrid_voice(path: Path, text: str) -> str:
     """Prefer Algenib; use local Qwen3-TTS only when Gemini is quota-blocked."""
     locked._assert_permanent_voice_environment()
-
     try:
         used = spiritual_tts._gemini_spiritual_voice(path, text)
         low = str(used or "").lower()
@@ -32,7 +37,6 @@ def _premium_hybrid_voice(path: Path, text: str) -> str:
     except Exception as exc:
         if not _allow_qwen_backup() or not spiritual_tts._is_gemini_quota_error(exc):
             raise
-
         print(
             "Gemini/Algenib sin cuota. Activando respaldo local Hugging Face Qwen3-TTS; "
             "es una voz premium alternativa, no se etiqueta como Algenib identica.",
@@ -53,13 +57,7 @@ def _is_jesus_scene(prompt: str) -> bool:
 
 
 def _premium_visual_download(prompt: str, out: Path, seed: int) -> str:
-    """Generate a fresh visual according to subject type.
-
-    Jesus-visible scenes preserve the recurring synthetic reference identity.
-    Symbolic/Bible/nature scenes are generated as new frames with FLUX ZeroGPU
-    when available. If remote generation is quota-blocked, use a fresh licensed
-    source instead of recycling a Jesus portrait.
-    """
+    """Use reference identity only when Jesus is visible; generate other scenes fresh."""
     if _is_jesus_scene(prompt):
         return locked._locked_reference_download(prompt, out, seed)
 
@@ -72,11 +70,7 @@ def _premium_visual_download(prompt: str, out: Path, seed: int) -> str:
     )
     try:
         provider = reference_generation._generate_text_zerogpu(
-            reference,
-            synthetic_prompt,
-            out,
-            seed,
-            (1080, 1920),
+            reference, synthetic_prompt, out, seed, (1080, 1920)
         )
         return f"{provider}:{SYMBOLIC_VISUAL_VERSION}:original_synthetic_frame"
     except Exception as exc:
@@ -115,23 +109,58 @@ def _premium_visual_upload_guard(channel: dict, metadata: dict) -> None:
         metadata["visual_mixed_premium_mode"] = True
         metadata["visual_synthetic_disclosure"] = True
 
-    # Run the generic anti-duplicate visual validator after the premium policy.
     locked._ORIGINAL_VISUAL_GUARD(channel, metadata)
+
+
+def _premium_uniqueness(metadata: dict, previous: list[dict]) -> dict:
+    # Generic SEO is useful, but its high-scoring templates can converge. Restore
+    # the least-repetitive v8 packaging immediately before the final spam gate.
+    metadata = editorial_v8.restore_unique_packaging(metadata, previous)
+    return _ORIGINAL_PIPELINE_UNIQUENESS(metadata, previous)
+
+
+def _premium_upload(channel: dict, metadata: dict, video_path: Path) -> str:
+    global _LAST_THUMBNAIL_FIELDS
+    thumbnail = build_unique_short_thumbnail(video_path.parent, metadata)
+    video_id = _ORIGINAL_PIPELINE_UPLOAD(channel, metadata, video_path)
+
+    if thumbnail is not None:
+        try:
+            youtube_module.set_custom_thumbnail(channel, video_id, thumbnail)
+            metadata["thumbnail_status"] = "uploaded_to_youtube"
+            print(f"Miniatura premium unica aplicada a {video_id}: {thumbnail.name}")
+        except Exception as exc:
+            # A thumbnail failure must never duplicate or invalidate an already
+            # uploaded Short.
+            metadata["thumbnail_status"] = f"upload_failed_nonfatal:{type(exc).__name__}"
+            print(f"Short {video_id} publicado; miniatura personalizada no aplicada: {exc}")
+
+    keys = (
+        "thumbnail_status", "thumbnail_sha256", "thumbnail_dhash",
+        "thumbnail_nearest_distance", "thumbnail_source_scene",
+        "thumbnail_provider", "thumbnail_prompt_hash",
+    )
+    _LAST_THUMBNAIL_FIELDS = {key: metadata.get(key) for key in keys if metadata.get(key) is not None}
+    return video_id
+
+
+def _append_history_with_thumbnail(path, record: dict) -> None:
+    enriched = dict(record)
+    enriched.update(_LAST_THUMBNAIL_FIELDS)
+    _ORIGINAL_APPEND_HISTORY(path, enriched)
 
 
 def configure_hybrid_publisher() -> None:
     locked.configure_locked_publisher()
 
-    # Premium editorial v8: broader hooks, stronger topic/visual rotation and a
-    # unique thumbnail concept. Final SEO/anti-spam checks still run in pipeline.
     pipeline.generate_metadata = editorial_v8.generate_metadata
+    pipeline.validate_spiritual_uniqueness = _premium_uniqueness
+    pipeline.upload_video = _premium_upload
+    pipeline.append_history = _append_history_with_thumbnail
 
-    # Subject-aware visual routing. Only visible Jesus scenes use the recurring
-    # identity reference; symbolic scenes are newly generated instead.
     spiritual_image._download = _premium_visual_download
     youtube_module._enforce_spiritual_visual_guard = _premium_visual_upload_guard
 
-    # Narrator: Algenib first, local Qwen backup on quota-only failures.
     spiritual_audio.make_spiritual_spanish_voice = _premium_hybrid_voice
     spiritual_tts.make_spiritual_spanish_voice = _premium_hybrid_voice
 
