@@ -2,12 +2,13 @@ name: Dios Habla Hoy IA - 10 Shorts diarios
 
 on:
   schedule:
-    # Watch hourly from 07:20 through 23:20 Argentina (UTC-3).
-    # This is a watchdog, not an instruction to exceed the 10/day cap.
-    - cron: "20 10-23 * * *"
-    - cron: "20 0-2 * * *"
+    # Argentina UTC-3: 07:30, 09:00, 10:30, 12:00, 13:30,
+    # 15:00, 16:30, 18:00, 19:30 y 21:00.
+    - cron: "30 10,13,16,19,22 * * *"
+    - cron: "0 0,12,15,18,21 * * *"
   workflow_dispatch:
   push:
+    branches: [main]
     paths:
       - "triggers/dioshablahoyia-5min-now.txt"
 
@@ -26,66 +27,72 @@ jobs:
     env:
       PYTHONPATH: .
       TZ: America/Argentina/Buenos_Aires
+      GH_TOKEN: ${{ github.token }}
+
     steps:
       - uses: actions/checkout@v4
         with:
           ref: main
+          fetch-depth: 1
 
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
 
-      - name: Check real daily 10-Short target
+      - name: Count confirmed Shorts
         id: quota
         shell: bash
         run: |
           REPORT="$(python scripts/dioshablahoyia_watchdog.py)"
-          echo "$REPORT"
-          ACTUAL="$(printf '%s' "$REPORT" | python -c 'import json,sys; print(json.load(sys.stdin)["short_actual"])')"
-          TARGET="$(printf '%s' "$REPORT" | python -c 'import json,sys; print(json.load(sys.stdin)["daily_short_target"])')"
+          printf '%s\n' "$REPORT"
+          ACTUAL="$(printf '%s' "$REPORT" | python -c 'import json,sys; print(int(json.load(sys.stdin)["short_actual"]))')"
+          TARGET="$(printf '%s' "$REPORT" | python -c 'import json,sys; print(int(json.load(sys.stdin)["daily_short_target"]))')"
           echo "actual=$ACTUAL" >> "$GITHUB_OUTPUT"
           echo "target=$TARGET" >> "$GITHUB_OUTPUT"
-          if [ "$ACTUAL" -ge "$TARGET" ]; then
-            echo "launch=false" >> "$GITHUB_OUTPUT"
-            echo "Objetivo completo: $ACTUAL/$TARGET Shorts reales hoy."
+          if [ "$ACTUAL" -lt "$TARGET" ]; then
+            echo "missing=true" >> "$GITHUB_OUTPUT"
+            echo "Faltan $((TARGET-ACTUAL)) Shorts confirmados."
           else
-            echo "launch=true" >> "$GITHUB_OUTPUT"
-            echo "Faltan $((TARGET-ACTUAL)) Shorts: $ACTUAL/$TARGET confirmados."
+            echo "missing=false" >> "$GITHUB_OUTPUT"
+            echo "Objetivo diario completo: $ACTUAL/$TARGET."
           fi
 
-      - name: Check active premium publishers
-        if: steps.quota.outputs.launch == 'true'
+      - name: Check premium publisher concurrency
         id: active
-        env:
-          GH_TOKEN: ${{ github.token }}
+        if: steps.quota.outputs.missing == 'true'
         shell: bash
         run: |
-          active_for() {
-            gh run list -R "$GITHUB_REPOSITORY" --workflow "$1" --limit 20 --json status \
-              --jq '[.[] | select(.status=="queued" or .status=="pending" or .status=="waiting" or .status=="in_progress")] | length' 2>/dev/null || echo 0
+          active_count() {
+            gh run list \
+              -R "$GITHUB_REPOSITORY" \
+              --workflow "$1" \
+              --limit 20 \
+              --json status \
+              --jq '[.[] | select(.status == "queued" or .status == "pending" or .status == "waiting" or .status == "in_progress")] | length'
           }
-          CANON="$(active_for dioshablahoyia-algenib-emergency.yml)"
-          MANUAL="$(active_for dioshablahoyia-two-premium-now.yml)"
-          if [ "$CANON" -gt 0 ] || [ "$MANUAL" -gt 0 ]; then
-            echo "dispatch=false" >> "$GITHUB_OUTPUT"
-            echo "Ya existe publisher premium activo (canonical=$CANON manual=$MANUAL); no se duplica."
+          CANONICAL="$(active_count dioshablahoyia-algenib-emergency.yml)"
+          MANUAL="$(active_count dioshablahoyia-two-premium-now.yml)"
+          echo "canonical=$CANONICAL" >> "$GITHUB_OUTPUT"
+          echo "manual=$MANUAL" >> "$GITHUB_OUTPUT"
+          if [ "$CANONICAL" -eq 0 ] && [ "$MANUAL" -eq 0 ]; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
           else
-            echo "dispatch=true" >> "$GITHUB_OUTPUT"
-            echo "No hay publisher activo; se habilita recuperacion premium."
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "Publisher activo; no se crea un duplicado. canonical=$CANONICAL manual=$MANUAL"
           fi
 
-      - name: Launch canonical premium hybrid recovery
-        if: steps.quota.outputs.launch == 'true' && steps.active.outputs.dispatch == 'true'
-        env:
-          GH_TOKEN: ${{ github.token }}
+      - name: Launch canonical premium recovery
+        if: steps.quota.outputs.missing == 'true' && steps.active.outputs.ready == 'true'
         shell: bash
         run: |
-          echo "Solicitando recuperacion premium para completar ${ACTUAL:-${{ steps.quota.outputs.actual }}}/${TARGET:-${{ steps.quota.outputs.target }}} -> 10/10"
           gh workflow run dioshablahoyia-algenib-emergency.yml \
             -R "$GITHUB_REPOSITORY" \
             --ref main
-          echo "Publisher premium Algenib/Qwen solicitado."
+          echo "Recuperacion premium solicitada para completar 10/10."
 
-      - name: No launch required
-        if: steps.quota.outputs.launch != 'true' || steps.active.outputs.dispatch != 'true'
-        run: echo "Sin lanzamiento adicional: objetivo completo o publisher ya activo."
+      - name: Guard result
+        if: always()
+        shell: bash
+        run: |
+          echo "Confirmados al iniciar: ${{ steps.quota.outputs.actual || 'unknown' }}/${{ steps.quota.outputs.target || '10' }}"
+          echo "El scheduler nunca publica por encima del objetivo y nunca duplica un publisher activo."
