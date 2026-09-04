@@ -9,13 +9,14 @@ from googleapiclient.http import MediaFileUpload
 from app import pipeline, spiritual_audio, spiritual_image, spiritual_tts, youtube as youtube_module
 from app import spiritual_reference_generation as reference_generation
 from app import dios_premium_editorial_v8 as editorial_v8
+from app.dios_realistic_visual_policy import VISUAL_POLICY_ID, decorate_scene_prompt
 from app.qwen_voice import generate_qwen_premium_voice
 from app.spiritual_auto_thumbnail import build_auto_thumbnail
 import scripts.publish_dios_fast as fast
 import scripts.publish_dios_locked as locked
 
-SYMBOLIC_VISUAL_VERSION = "dios-symbolic-ai-v1"
-SYMBOLIC_FALLBACK_VERSION = "dios-symbolic-fresh-fallback-v1"
+REALISTIC_VISUAL_VERSION = "dios-realistic-scenic-v5"
+REALISTIC_FALLBACK_VERSION = "dios-realistic-scenic-fallback-v5"
 
 _ORIGINAL_PIPELINE_UPLOAD = pipeline.upload_video
 _ORIGINAL_PIPELINE_UNIQUENESS = pipeline.validate_spiritual_uniqueness
@@ -52,32 +53,51 @@ def _premium_hybrid_voice(path: Path, text: str) -> str:
 def _is_jesus_scene(prompt: str) -> bool:
     low = str(prompt or "").lower()
     markers = (
-        "jesus", "jesús", "christ", "cristo", "recurring synthetic jesus",
+        "jesus", "jesús", "christ", "cristo", "messiah", "mesías",
         "sea of galilee", "disciple", "discípulo",
     )
     return any(marker in low for marker in markers)
 
 
-def _premium_visual_download(prompt: str, out: Path, seed: int) -> str:
-    if _is_jesus_scene(prompt):
-        return locked._locked_reference_download(prompt, out, seed)
-
-    reference = locked._locked_choose_reference(seed)
-    synthetic_prompt = (
-        f"{prompt}. Create an entirely new original AI-generated symbolic biblical frame. "
-        "Photoreal cinematic optics, physically plausible natural light, realistic materials, "
-        "emotionally clear composition, vertical 9:16, no text, no captions, no logo, no watermark, "
-        "no celebrity resemblance, no identifiable real person."
+def _provider_label(provider: str, bundle: dict[str, str], *, fallback: bool) -> str:
+    version = REALISTIC_FALLBACK_VERSION if fallback else REALISTIC_VISUAL_VERSION
+    return (
+        f"{provider}:{version}:{VISUAL_POLICY_ID}:"
+        f"{bundle['scene_family']}:{bundle['character_variant']}:"
+        f"{bundle['location_family']}:{bundle['lighting_mode']}:{bundle['composition_mode']}"
     )
+
+
+def _premium_visual_download(prompt: str, out: Path, seed: int) -> str:
+    require_jesus = _is_jesus_scene(prompt)
+    realistic_prompt, bundle = decorate_scene_prompt(prompt, seed, require_jesus=require_jesus)
+    reference = locked._locked_choose_reference(seed)
+
+    # Use the existing reference-guided ZeroGPU path as a creative guide, but
+    # explicitly ask for a fresh synthetic depiction and a new environment.
+    # This prevents the previous abstract-symbol interpretation while retaining
+    # a reverent, realistic Jesus look.
     try:
         provider = reference_generation._generate_text_zerogpu(
-            reference, synthetic_prompt, out, seed, (1080, 1920)
+            reference,
+            realistic_prompt,
+            out,
+            seed,
+            (1080, 1920),
         )
-        return f"{provider}:{SYMBOLIC_VISUAL_VERSION}:original_synthetic_frame"
+        return _provider_label(provider, bundle, fallback=False)
     except Exception as exc:
-        print(f"FLUX simbolico no disponible ({exc}); buscando una fuente visual fresca no repetida.")
-        provider = fast._fresh_free_media(synthetic_prompt, out, seed, attempts=20)
-        return f"{provider}:{SYMBOLIC_FALLBACK_VERSION}"
+        print(
+            "Generacion realista guiada no disponible "
+            f"({exc}); intentando fuente visual fresca con el mismo prompt realista.",
+            flush=True,
+        )
+
+    # Last-resort path keeps the same strict photographic/scenic prompt. The
+    # provider is still tagged as realistic-v5 and geometric/abstract imagery
+    # is explicitly forbidden by the prompt policy.
+    provider = fast._fresh_free_media(realistic_prompt, out, seed, attempts=24)
+    return _provider_label(provider, bundle, fallback=True)
 
 
 def _premium_visual_upload_guard(channel: dict, metadata: dict) -> None:
@@ -87,26 +107,37 @@ def _premium_visual_upload_guard(channel: dict, metadata: dict) -> None:
             labels = [labels]
         labels = [str(item) for item in labels]
         if not labels:
-            raise RuntimeError("PREMIUM_VISUAL_GUARD: no hay trazabilidad visual antes de YouTube.")
+            raise RuntimeError("REALISTIC_VISUAL_GUARD: no hay trazabilidad visual antes de YouTube.")
 
-        jesus_count = 0
-        symbolic_count = 0
+        realistic_count = 0
+        legacy_reference_count = 0
         for label in labels:
             low = label.lower()
+            if REALISTIC_VISUAL_VERSION in label or REALISTIC_FALLBACK_VERSION in label:
+                if VISUAL_POLICY_ID not in label:
+                    raise RuntimeError(f"REALISTIC_VISUAL_GUARD: escena sin politica v5: {label}")
+                realistic_count += 1
+                continue
             if locked.VISUAL_LOCK_VERSION.lower() in low:
-                if not any(f"reference:{name}" in label for name in locked.REFERENCE_NAMES):
-                    raise RuntimeError(f"PREMIUM_VISUAL_GUARD: Jesus sin referencia autorizada: {label}")
-                jesus_count += 1
+                # Accept historical in-flight frames produced before the v5
+                # switch, but new frames are generated through realistic-v5.
+                legacy_reference_count += 1
                 continue
-            if SYMBOLIC_VISUAL_VERSION in label or SYMBOLIC_FALLBACK_VERSION in label:
-                symbolic_count += 1
-                continue
-            raise RuntimeError(f"PREMIUM_VISUAL_GUARD: proveedor visual no autorizado: {label}")
+            raise RuntimeError(
+                "REALISTIC_VISUAL_GUARD: se rechazo una escena fuera del motor realista premium: "
+                f"{label}"
+            )
 
-        metadata["visual_identity_locked"] = jesus_count > 0
-        metadata["visual_identity_profile"] = "realistic_synthetic_jesus_reference_abc_v1"
-        metadata["visual_symbolic_ai_scene_count"] = symbolic_count
-        metadata["visual_jesus_reference_scene_count"] = jesus_count
+        metadata["visual_identity_locked"] = False
+        metadata["visual_identity_profile"] = "fresh_synthetic_realistic_jesus_rotating_v5"
+        metadata["visual_policy"] = VISUAL_POLICY_ID
+        metadata["visual_realistic_scene_count"] = realistic_count
+        metadata["visual_legacy_reference_scene_count"] = legacy_reference_count
+        metadata["visual_symbolic_ai_scene_count"] = 0
+        metadata["visual_abstract_geometry_allowed"] = False
+        metadata["visual_cartoon_allowed"] = False
+        metadata["visual_beautiful_landscape_required"] = True
+        metadata["visual_character_rotation_required"] = True
         metadata["visual_mixed_premium_mode"] = True
         metadata["visual_synthetic_disclosure"] = True
 
@@ -115,6 +146,10 @@ def _premium_visual_upload_guard(channel: dict, metadata: dict) -> None:
 
 def _premium_uniqueness(metadata: dict, previous: list[dict]) -> dict:
     metadata = editorial_v8.restore_unique_packaging(metadata, previous)
+    metadata["visual_policy"] = VISUAL_POLICY_ID
+    metadata["visual_abstract_geometry_allowed"] = False
+    metadata["visual_character_rotation_required"] = True
+    metadata["visual_beautiful_landscape_required"] = True
     return _ORIGINAL_PIPELINE_UNIQUENESS(metadata, previous)
 
 
@@ -156,7 +191,7 @@ def _premium_upload(channel: dict, metadata: dict, video_path: Path) -> str:
         metadata["thumbnail_upload_attempts"] = attempts
         metadata["thumbnail_youtube_response_items"] = len(response.get("items") or [])
         metadata["thumbnail_repair_required"] = False
-        print(f"Miniatura premium 9:16 verificada en YouTube para {video_id}: {thumbnail.name}")
+        print(f"Miniatura premium realista 9:16 verificada en YouTube para {video_id}: {thumbnail.name}")
     except Exception as exc:
         metadata["thumbnail_status"] = f"upload_failed_after_retries:{type(exc).__name__}"
         metadata["thumbnail_upload_status"] = metadata["thumbnail_status"]
@@ -171,6 +206,8 @@ def _premium_upload(channel: dict, metadata: dict, video_path: Path) -> str:
         "thumbnail_source", "thumbnail_provider", "thumbnail_prompt_hash",
         "thumbnail_style_id", "thumbnail_layout_id", "thumbnail_aspect",
         "thumbnail_ai_policy", "thumbnail_openai_fallback_reason",
+        "thumbnail_scene_family", "thumbnail_character_variant", "thumbnail_location_family",
+        "thumbnail_lighting_mode", "thumbnail_composition_mode",
     )
     _LAST_THUMBNAIL_FIELDS = {key: metadata.get(key) for key in keys if metadata.get(key) is not None}
     return video_id
