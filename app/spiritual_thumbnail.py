@@ -38,11 +38,12 @@ def _hamming(a: str, b: str) -> int:
         return 10_000
 
 
-def _previous_thumbnails(limit: int = 60) -> tuple[set[str], list[str]]:
+def _previous_thumbnails(limit: int = 90) -> tuple[set[str], list[str], set[str]]:
     exact: set[str] = set()
     perceptual: list[str] = []
+    sources: set[str] = set()
     if not HISTORY.exists():
-        return exact, perceptual
+        return exact, perceptual, sources
     rows = HISTORY.read_text(encoding="utf-8").splitlines()[-limit:]
     for raw in rows:
         try:
@@ -53,51 +54,58 @@ def _previous_thumbnails(limit: int = 60) -> tuple[set[str], list[str]]:
             continue
         sha = str(row.get("thumbnail_sha256") or "").strip()
         dh = str(row.get("thumbnail_dhash") or "").strip()
+        source = str(row.get("thumbnail_source_scene") or "").strip()
         if sha:
             exact.add(sha)
         if dh:
             perceptual.append(dh)
-    return exact, perceptual
+        if source:
+            sources.add(source)
+    return exact, perceptual, sources
 
 
 def _seed(metadata: dict) -> int:
     raw = "|".join([
         str(metadata.get("topic") or ""),
         str(metadata.get("thumbnail_prompt_hash") or ""),
+        str(metadata.get("visual_prompt_hashes") or ""),
         os.getenv("GITHUB_RUN_ID", ""),
         os.getenv("GITHUB_RUN_ATTEMPT", ""),
+        os.getenv("DIOS_SOVEREIGN_VARIATION_NONCE", ""),
     ])
     return int(hashlib.sha256(raw.encode("utf-8")).hexdigest()[:16], 16)
 
 
-def _compose(source: Path, out: Path, seed: int, variant: int) -> None:
+def _compose(source: Path, out: Path, seed: int, variant: int) -> str:
     with Image.open(source) as opened:
         src = ImageOps.exif_transpose(opened).convert("RGB")
-        # The background uses the same freshly generated frame but a different
-        # focal crop. This keeps a coherent cinematic palette without reusing an
-        # old thumbnail asset.
-        center_x = 0.42 + (((seed // 7) + variant) % 17) * 0.01
-        center_y = 0.40 + (((seed // 17) + variant) % 13) * 0.01
-        center_x = max(0.32, min(0.68, center_x))
-        center_y = max(0.32, min(0.68, center_y))
-        frame = ImageOps.fit(
-            src,
-            (1280, 720),
-            method=Image.Resampling.LANCZOS,
-            centering=(center_x, center_y),
-        )
-        frame = ImageEnhance.Contrast(frame).enhance(1.08 + 0.02 * (variant % 3))
-        frame = ImageEnhance.Color(frame).enhance(1.04 + 0.015 * (variant % 4))
+        layout = variant % 6
+        cx_options = (0.36, 0.43, 0.50, 0.57, 0.64, 0.47)
+        cy_options = (0.38, 0.46, 0.52, 0.42, 0.58, 0.49)
+        cx = max(0.28, min(0.72, cx_options[layout] + (((seed >> 5) % 9) - 4) * 0.006))
+        cy = max(0.28, min(0.72, cy_options[layout] + (((seed >> 11) % 9) - 4) * 0.006))
+
+        frame = ImageOps.fit(src, (1280, 720), method=Image.Resampling.LANCZOS, centering=(cx, cy))
+
+        # Six restrained cinematic treatments create real layout variation while
+        # preserving the underlying synthetic biblical image and human anatomy.
+        contrast = (1.08, 1.13, 1.05, 1.16, 1.10, 1.07)[layout]
+        color = (1.04, 1.08, 1.02, 1.06, 1.10, 1.03)[layout]
+        brightness = (1.00, 0.98, 1.03, 0.97, 1.01, 1.02)[layout]
+        frame = ImageEnhance.Brightness(frame).enhance(brightness)
+        frame = ImageEnhance.Contrast(frame).enhance(contrast)
+        frame = ImageEnhance.Color(frame).enhance(color)
         frame = ImageEnhance.Sharpness(frame).enhance(1.10)
 
-        # A restrained vignette improves focal hierarchy without text overlays.
-        blurred = frame.filter(ImageFilter.GaussianBlur(radius=18))
-        if variant % 2:
-            overlay = Image.blend(blurred, frame, 0.90)
-        else:
-            overlay = Image.blend(frame, blurred, 0.08)
+        soft = frame.filter(ImageFilter.GaussianBlur(radius=18 + 2 * layout))
+        if layout in {1, 4}:
+            frame = Image.blend(soft, frame, 0.93)
+        elif layout in {2, 5}:
+            frame = Image.blend(frame, soft, 0.06)
+
         out.parent.mkdir(parents=True, exist_ok=True)
-        overlay.save(out, "JPEG", quality=94, optimize=True, progressive=True)
+        frame.save(out, "JPEG", quality=95, optimize=True, progressive=True)
+        return f"layout_{layout}_cx_{cx:.3f}_cy_{cy:.3f}"
 
 
 def build_unique_short_thumbnail(workdir: Path, metadata: dict) -> Path | None:
@@ -107,13 +115,18 @@ def build_unique_short_thumbnail(workdir: Path, metadata: dict) -> Path | None:
         return None
 
     seed = _seed(metadata)
-    exact_history, dh_history = _previous_thumbnails()
-    threshold = max(8, int(os.getenv("SPIRITUAL_THUMBNAIL_DHASH_MIN_DISTANCE", "20")))
+    exact_history, dh_history, source_history = _previous_thumbnails()
+    threshold = max(12, int(os.getenv("SPIRITUAL_THUMBNAIL_DHASH_MIN_DISTANCE", "20")))
     out = workdir / "youtube_thumbnail.jpg"
 
-    for attempt in range(max(6, len(images) * 3)):
-        source = images[(seed + attempt * 5) % len(images)]
-        _compose(source, out, seed, attempt)
+    # Prefer a scene filename not recently used as a thumbnail source when possible.
+    preferred = [p for p in images if p.name not in source_history]
+    pool = preferred or images
+    attempts = max(18, len(pool) * 8)
+
+    for attempt in range(attempts):
+        source = pool[(seed + attempt * 7) % len(pool)]
+        layout_id = _compose(source, out, seed, attempt)
         sha = _sha256(out)
         dh = _dhash(out)
         distance = min((_hamming(dh, old) for old in dh_history), default=10_000)
@@ -124,9 +137,12 @@ def build_unique_short_thumbnail(workdir: Path, metadata: dict) -> Path | None:
         metadata["thumbnail_dhash"] = dh
         metadata["thumbnail_nearest_distance"] = distance
         metadata["thumbnail_source_scene"] = source.name
-        metadata["thumbnail_provider"] = "fresh_ai_scene_cinematic_crop_v1"
+        metadata["thumbnail_layout_id"] = layout_id
+        metadata["thumbnail_provider"] = "fresh_ai_scene_cinematic_rotation_v2"
+        metadata["thumbnail_unique_policy"] = "sha256_plus_dhash_plus_source_rotation"
         return out
 
     metadata["thumbnail_status"] = "freshness_guard_rejected"
+    metadata["thumbnail_unique_policy"] = "rejected_because_no_sufficiently_distinct_candidate"
     out.unlink(missing_ok=True)
     return None
