@@ -7,6 +7,7 @@ import subprocess
 from pathlib import Path
 
 from app import spiritual_long_pipeline as base
+from app.spiritual_auto_thumbnail import build_auto_thumbnail
 from app.spiritual_long_fresh_visual import download_fresh_long_visual
 from app.spiritual_long_resilient_runner import run
 from app.spiritual_long_visual_variety import apply_long_visual_diversity
@@ -28,7 +29,6 @@ def _probe_duration(path: Path) -> float:
 
 
 def _natural_long_voice_fit(path: Path, target_seconds: float) -> None:
-    """Never slow Voz de Luz to fill a long-form timeline."""
     target = float(target_seconds)
     if target <= 1 or not path.exists():
         return
@@ -77,6 +77,26 @@ def _extract_visual_fingerprints(providers: list[str]) -> tuple[list[str], list[
     return sha_values, dhash_values
 
 
+def _thumbnail_metadata_from_result(result: dict) -> dict:
+    path = Path(str(result.get("path") or ""))
+    if not path.exists():
+        return {}
+    meta_path = path.parent / "metadata.json"
+    if not meta_path.exists():
+        return {}
+    try:
+        meta = json.loads(meta_path.read_text(encoding="utf-8"))
+    except Exception:
+        return {}
+    keys = (
+        "thumbnail_status", "thumbnail_upload_status", "thumbnail_sha256", "thumbnail_dhash",
+        "thumbnail_nearest_distance", "thumbnail_source", "thumbnail_provider",
+        "thumbnail_prompt_hash", "thumbnail_style_id", "thumbnail_layout_id",
+        "thumbnail_aspect", "thumbnail_ai_policy", "thumbnail_openai_fallback_reason",
+    )
+    return {key: meta.get(key) for key in keys if meta.get(key) is not None}
+
+
 def _enrich_last_history(result: dict) -> None:
     if not LONG_HISTORY.exists():
         return
@@ -102,6 +122,7 @@ def _enrich_last_history(result: dict) -> None:
     last["voice_cadence_locked"] = True
     last["voice_slow_stretch_forbidden"] = True
     last["long_visual_diversity_version"] = "2026.08.20-semantic-motion-v3"
+    last.update(_thumbnail_metadata_from_result(result))
     raw_lines[-1] = json.dumps(last, ensure_ascii=False)
     LONG_HISTORY.write_text("\n".join(raw_lines) + "\n", encoding="utf-8")
 
@@ -122,6 +143,23 @@ def _fresh_long_motion(source: Path, out: Path, duration: int, index: int) -> No
     print(f"Movimiento cinematografico largo seccion {index + 1}: {label}")
 
 
+def _premium_long_thumbnail(video: Path, workdir: Path) -> Path:
+    meta_path = workdir / "metadata.json"
+    try:
+        metadata = json.loads(meta_path.read_text(encoding="utf-8")) if meta_path.exists() else {}
+    except Exception:
+        metadata = {}
+    thumbnail = build_auto_thumbnail(
+        workdir,
+        metadata,
+        content_type="long",
+        video_path=video,
+    )
+    meta_path.write_text(json.dumps(metadata, ensure_ascii=False, indent=2), encoding="utf-8")
+    print(f"Miniatura premium 16:9 generada: {thumbnail.name}")
+    return thumbnail
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--minutes", required=True, type=int, choices=[10, 15, 25, 30])
@@ -132,6 +170,7 @@ def main() -> None:
     original_fit = base.fit_voice_to_duration
     original_generate = base._generate_metadata
     original_motion = base._image_motion
+    original_thumbnail = base._thumbnail
 
     def _diverse_metadata(channel: dict, minutes: int) -> dict:
         return apply_long_visual_diversity(original_generate(channel, minutes))
@@ -140,6 +179,7 @@ def main() -> None:
     base.fit_voice_to_duration = _natural_long_voice_fit
     base._generate_metadata = _diverse_metadata
     base._image_motion = _fresh_long_motion
+    base._thumbnail = _premium_long_thumbnail
     try:
         result = run(args.minutes, publish=args.publish)
         _enrich_last_history(result)
@@ -148,6 +188,7 @@ def main() -> None:
         base.fit_voice_to_duration = original_fit
         base._generate_metadata = original_generate
         base._image_motion = original_motion
+        base._thumbnail = original_thumbnail
     print(json.dumps(result, ensure_ascii=False))
 
 
