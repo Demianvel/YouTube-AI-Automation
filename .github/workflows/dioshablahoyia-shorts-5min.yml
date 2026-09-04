@@ -38,8 +38,13 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Compile daily guard
-        run: python -m py_compile scripts/dioshablahoyia_watchdog.py app/dios_realistic_visual_policy.py
+      - name: Compile and validate daily realistic visual guard
+        run: |
+          python -m py_compile \
+            scripts/dioshablahoyia_watchdog.py \
+            scripts/validate_dios_realistic_visual_policy.py \
+            app/dios_realistic_visual_policy.py
+          python scripts/validate_dios_realistic_visual_policy.py
 
       - name: Count confirmed Shorts
         id: quota
