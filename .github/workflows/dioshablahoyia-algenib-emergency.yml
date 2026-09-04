@@ -62,13 +62,16 @@ jobs:
       SPIRITUAL_ALLOW_SYMBOLIC_JESUS_FALLBACK: "false"
       SPIRITUAL_ALLOW_LOCAL_PROCEDURAL_VISUAL: "false"
 
+      # ChatGPT/OpenAI image generation is the first thumbnail provider when
+      # OPENAI_API_KEY exists. If the secret is absent or the image call fails,
+      # the publisher automatically falls back to a fresh premium video visual.
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      OPENAI_IMAGE_MODEL: gpt-image-2
+
       TTS_PROVIDER: gemini_tts
       TTS_FALLBACK_KOKORO: "false"
       GEMINI_VIDEO_ENABLED: "false"
 
-      # Visual AI: reference-guided FLUX for visible Jesus; fresh FLUX text
-      # generation for Bible/symbol/nature cutaways. Public ZeroGPU is attempted
-      # first and a circuit breaker moves immediately to a fresh fallback on quota.
       HF_TOKEN: ${{ secrets.HF_TOKEN }}
       HF_ZERO_TOKEN: ${{ secrets.HF_ZERO_TOKEN }}
       HF_REFERENCE_IMAGE_ENABLED: "true"
@@ -121,6 +124,7 @@ jobs:
         run: |
           python -m py_compile \
             app/qwen_voice.py \
+            app/spiritual_auto_thumbnail.py \
             app/spiritual_thumbnail.py \
             app/dios_premium_editorial_v8.py \
             scripts/publish_dios_hybrid.py \
