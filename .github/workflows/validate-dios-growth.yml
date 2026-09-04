@@ -6,6 +6,9 @@ on:
     branches: [main]
     paths:
       - "app/spiritual_*.py"
+      - "app/dios_*.py"
+      - "scripts/publish_dios_*.py"
+      - "scripts/dioshablahoyia_catchup_shorts_hybrid.py"
       - "scripts/dioshablahoyia_watchdog.py"
       - "config/dioshablahoyia_bible_references.json"
       - "assets/dioshablahoyia/reference/*.jpg"
@@ -38,7 +41,7 @@ jobs:
 
       - name: Compile spiritual Python modules
         run: |
-          python -m compileall -q app scripts/dioshablahoyia_watchdog.py
+          python -m compileall -q app scripts
 
       - name: Validate continuous voice quality gate
         shell: bash
@@ -122,13 +125,21 @@ jobs:
         run: |
           python scripts/dioshablahoyia_watchdog.py
 
-      - name: Validate expected daily schedules
+      - name: Validate current 10-Short premium architecture
         shell: bash
         run: |
-          grep -q 'MINUTES="10"' .github/workflows/dioshablahoyia-long.yml
-          grep -q 'MINUTES="15"' .github/workflows/dioshablahoyia-long.yml
-          grep -q 'MINUTES="25"' .github/workflows/dioshablahoyia-long.yml
-          grep -q 'MINUTES="30"' .github/workflows/dioshablahoyia-long.yml
-          ! grep -q 'MINUTES="5"' .github/workflows/dioshablahoyia-long.yml
-          grep -q '10 Shorts diarios' .github/workflows/dioshablahoyia-shorts-5min.yml
-          echo "Daily schedule validation OK"
+          set -euo pipefail
+          python - <<'PY'
+          from app.workers.divine_publisher_4x10 import DAILY_SHORT_TARGET, SHORT_TIMES
+          assert DAILY_SHORT_TARGET == 10, DAILY_SHORT_TARGET
+          assert len(SHORT_TIMES) == 10, SHORT_TIMES
+          assert len(set(SHORT_TIMES)) == 10, SHORT_TIMES
+          print('10-slot worker policy OK:', [x.strftime('%H:%M') for x in SHORT_TIMES])
+          PY
+          grep -q 'name: Dios Habla Hoy IA - 10 Shorts diarios' .github/workflows/dioshablahoyia-shorts-5min.yml
+          grep -q 'dioshablahoyia-algenib-emergency.yml' .github/workflows/dioshablahoyia-shorts-5min.yml
+          ! grep -q 'gh workflow run shorts.yml' .github/workflows/dioshablahoyia-shorts-5min.yml
+          grep -q 'scripts/dioshablahoyia_catchup_shorts_hybrid.py' .github/workflows/dioshablahoyia-algenib-emergency.yml
+          grep -q 'Qwen/Qwen3-TTS-12Hz-0.6B-CustomVoice' .github/workflows/dioshablahoyia-algenib-emergency.yml
+          grep -q 'black-forest-labs/FLUX.1-schnell' .github/workflows/dioshablahoyia-algenib-emergency.yml
+          echo "Current 10-Short premium architecture validation OK"
