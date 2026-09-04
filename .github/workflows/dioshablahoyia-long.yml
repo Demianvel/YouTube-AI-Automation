@@ -54,7 +54,7 @@ jobs:
       SPIRITUAL_VISUAL_VARIETY_LEVEL: maximum
       SPIRITUAL_EDITORIAL_VARIETY_LEVEL: high
 
-      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY || secrets.OPENAI_KEY || secrets.OPENAI_API_TOKEN || secrets.OPENAI_TOKEN || secrets.CHATGPT_API_KEY }}
       OPENAI_IMAGE_MODEL: gpt-image-2
 
       TTS_PROVIDER: gemini_tts
@@ -173,7 +173,11 @@ jobs:
           test "$GEMINI_TTS_VOICE" = "Algenib"
           test "$SPIRITUAL_REQUIRE_PRIMARY_VOICE" = "true"
           test "$SPIRITUAL_VOICE_LOCKED" = "true"
-          python -m py_compile app/spiritual_auto_thumbnail.py app/spiritual_long_fresh_visual.py app/spiritual_long_resilience.py app/spiritual_tts.py app/dios_visual_integrity.py scripts/publish_dios_long_fresh.py
+          python -m py_compile app/spiritual_auto_thumbnail.py app/spiritual_long_fresh_visual.py app/spiritual_long_resilience.py app/spiritual_tts.py app/dios_visual_integrity.py scripts/probe_openai_image_api.py scripts/publish_dios_long_fresh.py
+
+      - name: Probe OpenAI image provider
+        if: env.SKIP_LONG != 'true'
+        run: python scripts/probe_openai_image_api.py || true
 
       - name: Publish fresh long video
         if: env.SKIP_LONG != 'true'
