@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import base64
 import hashlib
-import io
 import json
 import os
 import random
@@ -112,7 +111,7 @@ def _history_fingerprints() -> tuple[set[str], list[str], set[str], set[str]]:
 
 def _seed(metadata: dict, content_type: str) -> int:
     raw = "|".join([
-        "dios-auto-thumbnail-v2",
+        "dios-auto-thumbnail-v3",
         content_type,
         str(metadata.get("title") or ""),
         str(metadata.get("topic") or ""),
@@ -124,11 +123,17 @@ def _seed(metadata: dict, content_type: str) -> int:
     return int(hashlib.sha256(raw.encode("utf-8")).hexdigest()[:16], 16)
 
 
-def _prompt(metadata: dict, content_type: str, seed: int, prompt_history: set[str]) -> tuple[str, str, str]:
+def _prompt(
+    metadata: dict,
+    content_type: str,
+    seed: int,
+    prompt_history: set[str],
+    style_history: set[str],
+) -> tuple[str, str, str]:
     rng = random.Random(seed)
     candidates = list(SYMBOLIC_MOTIFS)
-    rng.shuffle(candidates)
     styles = list(STYLE_MODES)
+    rng.shuffle(candidates)
     rng.shuffle(styles)
     title = " ".join(str(metadata.get("title") or "").split())
     topic = " ".join(str(metadata.get("topic") or "").split())
@@ -136,23 +141,33 @@ def _prompt(metadata: dict, content_type: str, seed: int, prompt_history: set[st
     aspect_label = "vertical 9:16" if content_type == "short" else "horizontal 16:9"
 
     for motif_index, motif in enumerate(candidates):
-        style = styles[motif_index % len(styles)]
-        prompt = (
-            f"Create a completely new original AI-generated YouTube thumbnail for Dios Habla Hoy IA. "
-            f"Format: {aspect_label}. Subject: {motif}. Visual style: {style}. "
-            f"Emotional goal: hope, peace, faith, curiosity and human relevance without fear or manipulation. "
-            f"Context inspiration: title '{title}', topic '{topic}', biblical reference '{bible}'. "
-            "Premium photoreal cinematic quality, physically plausible light, natural skin/material detail, strong focal hierarchy, "
-            "clear subject separation, attractive composition for a small mobile preview. No text, no captions, no logo, no watermark, "
-            "no celebrity, no identifiable real person, no copyrighted character, no plastic CGI, no cartoon."
-        )
-        ph = hashlib.sha256(prompt.encode("utf-8")).hexdigest()[:20]
-        if ph not in prompt_history:
-            style_id = hashlib.sha256(f"{style}|{motif_index}|{content_type}".encode()).hexdigest()[:16]
-            return prompt, ph, style_id
+        for style_index, style in enumerate(styles):
+            style_id = hashlib.sha256(
+                f"{style}|{motif_index}|{style_index}|{content_type}".encode()
+            ).hexdigest()[:16]
+            if style_id in style_history:
+                continue
+            prompt = (
+                "Create a completely new original AI-generated YouTube thumbnail for Dios Habla Hoy IA. "
+                f"Format: {aspect_label}. Subject: {motif}. Visual style: {style}. "
+                "Emotional goal: hope, peace, faith, curiosity and human relevance without fear or manipulation. "
+                f"Context inspiration: title '{title}', topic '{topic}', biblical reference '{bible}'. "
+                "Premium photoreal cinematic quality, physically plausible light, natural skin/material detail, strong focal hierarchy, "
+                "clear subject separation, attractive composition for a small mobile preview. No text, no captions, no logo, no watermark, "
+                "no celebrity, no identifiable real person, no copyrighted character, no plastic CGI, no cartoon."
+            )
+            ph = hashlib.sha256(prompt.encode("utf-8")).hexdigest()[:20]
+            if ph not in prompt_history:
+                return prompt, ph, style_id
 
-    prompt = f"{candidates[0]} unique variation {seed}; {styles[0]}; {aspect_label}; no text"
-    return prompt, hashlib.sha256(prompt.encode()).hexdigest()[:20], hashlib.sha256(str(seed).encode()).hexdigest()[:16]
+    fallback_style = styles[seed % len(styles)]
+    fallback_motif = candidates[(seed // 7) % len(candidates)]
+    prompt = f"{fallback_motif}; {fallback_style}; unique variation {seed}; {aspect_label}; no text"
+    return (
+        prompt,
+        hashlib.sha256(prompt.encode()).hexdigest()[:20],
+        hashlib.sha256(f"fallback|{seed}|{content_type}".encode()).hexdigest()[:16],
+    )
 
 
 def _openai_image(prompt: str, out: Path, content_type: str) -> str:
@@ -189,8 +204,7 @@ def _candidate_sources(workdir: Path) -> list[Path]:
         files.extend(workdir.rglob(pattern))
     result: list[Path] = []
     for path in files:
-        low = path.name.lower()
-        if "thumbnail" in low:
+        if "thumbnail" in path.name.lower():
             continue
         try:
             if path.stat().st_size >= 10_000:
@@ -206,6 +220,14 @@ def _video_frame(video_path: Path, out: Path) -> None:
         "ffmpeg", "-y", "-loglevel", "error", "-ss", "2", "-i", str(video_path),
         "-frames:v", "1", "-q:v", "2", str(out),
     ], check=True)
+
+
+def _save_youtube_safe_jpeg(frame: Image.Image, out: Path, initial_quality: int) -> None:
+    for quality in (initial_quality, 84, 78, 72, 66, 60):
+        frame.save(out, "JPEG", quality=quality, optimize=True, progressive=True)
+        if out.stat().st_size <= 1_900_000:
+            return
+    raise RuntimeError(f"Miniatura demasiado pesada para YouTube: {out.stat().st_size} bytes")
 
 
 def _compose(source: Path, out: Path, content_type: str, seed: int, variant: int) -> None:
@@ -225,10 +247,7 @@ def _compose(source: Path, out: Path, content_type: str, seed: int, variant: int
             soft = frame.filter(ImageFilter.GaussianBlur(radius=7))
             frame = Image.blend(soft, frame, 0.94)
         out.parent.mkdir(parents=True, exist_ok=True)
-        quality = 87 if content_type == "short" else 91
-        frame.save(out, "JPEG", quality=quality, optimize=True, progressive=True)
-        if out.stat().st_size > 1_900_000:
-            frame.save(out, "JPEG", quality=78, optimize=True, progressive=True)
+        _save_youtube_safe_jpeg(frame, out, 87 if content_type == "short" else 91)
 
 
 def build_auto_thumbnail(
@@ -243,7 +262,9 @@ def build_auto_thumbnail(
 
     seed = _seed(metadata, content_type)
     exact_history, dh_history, prompt_history, style_history = _history_fingerprints()
-    prompt, prompt_hash, style_id = _prompt(metadata, content_type, seed, prompt_history)
+    prompt, prompt_hash, style_id = _prompt(
+        metadata, content_type, seed, prompt_history, style_history
+    )
     metadata["thumbnail_prompt"] = prompt
     metadata["thumbnail_prompt_hash"] = prompt_hash
     metadata["thumbnail_style_id"] = style_id
@@ -280,8 +301,7 @@ def build_auto_thumbnail(
         if distance > best_distance and sha not in exact_history:
             best_distance = distance
             best = (sha, dh, variant)
-        style_recent = style_id in style_history and variant < 3
-        if sha not in exact_history and distance > threshold and not style_recent:
+        if sha not in exact_history and distance > threshold:
             metadata["thumbnail_status"] = "generated_unique"
             metadata["thumbnail_sha256"] = sha
             metadata["thumbnail_dhash"] = dh
@@ -289,6 +309,7 @@ def build_auto_thumbnail(
             metadata["thumbnail_layout_id"] = f"{content_type}-layout-{variant}"
             metadata["thumbnail_provider"] = provider
             metadata["thumbnail_source"] = source.name
+            metadata["thumbnail_unique_policy"] = "sha256+dhash+prompt+style rotation"
             return out
 
     if best is None:
@@ -302,4 +323,5 @@ def build_auto_thumbnail(
     metadata["thumbnail_layout_id"] = f"{content_type}-layout-{variant}"
     metadata["thumbnail_provider"] = provider
     metadata["thumbnail_source"] = source.name
+    metadata["thumbnail_unique_policy"] = "sha256+dhash+prompt+style rotation"
     return out
