@@ -7,9 +7,8 @@ on:
     paths:
       - "triggers/dioshablahoyia-daily-guard-now.txt"
   schedule:
-    # 22:10 y 23:20 America/Argentina/Buenos_Aires (GitHub cron usa UTC).
-    - cron: "10 1 * * *"
-    - cron: "20 2 * * *"
+    # Ejecutar cada 3 horas (GitHub cron usa UTC). La propia guardia limita a 10 Shorts por fecha local.
+    - cron: "0 */3 * * *"
 
 permissions:
   contents: write
@@ -185,4 +184,4 @@ jobs:
         run: |
           gh issue create \
             --title "Dios Habla Hoy - guardia estricta no llego a 10 Shorts" \
-            --body "La guardia se nego a cambiar Voz de Luz / Algenib o la identidad visual realista de referencia. Revisar Actions run $GITHUB_RUN_ID."
+            --body "La guardia no completo 10 Shorts o encontro un fallo de identidad/voz. Revisar Actions run $GITHUB_RUN_ID."
