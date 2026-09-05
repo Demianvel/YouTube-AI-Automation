@@ -1,0 +1,26 @@
+name: Clinix MX Windows build
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'clinix-mx/**'
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - name: Restore
+        run: dotnet restore clinix-mx/ClinixMX.csproj
+      - name: Build and test
+        run: dotnet build clinix-mx/ClinixMX.csproj -c Release --no-restore
+      - name: Publish EXE
+        run: dotnet publish clinix-mx/ClinixMX.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o clinix-mx/publish
+      - name: Upload EXE artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ClinixMX-win-x64
+          path: clinix-mx/publish/ClinixMX.exe
+          if-no-files-found: error
