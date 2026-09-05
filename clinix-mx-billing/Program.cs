@@ -1,16 +1,17 @@
-using System.Net;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 
 var builder = WebApplication.CreateBuilder(args);
+builder.Services.AddHttpClient();
 var app = builder.Build();
 
 app.MapGet("/health", () => Results.Ok(new { service = "clinix-mx-billing", status = "ok" }));
 
-app.MapPost("/api/checkout", async (CheckoutRequest request, IConfiguration config, HttpClientFactory http) =>
+app.MapPost("/api/checkout", async (CheckoutRequest request, IConfiguration config, IHttpClientFactory http) =>
 {
-    var priceId = request.Currency?.ToLowerInvariant() switch
+    var currency = request.Currency?.ToLowerInvariant();
+    var priceId = currency switch
     {
         "mxn" => config["Stripe:PriceMxn"] ?? "price_1UCRy4AgBbQ9FA5L0ncvfAlo",
         "usd" => config["Stripe:PriceUsd"] ?? "price_1UCRyGAgBbQ9FA5L6nm4gdfL",
@@ -28,6 +29,8 @@ app.MapPost("/api/checkout", async (CheckoutRequest request, IConfiguration conf
     var cancelUrl = config["App:CancelUrl"] ?? "https://clinix.mx/pago-cancelado";
 
     using var client = http.CreateClient();
+    client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", secret);
+
     using var content = new FormUrlEncodedContent(new Dictionary<string, string>
     {
         ["mode"] = "subscription",
@@ -40,16 +43,14 @@ app.MapPost("/api/checkout", async (CheckoutRequest request, IConfiguration conf
         ["client_reference_id"] = request.LicenseId ?? Guid.NewGuid().ToString("N"),
         ["metadata[product]"] = "clinix-mx",
         ["metadata[plan]"] = "professional",
-        ["metadata[currency] = request.Currency!.ToLowerInvariant()" ] = ""
+        ["metadata[currency]"] = currency!
     });
 
-    content.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/x-www-form-urlencoded");
-    client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", secret);
     var response = await client.PostAsync("https://api.stripe.com/v1/checkout/sessions", content);
     var body = await response.Content.ReadAsStringAsync();
 
     if (!response.IsSuccessStatusCode)
-        return Results.StatusCode((int)response.StatusCode);
+        return Results.Content(body, "application/json", Encoding.UTF8, (int)response.StatusCode);
 
     using var json = JsonDocument.Parse(body);
     var url = json.RootElement.GetProperty("url").GetString();
@@ -71,25 +72,17 @@ app.MapPost("/api/stripe/webhook", async (HttpRequest request, IConfiguration co
 
     using var eventJson = JsonDocument.Parse(payload);
     var eventType = eventJson.RootElement.GetProperty("type").GetString();
-
-    // TODO: persistir eventos idempotentes y actualizar la licencia Clinix.
-    // Eventos principales: checkout.session.completed, invoice.paid,
-    // invoice.payment_failed, customer.subscription.updated/deleted.
     app.Logger.LogInformation("Stripe event received: {EventType}", eventType);
 
+    // Próximo paso: persistir eventos idempotentes y actualizar la licencia Clinix.
+    // Eventos: checkout.session.completed, invoice.paid,
+    // invoice.payment_failed, customer.subscription.updated/deleted.
     return Results.Ok(new { received = true });
 });
 
 app.Run();
 
 public sealed record CheckoutRequest(string? Currency, string? LicenseId);
-
-public sealed class HttpClientFactory
-{
-    private readonly IHttpClientFactory _factory;
-    public HttpClientFactory(IHttpClientFactory factory) => _factory = factory;
-    public HttpClient CreateClient() => _factory.CreateClient();
-}
 
 public static class StripeWebhookVerifier
 {
