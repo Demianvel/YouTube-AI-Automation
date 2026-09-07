@@ -10,7 +10,6 @@ on:
 permissions:
   contents: write
   issues: write
-  actions: read
 
 concurrency:
   group: dioshablahoyia-algenib-emergency-publisher
@@ -23,7 +22,7 @@ jobs:
     env:
       PYTHONPATH: .
       TZ: America/Argentina/Buenos_Aires
-      CHANNEL: dioshablahoyia
+      CHANNEL: dioshabblahoyia
       CONTENT_MODE: voice
       DIOS_CATCHUP_PUBLISH_ATTEMPTS: "2"
       DIOS_CATCHUP_RETRY_WAIT_SECONDS: "8"
@@ -67,7 +66,7 @@ jobs:
       TTS_FALLBACK_KOKORO: "false"
       GEMINI_VIDEO_ENABLED: "false"
       HF_TOKEN: ${{ secrets.HF_TOKEN }}
-      HF_ZERO_TOKEN: ${{ secrets.HF_ZERO_TOKEN || secrets.HF_TOKEN }}
+      HF_ZERO_TOKEN: ${{ secrets.HF_ZERO_TOKEN }}
       HF_REFERENCE_IMAGE_ENABLED: "true"
       HF_REFERENCE_EDITOR_ENABLED: "true"
       HF_REFERENCE_ZERO_SPACE_FIRST: "true"
