@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-09-05T14:58:19.403835+00:00",
+  "generated_at": "2026-09-07T03:28:22.167256+00:00",
   "window_hours": 72,
   "region": "AR",
   "language": "es",
@@ -13,54 +13,54 @@
   "videos_analyzed": 38,
   "top_terms": [
     {
-      "term": "mañana",
-      "samples": 2,
-      "signal_score": 6.5897
-    },
-    {
-      "term": "esperanza",
+      "term": "ansiedad",
       "samples": 1,
-      "signal_score": 6.379
-    },
-    {
-      "term": "amor",
-      "samples": 1,
-      "signal_score": 6.1261
-    },
-    {
-      "term": "salmo 91",
-      "samples": 8,
-      "signal_score": 5.8391
-    },
-    {
-      "term": "fe",
-      "samples": 16,
-      "signal_score": 5.6418
+      "signal_score": 6.7154
     },
     {
       "term": "jesús",
-      "samples": 15,
-      "signal_score": 5.576
+      "samples": 10,
+      "signal_score": 6.3901
+    },
+    {
+      "term": "fe",
+      "samples": 13,
+      "signal_score": 5.9639
+    },
+    {
+      "term": "biblia",
+      "samples": 5,
+      "signal_score": 5.5152
     },
     {
       "term": "dios",
-      "samples": 17,
-      "signal_score": 4.8048
+      "samples": 21,
+      "signal_score": 5.4984
+    },
+    {
+      "term": "noche",
+      "samples": 8,
+      "signal_score": 5.2307
+    },
+    {
+      "term": "salmo 91",
+      "samples": 6,
+      "signal_score": 5.0013
     },
     {
       "term": "oración",
-      "samples": 15,
-      "signal_score": 4.5631
+      "samples": 19,
+      "signal_score": 4.7956
     },
     {
-      "term": "protección",
-      "samples": 1,
-      "signal_score": 4.0757
+      "term": "paz",
+      "samples": 5,
+      "signal_score": 4.4292
     },
     {
       "term": "dormir",
       "samples": 6,
-      "signal_score": 3.8274
+      "signal_score": 4.2568
     }
   ],
   "method": "public_youtube_recent_video_vph_and_engagement_aggregate",
