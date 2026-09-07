@@ -1,6 +1,6 @@
 {
   "version": "dios-growth-engine-v1",
-  "generated_at": "2026-09-05T14:21:33.452540+00:00",
+  "generated_at": "2026-09-07T02:26:44.190956+00:00",
   "channel": "dioshablahoyia",
   "fail_open": true,
   "publishing_must_continue": true,
@@ -20,24 +20,84 @@
   "data_quality": {
     "analytics_api_available": true,
     "videos_scored": 49,
-    "median_recent_views_per_hour": 2.1172,
+    "median_recent_views_per_hour": 2.2509,
     "warnings": []
   },
   "top_outliers": [
+    {
+      "video_id": "1VDz_bD1dkA",
+      "title": "Exodo 14 y avanzar cuando parece no haber salida — enfoq | Fe, paz y esperanza",
+      "published_at": "2026-09-03T20:49:32Z",
+      "bible_reference": "Filipenses 4:6-7",
+      "content_family": "Exodo 14 y avanzar cuando parece no haber salida — enfoque 6",
+      "views": 1138,
+      "views_per_hour": 14.6612,
+      "outlier_ratio": 6.5136,
+      "appeal": 98.7,
+      "engagement": 100.0,
+      "satisfaction": 100.0,
+      "freshness": 85.73,
+      "growth_score": 98.12
+    },
+    {
+      "video_id": "by_qlfjGh_s",
+      "title": "Respirá y recordá esta verdad bíblica | Isaías 41:10",
+      "published_at": "2026-09-03T21:23:21Z",
+      "bible_reference": "Isaías 41:10",
+      "content_family": "Isaias 41 y no vivir dominado por el miedo — enfoque 5",
+      "views": 1153,
+      "views_per_hour": 14.9631,
+      "outlier_ratio": 6.6477,
+      "appeal": 98.81,
+      "engagement": 99.04,
+      "satisfaction": 100.0,
+      "freshness": 85.82,
+      "growth_score": 97.88
+    },
+    {
+      "video_id": "TUkJSmGwvpk",
+      "title": "Una enseñanza de Jesús para transformar este día",
+      "published_at": "2026-09-04T07:25:52Z",
+      "bible_reference": "",
+      "content_family": "",
+      "views": 987,
+      "views_per_hour": 14.7282,
+      "outlier_ratio": 6.5434,
+      "appeal": 98.73,
+      "engagement": 95.71,
+      "satisfaction": 100.0,
+      "freshness": 87.55,
+      "growth_score": 97.02
+    },
+    {
+      "video_id": "_lCYvWLi644",
+      "title": "Exodo 14 y avanzar cuando parece no haber salida — enfoq | Fe, paz y esperanza",
+      "published_at": "2026-09-03T20:30:02Z",
+      "bible_reference": "Filipenses 4:6-7",
+      "content_family": "Exodo 14 y avanzar cuando parece no haber salida — enfoque 2",
+      "views": 476,
+      "views_per_hour": 6.1069,
+      "outlier_ratio": 2.7131,
+      "appeal": 83.61,
+      "engagement": 100.0,
+      "satisfaction": 100.0,
+      "freshness": 85.67,
+      "growth_score": 92.83
+    },
     {
       "video_id": "ojZOrbP3gy0",
       "title": "La Paz que Transforma Tu Corazón | Juan 14:27",
       "published_at": "2026-08-15T12:59:43Z",
       "bible_reference": "Juan 14",
       "content_family": "Juan 14 y la promesa de paz y esperanza",
-      "views": 2544,
-      "views_per_hour": 5.034,
-      "outlier_ratio": 2.3776,
-      "appeal": 79.51,
+      "views": 2546,
+      "views_per_hour": 4.7022,
+      "outlier_ratio": 2.0891,
+      "appeal": 75.16,
       "engagement": 100.0,
       "satisfaction": 100.0,
-      "freshness": 36.69,
-      "growth_score": 86.5
+      "freshness": 34.15,
+      "growth_score": 84.72
     },
     {
       "video_id": "3ihXxti-yks",
@@ -45,29 +105,14 @@
       "published_at": "2026-08-15T13:01:43Z",
       "bible_reference": "Romanos 8:28",
       "content_family": "Romanos 8 y la confianza en el obrar de Dios",
-      "views": 2438,
-      "views_per_hour": 4.8246,
-      "outlier_ratio": 2.2787,
-      "appeal": 78.11,
+      "views": 2439,
+      "views_per_hour": 4.5048,
+      "outlier_ratio": 2.0014,
+      "appeal": 73.66,
       "engagement": 100.0,
       "satisfaction": 100.0,
-      "freshness": 36.69,
-      "growth_score": 86.01
-    },
-    {
-      "video_id": "zj91XdjPY4I",
-      "title": "Cuando el corazón necesita descanso | Mateo 6:25-34",
-      "published_at": "2026-08-17T11:03:14Z",
-      "bible_reference": "Mateo 6:25-34",
-      "content_family": "los gorriones y el cuidado de Dios, Mateo 10:29-31",
-      "views": 1592,
-      "views_per_hour": 3.4661,
-      "outlier_ratio": 1.6371,
-      "appeal": 66.43,
-      "engagement": 100.0,
-      "satisfaction": 100.0,
-      "freshness": 40.2,
-      "growth_score": 82.27
+      "freshness": 34.16,
+      "growth_score": 84.2
     },
     {
       "video_id": "rH4uwy19zwg",
@@ -76,13 +121,28 @@
       "bible_reference": "",
       "content_family": "la parabola del buen samaritano",
       "views": 1845,
-      "views_per_hour": 3.5755,
-      "outlier_ratio": 1.6888,
-      "appeal": 67.56,
+      "views_per_hour": 3.3418,
+      "outlier_ratio": 1.4847,
+      "appeal": 62.83,
       "engagement": 100.0,
       "satisfaction": 100.0,
-      "freshness": 35.92,
-      "growth_score": 82.24
+      "freshness": 33.44,
+      "growth_score": 80.34
+    },
+    {
+      "video_id": "zj91XdjPY4I",
+      "title": "Cuando el corazón necesita descanso | Mateo 6:25-34",
+      "published_at": "2026-08-17T11:03:14Z",
+      "bible_reference": "Mateo 6:25-34",
+      "content_family": "los gorriones y el cuidado de Dios, Mateo 10:29-31",
+      "views": 1592,
+      "views_per_hour": 3.2136,
+      "outlier_ratio": 1.4277,
+      "appeal": 61.4,
+      "engagement": 100.0,
+      "satisfaction": 100.0,
+      "freshness": 37.42,
+      "growth_score": 80.23
     },
     {
       "video_id": "jM0EqTK82X0",
@@ -91,13 +151,13 @@
       "bible_reference": "Mateo 6:25-34",
       "content_family": "los pajaros y la confianza en Dios, reflexion sobre Mateo 6:25-34",
       "views": 1393,
-      "views_per_hour": 3.032,
-      "outlier_ratio": 1.4321,
-      "appeal": 61.51,
+      "views_per_hour": 2.8112,
+      "outlier_ratio": 1.2489,
+      "appeal": 56.51,
       "engagement": 100.0,
       "satisfaction": 100.0,
-      "freshness": 40.19,
-      "growth_score": 80.55
+      "freshness": 37.41,
+      "growth_score": 78.52
     },
     {
       "video_id": "MN5tVRfnVr8",
@@ -106,13 +166,13 @@
       "bible_reference": "Filipenses 4:6-7",
       "content_family": "Josue 1:9 y avanzar con valentia y confianza en Dios",
       "views": 1418,
-      "views_per_hour": 2.9703,
-      "outlier_ratio": 1.4029,
-      "appeal": 60.75,
+      "views_per_hour": 2.7615,
+      "outlier_ratio": 1.2269,
+      "appeal": 55.87,
       "engagement": 100.0,
       "satisfaction": 100.0,
-      "freshness": 38.78,
-      "growth_score": 80.14
+      "freshness": 36.1,
+      "growth_score": 78.16
     },
     {
       "video_id": "HfEIMJqEcoM",
@@ -120,14 +180,14 @@
       "published_at": "2026-08-16T15:39:01Z",
       "bible_reference": "Miqueas 5:2",
       "content_family": "profecia mesianica de Miqueas 5",
-      "views": 1412,
-      "views_per_hour": 2.9496,
-      "outlier_ratio": 1.3931,
-      "appeal": 60.5,
+      "views": 1415,
+      "views_per_hour": 2.7487,
+      "outlier_ratio": 1.2212,
+      "appeal": 55.7,
       "engagement": 100.0,
       "satisfaction": 100.0,
-      "freshness": 38.68,
-      "growth_score": 80.04
+      "freshness": 36.01,
+      "growth_score": 78.09
     },
     {
       "video_id": "0OxyzsShXjI",
@@ -136,13 +196,28 @@
       "bible_reference": "Isaías 41:10",
       "content_family": "Isaias 41:10 y no caminar dominado por el miedo",
       "views": 1406,
-      "views_per_hour": 2.9464,
-      "outlier_ratio": 1.3916,
-      "appeal": 60.46,
+      "views_per_hour": 2.7392,
+      "outlier_ratio": 1.217,
+      "appeal": 55.57,
       "engagement": 100.0,
       "satisfaction": 100.0,
-      "freshness": 38.8,
-      "growth_score": 80.04
+      "freshness": 36.12,
+      "growth_score": 78.06
+    },
+    {
+      "video_id": "n0EVrDDw0yw",
+      "title": "Cuando necesitás paz: Isaías 9",
+      "published_at": "2026-08-16T15:31:24Z",
+      "bible_reference": "Isaías 9",
+      "content_family": "profecia mesianica de Isaias 9",
+      "views": 1348,
+      "views_per_hour": 2.6179,
+      "outlier_ratio": 1.1631,
+      "appeal": 53.95,
+      "engagement": 100.0,
+      "satisfaction": 100.0,
+      "freshness": 36.0,
+      "growth_score": 77.48
     },
     {
       "video_id": "oI-0Itw-Cqs",
@@ -151,28 +226,13 @@
       "bible_reference": "Salmo 23",
       "content_family": "Salmo 23 y caminar acompañado por Dios",
       "views": 1308,
-      "views_per_hour": 2.7944,
-      "outlier_ratio": 1.3198,
-      "appeal": 58.52,
+      "views_per_hour": 2.5944,
+      "outlier_ratio": 1.1526,
+      "appeal": 53.63,
       "engagement": 100.0,
       "satisfaction": 100.0,
-      "freshness": 39.51,
-      "growth_score": 79.43
-    },
-    {
-      "video_id": "n0EVrDDw0yw",
-      "title": "Cuando necesitás paz: Isaías 9",
-      "published_at": "2026-08-16T15:31:24Z",
-      "bible_reference": "Isaías 9",
-      "content_family": "profecia mesianica de Isaias 9",
-      "views": 1339,
-      "views_per_hour": 2.7964,
-      "outlier_ratio": 1.3208,
-      "appeal": 58.54,
-      "engagement": 100.0,
-      "satisfaction": 100.0,
-      "freshness": 38.67,
-      "growth_score": 79.36
+      "freshness": 36.78,
+      "growth_score": 77.45
     },
     {
       "video_id": "WHBRfx2t9NM",
@@ -181,575 +241,516 @@
       "bible_reference": "Lucas 15:1-7",
       "content_family": "perdon, misericordia y volver a empezar",
       "views": 1385,
-      "views_per_hour": 2.7955,
-      "outlier_ratio": 1.3204,
-      "appeal": 58.53,
+      "views_per_hour": 2.6057,
+      "outlier_ratio": 1.1576,
+      "appeal": 53.78,
       "engagement": 100.0,
       "satisfaction": 100.0,
-      "freshness": 37.42,
-      "growth_score": 79.23
-    },
-    {
-      "video_id": "Jh8GQvMdz7E",
-      "title": "Juan 10 y Jesus como Buen Pastor — enfoque 4 | Fe, paz y esperanza",
-      "published_at": "2026-08-20T03:09:13Z",
-      "bible_reference": "Juan 10:1-18",
-      "content_family": "Juan 10 y Jesus como Buen Pastor — enfoque 4",
-      "views": 1002,
-      "views_per_hour": 2.5354,
-      "outlier_ratio": 1.1975,
-      "appeal": 54.99,
-      "engagement": 100.0,
-      "satisfaction": 100.0,
-      "freshness": 45.65,
-      "growth_score": 78.81
-    },
-    {
-      "video_id": "uDvCSFc3R3s",
-      "title": "Cuando necesitás paz: Mateo 5:1-12",
-      "published_at": "2026-08-16T15:19:57Z",
-      "bible_reference": "Mateo 5:1-12",
-      "content_family": "las bienaventuranzas y el Reino de Dios",
-      "views": 1216,
-      "views_per_hour": 2.5385,
-      "outlier_ratio": 1.199,
-      "appeal": 55.04,
-      "engagement": 100.0,
-      "satisfaction": 100.0,
-      "freshness": 38.66,
-      "growth_score": 78.13
-    },
-    {
-      "video_id": "ZpA0rPjbIIo",
-      "title": "Juan 10 y Jesus como Buen Pastor — enfoque 8 | Fe, paz y esperanza",
-      "published_at": "2026-08-20T03:03:03Z",
-      "bible_reference": "",
-      "content_family": "",
-      "views": 1065,
-      "views_per_hour": 2.6941,
-      "outlier_ratio": 1.2725,
-      "appeal": 57.19,
-      "engagement": 94.86,
-      "satisfaction": 100.0,
-      "freshness": 45.64,
-      "growth_score": 78.04
-    },
-    {
-      "video_id": "DZEYdeCFh1c",
-      "title": "Si Sientes Cansancio, Jesús Te Llama al Descanso | Mateo 11:28",
-      "published_at": "2026-08-15T13:02:51Z",
-      "bible_reference": "Mateo 11:28-30",
-      "content_family": "Jesus llama a los cansados a encontrar descanso",
-      "views": 1278,
-      "views_per_hour": 2.5291,
-      "outlier_ratio": 1.1946,
-      "appeal": 54.9,
-      "engagement": 100.0,
-      "satisfaction": 100.0,
-      "freshness": 36.69,
-      "growth_score": 77.89
+      "freshness": 34.83,
+      "growth_score": 77.31
     }
   ],
   "reference_weights": [
     {
       "key": "Juan 14",
       "samples": 1,
-      "mean_score": 86.5,
-      "best_score": 86.5
+      "mean_score": 84.72,
+      "best_score": 84.72
+    },
+    {
+      "key": "Romanos 8:28",
+      "samples": 1,
+      "mean_score": 84.2,
+      "best_score": 84.2
+    },
+    {
+      "key": "Isaías 41:10",
+      "samples": 3,
+      "mean_score": 81.57,
+      "best_score": 97.88
     },
     {
       "key": "Miqueas 5:2",
       "samples": 1,
-      "mean_score": 80.04,
-      "best_score": 80.04
+      "mean_score": 78.09,
+      "best_score": 78.09
     },
     {
       "key": "Salmo 23",
       "samples": 1,
-      "mean_score": 79.43,
-      "best_score": 79.43
+      "mean_score": 77.45,
+      "best_score": 77.45
     },
     {
       "key": "Lucas 15:1-7",
       "samples": 1,
-      "mean_score": 79.23,
-      "best_score": 79.23
+      "mean_score": 77.31,
+      "best_score": 77.31
     },
     {
-      "key": "Juan 10:1-18",
-      "samples": 2,
-      "mean_score": 75.69,
-      "best_score": 78.81
-    },
-    {
-      "key": "Isaías 41:10",
-      "samples": 2,
-      "mean_score": 75.37,
-      "best_score": 80.04
-    },
-    {
-      "key": "Mateo 6:25-34",
-      "samples": 4,
-      "mean_score": 74.79,
-      "best_score": 82.27
-    },
-    {
-      "key": "Isaías 40:28-31",
+      "key": "Mateo 11:28-30",
       "samples": 1,
-      "mean_score": 73.1,
-      "best_score": 73.1
-    },
-    {
-      "key": "Mateo 5:1-12",
-      "samples": 2,
-      "mean_score": 72.28,
-      "best_score": 78.13
-    },
-    {
-      "key": "1 Reyes 17:1-6",
-      "samples": 2,
-      "mean_score": 70.98,
-      "best_score": 76.53
-    },
-    {
-      "key": "Salmo 91",
-      "samples": 2,
-      "mean_score": 70.9,
-      "best_score": 74.33
-    },
-    {
-      "key": "Mateo 3:13-17",
-      "samples": 1,
-      "mean_score": 70.48,
-      "best_score": 70.48
-    },
-    {
-      "key": "Romanos 8:26-27",
-      "samples": 2,
-      "mean_score": 68.62,
-      "best_score": 76.93
-    },
-    {
-      "key": "Isaías 9",
-      "samples": 2,
-      "mean_score": 67.07,
-      "best_score": 79.36
-    },
-    {
-      "key": "Romanos 8:28",
-      "samples": 2,
-      "mean_score": 66.34,
-      "best_score": 86.01
+      "mean_score": 76.02,
+      "best_score": 76.02
     },
     {
       "key": "Filipenses 4:6-7",
       "samples": 8,
-      "mean_score": 63.64,
-      "best_score": 80.14
+      "mean_score": 75.46,
+      "best_score": 98.12
     },
     {
-      "key": "Mateo 11:28-30",
-      "samples": 3,
-      "mean_score": 56.64,
-      "best_score": 77.89
+      "key": "Romanos 8:26-27",
+      "samples": 1,
+      "mean_score": 74.24,
+      "best_score": 74.24
+    },
+    {
+      "key": "Juan 10:1-18",
+      "samples": 2,
+      "mean_score": 73.62,
+      "best_score": 76.67
+    },
+    {
+      "key": "Mateo 6:25-34",
+      "samples": 4,
+      "mean_score": 73.03,
+      "best_score": 80.23
+    },
+    {
+      "key": "Isaías 40:28-31",
+      "samples": 1,
+      "mean_score": 71.44,
+      "best_score": 71.44
+    },
+    {
+      "key": "Mateo 5:1-12",
+      "samples": 2,
+      "mean_score": 70.79,
+      "best_score": 76.26
+    },
+    {
+      "key": "1 Reyes 17:1-6",
+      "samples": 2,
+      "mean_score": 69.54,
+      "best_score": 74.69
+    },
+    {
+      "key": "Salmo 91",
+      "samples": 2,
+      "mean_score": 69.38,
+      "best_score": 72.62
+    },
+    {
+      "key": "Mateo 3:13-17",
+      "samples": 1,
+      "mean_score": 68.6,
+      "best_score": 68.6
+    },
+    {
+      "key": "Salmo 116:7",
+      "samples": 1,
+      "mean_score": 67.94,
+      "best_score": 67.94
+    },
+    {
+      "key": "Isaías 9",
+      "samples": 2,
+      "mean_score": 65.42,
+      "best_score": 77.48
     },
     {
       "key": "Jonás 1-2",
       "samples": 2,
-      "mean_score": 56.58,
-      "best_score": 77.08
+      "mean_score": 55.18,
+      "best_score": 75.15
     },
     {
-      "key": "Salmo 46",
+      "key": "Salmo 139:1-3",
       "samples": 1,
-      "mean_score": 51.65,
-      "best_score": 51.65
-    },
-    {
-      "key": "Marcos 4:35-41",
-      "samples": 1,
-      "mean_score": 35.12,
-      "best_score": 35.12
+      "mean_score": 53.08,
+      "best_score": 53.08
     }
   ],
   "family_weights": [
     {
+      "key": "Exodo 14 y avanzar cuando parece no haber salida — enfoque 6",
+      "samples": 1,
+      "mean_score": 98.12,
+      "best_score": 98.12
+    },
+    {
+      "key": "Isaias 41 y no vivir dominado por el miedo — enfoque 5",
+      "samples": 1,
+      "mean_score": 97.88,
+      "best_score": 97.88
+    },
+    {
+      "key": "Exodo 14 y avanzar cuando parece no haber salida — enfoque 2",
+      "samples": 1,
+      "mean_score": 92.83,
+      "best_score": 92.83
+    },
+    {
       "key": "Juan 14 y la promesa de paz y esperanza",
       "samples": 1,
-      "mean_score": 86.5,
-      "best_score": 86.5
+      "mean_score": 84.72,
+      "best_score": 84.72
     },
     {
       "key": "Romanos 8 y la confianza en el obrar de Dios",
       "samples": 1,
-      "mean_score": 86.01,
-      "best_score": 86.01
-    },
-    {
-      "key": "los gorriones y el cuidado de Dios, Mateo 10:29-31",
-      "samples": 1,
-      "mean_score": 82.27,
-      "best_score": 82.27
+      "mean_score": 84.2,
+      "best_score": 84.2
     },
     {
       "key": "la parabola del buen samaritano",
       "samples": 1,
-      "mean_score": 82.24,
-      "best_score": 82.24
+      "mean_score": 80.34,
+      "best_score": 80.34
+    },
+    {
+      "key": "los gorriones y el cuidado de Dios, Mateo 10:29-31",
+      "samples": 1,
+      "mean_score": 80.23,
+      "best_score": 80.23
     },
     {
       "key": "los pajaros y la confianza en Dios, reflexion sobre Mateo 6:25-34",
       "samples": 1,
-      "mean_score": 80.55,
-      "best_score": 80.55
+      "mean_score": 78.52,
+      "best_score": 78.52
     },
     {
       "key": "Josue 1:9 y avanzar con valentia y confianza en Dios",
       "samples": 1,
-      "mean_score": 80.14,
-      "best_score": 80.14
+      "mean_score": 78.16,
+      "best_score": 78.16
     },
     {
       "key": "profecia mesianica de Miqueas 5",
       "samples": 1,
-      "mean_score": 80.04,
-      "best_score": 80.04
+      "mean_score": 78.09,
+      "best_score": 78.09
     },
     {
       "key": "Isaias 41:10 y no caminar dominado por el miedo",
       "samples": 1,
-      "mean_score": 80.04,
-      "best_score": 80.04
-    },
-    {
-      "key": "Salmo 23 y caminar acompañado por Dios",
-      "samples": 1,
-      "mean_score": 79.43,
-      "best_score": 79.43
+      "mean_score": 78.06,
+      "best_score": 78.06
     },
     {
       "key": "profecia mesianica de Isaias 9",
       "samples": 1,
-      "mean_score": 79.36,
-      "best_score": 79.36
+      "mean_score": 77.48,
+      "best_score": 77.48
+    },
+    {
+      "key": "Salmo 23 y caminar acompañado por Dios",
+      "samples": 1,
+      "mean_score": 77.45,
+      "best_score": 77.45
     },
     {
       "key": "perdon, misericordia y volver a empezar",
       "samples": 1,
-      "mean_score": 79.23,
-      "best_score": 79.23
+      "mean_score": 77.31,
+      "best_score": 77.31
     },
     {
       "key": "Juan 10 y Jesus como Buen Pastor — enfoque 4",
       "samples": 1,
-      "mean_score": 78.81,
-      "best_score": 78.81
+      "mean_score": 76.67,
+      "best_score": 76.67
     },
     {
       "key": "las bienaventuranzas y el Reino de Dios",
       "samples": 1,
-      "mean_score": 78.13,
-      "best_score": 78.13
+      "mean_score": 76.26,
+      "best_score": 76.26
     },
     {
       "key": "Jesus llama a los cansados a encontrar descanso",
       "samples": 1,
-      "mean_score": 77.89,
-      "best_score": 77.89
+      "mean_score": 76.02,
+      "best_score": 76.02
     },
     {
       "key": "1 Pedro 5:7 y entregar las preocupaciones a Dios",
       "samples": 1,
-      "mean_score": 77.86,
-      "best_score": 77.86
+      "mean_score": 75.94,
+      "best_score": 75.94
     },
     {
       "key": "Jonas y el gran pez como relato de obediencia y misericordia, Jonas 1 y 2",
       "samples": 1,
-      "mean_score": 77.08,
-      "best_score": 77.08
-    },
-    {
-      "key": "Romanos 8 y orar cuando faltan palabras — enfoque 8",
-      "samples": 1,
-      "mean_score": 76.93,
-      "best_score": 76.93
+      "mean_score": 75.15,
+      "best_score": 75.15
     },
     {
       "key": "Elias y los cuervos como relato del cuidado de Dios, 1 Reyes 17",
       "samples": 1,
-      "mean_score": 76.53,
-      "best_score": 76.53
-    },
-    {
-      "key": "Mateo 6 y vivir un dia a la vez",
-      "samples": 1,
-      "mean_score": 76.13,
-      "best_score": 76.13
-    },
-    {
-      "key": "oracion de la noche para descansar en paz",
-      "samples": 1,
-      "mean_score": 75.93,
-      "best_score": 75.93
+      "mean_score": 74.69,
+      "best_score": 74.69
     }
   ],
   "keyword_weights": [
     {
-      "key": "sobrepasa",
-      "samples": 1,
-      "mean_score": 86.5,
-      "best_score": 86.5
+      "key": "salida",
+      "samples": 2,
+      "mean_score": 95.47,
+      "best_score": 98.12
     },
     {
-      "key": "transforma",
-      "samples": 1,
-      "mean_score": 86.5,
-      "best_score": 86.5
+      "key": "exodo",
+      "samples": 2,
+      "mean_score": 95.47,
+      "best_score": 98.12
+    },
+    {
+      "key": "enfoq",
+      "samples": 2,
+      "mean_score": 95.47,
+      "best_score": 98.12
+    },
+    {
+      "key": "haber",
+      "samples": 2,
+      "mean_score": 95.47,
+      "best_score": 98.12
+    },
+    {
+      "key": "avanzar",
+      "samples": 3,
+      "mean_score": 89.7,
+      "best_score": 98.12
+    },
+    {
+      "key": "parece",
+      "samples": 3,
+      "mean_score": 86.52,
+      "best_score": 98.12
     },
     {
       "key": "entendimiento",
       "samples": 1,
-      "mean_score": 86.5,
-      "best_score": 86.5
+      "mean_score": 84.72,
+      "best_score": 84.72
     },
     {
-      "key": "está",
+      "key": "transforma",
       "samples": 1,
-      "mean_score": 86.01,
-      "best_score": 86.01
+      "mean_score": 84.72,
+      "best_score": 84.72
     },
     {
-      "key": "cosas",
+      "key": "sobrepasa",
       "samples": 1,
-      "mean_score": 86.01,
-      "best_score": 86.01
-    },
-    {
-      "key": "obrar",
-      "samples": 1,
-      "mean_score": 86.01,
-      "best_score": 86.01
-    },
-    {
-      "key": "guiando",
-      "samples": 1,
-      "mean_score": 86.01,
-      "best_score": 86.01
-    },
-    {
-      "key": "aman",
-      "samples": 1,
-      "mean_score": 86.01,
-      "best_score": 86.01
-    },
-    {
-      "key": "dispone",
-      "samples": 1,
-      "mean_score": 86.01,
-      "best_score": 86.01
-    },
-    {
-      "key": "todas",
-      "samples": 1,
-      "mean_score": 86.01,
-      "best_score": 86.01
+      "mean_score": 84.72,
+      "best_score": 84.72
     },
     {
       "key": "quienes",
       "samples": 1,
-      "mean_score": 86.01,
-      "best_score": 86.01
+      "mean_score": 84.2,
+      "best_score": 84.2
     },
     {
-      "key": "camino",
+      "key": "cosas",
+      "samples": 1,
+      "mean_score": 84.2,
+      "best_score": 84.2
+    },
+    {
+      "key": "aman",
+      "samples": 1,
+      "mean_score": 84.2,
+      "best_score": 84.2
+    },
+    {
+      "key": "dispone",
+      "samples": 1,
+      "mean_score": 84.2,
+      "best_score": 84.2
+    },
+    {
+      "key": "obrar",
+      "samples": 1,
+      "mean_score": 84.2,
+      "best_score": 84.2
+    },
+    {
+      "key": "guiando",
+      "samples": 1,
+      "mean_score": 84.2,
+      "best_score": 84.2
+    },
+    {
+      "key": "todas",
+      "samples": 1,
+      "mean_score": 84.2,
+      "best_score": 84.2
+    },
+    {
+      "key": "verdad",
+      "samples": 3,
+      "mean_score": 82.43,
+      "best_score": 97.88
+    },
+    {
+      "key": "respirá",
+      "samples": 3,
+      "mean_score": 82.43,
+      "best_score": 97.88
+    },
+    {
+      "key": "recordá",
+      "samples": 3,
+      "mean_score": 82.43,
+      "best_score": 97.88
+    },
+    {
+      "key": "transformar",
       "samples": 2,
-      "mean_score": 83.03,
-      "best_score": 86.01
+      "mean_score": 81.58,
+      "best_score": 97.02
     },
     {
-      "key": "gorriones",
-      "samples": 1,
-      "mean_score": 82.27,
-      "best_score": 82.27
+      "key": "este",
+      "samples": 2,
+      "mean_score": 81.58,
+      "best_score": 97.02
     },
     {
-      "key": "valor",
-      "samples": 1,
-      "mean_score": 82.27,
-      "best_score": 82.27
-    },
-    {
-      "key": "personal",
-      "samples": 1,
-      "mean_score": 82.27,
-      "best_score": 82.27
-    },
-    {
-      "key": "constante",
-      "samples": 1,
-      "mean_score": 82.27,
-      "best_score": 82.27
-    },
-    {
-      "key": "quién",
-      "samples": 1,
-      "mean_score": 82.24,
-      "best_score": 82.24
-    },
-    {
-      "key": "parábola",
-      "samples": 1,
-      "mean_score": 82.24,
-      "best_score": 82.24
-    },
-    {
-      "key": "prójimo",
-      "samples": 1,
-      "mean_score": 82.24,
-      "best_score": 82.24
-    },
-    {
-      "key": "samaritano",
-      "samples": 1,
-      "mean_score": 82.24,
-      "best_score": 82.24
-    },
-    {
-      "key": "acción",
-      "samples": 1,
-      "mean_score": 82.24,
-      "best_score": 82.24
+      "key": "dominado",
+      "samples": 3,
+      "mean_score": 81.57,
+      "best_score": 97.88
     },
     {
       "key": "parabola",
       "samples": 1,
-      "mean_score": 82.24,
-      "best_score": 82.24
+      "mean_score": 80.34,
+      "best_score": 80.34
     },
     {
-      "key": "reflexion",
+      "key": "samaritano",
       "samples": 1,
-      "mean_score": 80.55,
-      "best_score": 80.55
+      "mean_score": 80.34,
+      "best_score": 80.34
     },
     {
-      "key": "cielo",
+      "key": "prójimo",
       "samples": 1,
-      "mean_score": 80.55,
-      "best_score": 80.55
+      "mean_score": 80.34,
+      "best_score": 80.34
     },
     {
-      "key": "sobre",
+      "key": "acción",
       "samples": 1,
-      "mean_score": 80.55,
-      "best_score": 80.55
+      "mean_score": 80.34,
+      "best_score": 80.34
     },
     {
-      "key": "etapa",
+      "key": "parábola",
       "samples": 1,
-      "mean_score": 80.55,
-      "best_score": 80.55
+      "mean_score": 80.34,
+      "best_score": 80.34
     },
     {
-      "key": "estás",
+      "key": "quién",
       "samples": 1,
-      "mean_score": 80.55,
-      "best_score": 80.55
+      "mean_score": 80.34,
+      "best_score": 80.34
     },
     {
-      "key": "solo",
+      "key": "vivir",
+      "samples": 3,
+      "mean_score": 80.31,
+      "best_score": 97.88
+    },
+    {
+      "key": "está",
       "samples": 1,
-      "mean_score": 80.55,
-      "best_score": 80.55
-    },
-    {
-      "key": "pajaros",
-      "samples": 1,
-      "mean_score": 80.55,
-      "best_score": 80.55
-    },
-    {
-      "key": "aves",
-      "samples": 1,
-      "mean_score": 80.55,
-      "best_score": 80.55
-    },
-    {
-      "key": "rindas",
-      "samples": 0,
-      "mean_score": 54.48,
-      "best_score": 72.42,
-      "niche_only": true
-    },
-    {
-      "key": "despertar",
-      "samples": 0,
-      "mean_score": 54.48,
-      "best_score": 72.42,
-      "niche_only": true
-    },
-    {
-      "key": "mientras",
-      "samples": 0,
-      "mean_score": 54.48,
-      "best_score": 72.42,
-      "niche_only": true
-    },
-    {
-      "key": "reflexionesdevida",
-      "samples": 0,
-      "mean_score": 54.48,
-      "best_score": 72.42,
-      "niche_only": true
-    },
-    {
-      "key": "permita",
-      "samples": 0,
-      "mean_score": 54.48,
-      "best_score": 72.42,
-      "niche_only": true
+      "mean_score": 80.06,
+      "best_score": 84.2,
+      "niche_supported": true
     },
     {
       "key": "así",
       "samples": 0,
-      "mean_score": 53.75,
-      "best_score": 68.74,
+      "mean_score": 54.0,
+      "best_score": 69.98,
       "niche_only": true
     },
     {
-      "key": "mañana",
+      "key": "dice",
       "samples": 0,
-      "mean_score": 53.75,
-      "best_score": 68.74,
+      "mean_score": 54.0,
+      "best_score": 69.98,
       "niche_only": true
     },
     {
-      "key": "145",
+      "key": "tarde",
       "samples": 0,
-      "mean_score": 53.75,
-      "best_score": 68.74,
+      "mean_score": 53.63,
+      "best_score": 68.17,
       "niche_only": true
     },
     {
-      "key": "salmos",
+      "key": "apocalipsis",
       "samples": 0,
-      "mean_score": 53.46,
-      "best_score": 67.28,
+      "mean_score": 53.63,
+      "best_score": 68.17,
       "niche_only": true
     },
     {
-      "key": "guíe",
+      "key": "decreto",
       "samples": 0,
-      "mean_score": 53.25,
-      "best_score": 66.25,
+      "mean_score": 53.3,
+      "best_score": 66.48,
+      "niche_only": true
+    },
+    {
+      "key": "oracióndenoche",
+      "samples": 0,
+      "mean_score": 53.3,
+      "best_score": 66.48,
+      "niche_only": true
+    },
+    {
+      "key": "armoníaangelical",
+      "samples": 0,
+      "mean_score": 53.3,
+      "best_score": 66.48,
+      "niche_only": true
+    },
+    {
+      "key": "mantra",
+      "samples": 0,
+      "mean_score": 53.3,
+      "best_score": 66.48,
+      "niche_only": true
+    },
+    {
+      "key": "hacer",
+      "samples": 0,
+      "mean_score": 53.09,
+      "best_score": 65.45,
+      "niche_only": true
+    },
+    {
+      "key": "milagros",
+      "samples": 0,
+      "mean_score": 53.09,
+      "best_score": 65.45,
       "niche_only": true
     }
   ],
   "niche_radar": {
     "available": true,
     "version": "dios-niche-radar-v1",
-    "generated_at": "2026-09-05T14:21:31.134886+00:00",
+    "generated_at": "2026-09-07T02:26:41.770152+00:00",
     "videos_scanned": 49,
     "queries": [
       "oración a Dios",
@@ -760,204 +761,204 @@
     ],
     "top_outliers": [
       {
-        "video_id": "LRSO-Nb1jqw",
-        "query": "fe esperanza Dios",
-        "channel_id": "UCDnhzBgpo7tOg0mFu5J7WCA",
-        "title": "MIENTRAS DIOS TE PERMITA DESPERTAR, NO TE RINDAS #Dios #Fe #Esperanza ##reflexionesdevida",
-        "channel_title": "roci Flores",
-        "published_at": "2026-09-05T11:37:01Z",
-        "duration": "PT2M7S",
-        "views": 555,
-        "likes": 60,
-        "comments": 4,
-        "subscribers": 74,
-        "channel_views": 16955,
-        "video_count": 52,
-        "views_per_hour": 202.429,
-        "like_rate": 0.10811,
-        "comment_rate": 0.00721,
-        "views_to_subscribers": 5.55,
-        "niche_outlier_score": 72.42
-      },
-      {
-        "video_id": "FmpPlOxnCks",
+        "video_id": "dtwg2iz3OHI",
         "query": "versículo de hoy",
         "channel_id": "UCL29HGrIjvqoJ438j5KU5dw",
-        "title": "versículo de la Biblia de hoy en la mañana que dice así en salmos 145:18-19",
+        "title": "versículo de la Biblia de hoy en la noche que dice así en salmos 22:12-13",
         "channel_title": "Kevin Montaño",
-        "published_at": "2026-09-05T10:33:33Z",
-        "duration": "PT1M44S",
-        "views": 2394,
-        "likes": 707,
-        "comments": 51,
-        "subscribers": 257000,
-        "channel_views": 14102083,
-        "video_count": 1804,
-        "views_per_hour": 630.086,
-        "like_rate": 0.29532,
-        "comment_rate": 0.0213,
-        "views_to_subscribers": 0.0093,
-        "niche_outlier_score": 68.74
+        "published_at": "2026-09-07T00:46:02Z",
+        "duration": "PT2M4S",
+        "views": 1766,
+        "likes": 525,
+        "comments": 39,
+        "subscribers": 258000,
+        "channel_views": 14140400,
+        "video_count": 1810,
+        "views_per_hour": 1052.623,
+        "like_rate": 0.29728,
+        "comment_rate": 0.02208,
+        "views_to_subscribers": 0.0068,
+        "niche_outlier_score": 71.8
       },
       {
-        "video_id": "XjkZuYB-DIU",
-        "query": "fe esperanza Dios",
-        "channel_id": "UC0qYyTe86lBVmB4KXURMVuA",
-        "title": "No te canses de pedirle a Dios que te guíe. 🙏 #Dios #Fe #Guía #Oración #Esperanza",
-        "channel_title": "Pasajes de luz",
-        "published_at": "2026-09-05T10:16:50Z",
-        "duration": "PT5S",
-        "views": 819,
-        "likes": 92,
-        "comments": 10,
-        "subscribers": 685,
-        "channel_views": 8018,
-        "video_count": 78,
-        "views_per_hour": 200.829,
-        "like_rate": 0.11233,
-        "comment_rate": 0.01221,
-        "views_to_subscribers": 1.1956,
-        "niche_outlier_score": 66.25
-      },
-      {
-        "video_id": "qBOc9nRYU9U",
+        "video_id": "88Bfk6wx4U8",
         "query": "versículo de hoy",
-        "channel_id": "UCSq4eyrMgwB4Z46dFC0boSA",
-        "title": "📋 Ángeles De Fuego: El Ejército Invisible Que Te Protege📖 VERSÍCULO: 2 Reyes 6:17 / Salmos 91:11📝",
-        "channel_title": "Jehová Dios Habla Hoy",
-        "published_at": "2026-09-05T10:00:11Z",
-        "duration": "PT1M1S",
-        "views": 917,
-        "likes": 86,
-        "comments": 4,
-        "subscribers": 829,
-        "channel_views": 70631,
-        "video_count": 67,
-        "views_per_hour": 210.534,
-        "like_rate": 0.09378,
-        "comment_rate": 0.00436,
-        "views_to_subscribers": 1.1062,
-        "niche_outlier_score": 65.81
+        "channel_id": "UCL29HGrIjvqoJ438j5KU5dw",
+        "title": "Versículo de la Biblia de hoy en la tarde que dice así en apocalipsis 21:27",
+        "channel_title": "Kevin Montaño",
+        "published_at": "2026-09-06T20:13:22Z",
+        "duration": "PT1M44S",
+        "views": 3551,
+        "likes": 1216,
+        "comments": 68,
+        "subscribers": 258000,
+        "channel_views": 14140400,
+        "video_count": 1810,
+        "views_per_hour": 570.702,
+        "like_rate": 0.34244,
+        "comment_rate": 0.01915,
+        "views_to_subscribers": 0.0138,
+        "niche_outlier_score": 68.17
       },
       {
-        "video_id": "0gpFiD0gf6M",
-        "query": "Jesús Biblia reflexión",
-        "channel_id": "UCCZq9wpU9cBoa3VVwiVqWXQ",
-        "title": "Una palabra de Dios para ti | Juan 16:33",
-        "channel_title": "Si lo ves no fue casualidad",
-        "published_at": "2026-09-05T13:00:39Z",
-        "duration": "PT27S",
-        "views": 256,
-        "likes": 36,
-        "comments": 0,
-        "subscribers": 280,
-        "channel_views": 32640,
-        "video_count": 65,
-        "views_per_hour": 189.937,
-        "like_rate": 0.14062,
-        "comment_rate": 0.0,
-        "views_to_subscribers": 0.9143,
-        "niche_outlier_score": 65.15
-      },
-      {
-        "video_id": "flGzoWPefrs",
+        "video_id": "zv_of7iznj8",
         "query": "fe esperanza Dios",
-        "channel_id": "UCSJ47DBVz8xLdF8LRtIsT0Q",
-        "title": "No Temas, Cree Solamente” | El Milagro de la Hija de Jairo #dios #biblia",
-        "channel_title": "Rey del Universo",
-        "published_at": "2026-09-05T10:15:32Z",
-        "duration": "PT2M14S",
-        "views": 711,
-        "likes": 52,
+        "channel_id": "UCnAEw3xIfFRehzWThhcAMog",
+        "title": "#ArmoníaAngelical #OraciónDeNoche #Dios #decreto #mantra #amor #oración #fe #esperanza #paz",
+        "channel_title": "Armonía Angelical",
+        "published_at": "2026-09-07T00:00:01Z",
+        "duration": "PT16S",
+        "views": 417,
+        "likes": 48,
         "comments": 1,
-        "subscribers": 71,
-        "channel_views": 3415,
-        "video_count": 11,
-        "views_per_hour": 173.425,
-        "like_rate": 0.07314,
-        "comment_rate": 0.00141,
-        "views_to_subscribers": 7.11,
-        "niche_outlier_score": 63.79
+        "subscribers": 242,
+        "channel_views": 57288,
+        "video_count": 268,
+        "views_per_hour": 170.576,
+        "like_rate": 0.11511,
+        "comment_rate": 0.0024,
+        "views_to_subscribers": 1.7231,
+        "niche_outlier_score": 66.48
       },
       {
-        "video_id": "fDosaJweqB4",
-        "query": "oración a Dios",
-        "channel_id": "UC_qVAtlqiJ83PTDwhXmFD6A",
-        "title": "Comienza tu día poniendo todo en manos de Dios 🙏 #Oración",
-        "channel_title": "Descansa en la Fe | Oraciones a Dios",
-        "published_at": "2026-09-05T11:15:26Z",
-        "duration": "PT35S",
-        "views": 743,
-        "likes": 74,
-        "comments": 10,
-        "subscribers": 5080,
-        "channel_views": 303572,
-        "video_count": 340,
-        "views_per_hour": 239.567,
-        "like_rate": 0.0996,
-        "comment_rate": 0.01346,
-        "views_to_subscribers": 0.1463,
-        "niche_outlier_score": 63.66
-      },
-      {
-        "video_id": "HANI3j3e0sc",
+        "video_id": "LYtRIZgfC-4",
         "query": "fe esperanza Dios",
-        "channel_id": "UCkLnqsfnuDGCfDwyXbCpctA",
-        "title": "“Jesús dio su vida por ti ❤️ | Nunca pierdas la esperanza #undiaalavez #shorts",
-        "channel_title": "Doriany Pichardo",
-        "published_at": "2026-09-05T12:25:31Z",
-        "duration": "PT53S",
-        "views": 485,
-        "likes": 37,
+        "channel_id": "UCPoBOScvW_YTmlcn_VfB2Qg",
+        "title": "🌱 Dios Puede Hacer Florecer Tu Vida#DiosPuede #Esperanza #Fe #Milagros #Dios #NoTeRindas",
+        "channel_title": "A tu lado Dios ",
+        "published_at": "2026-09-07T01:39:09Z",
+        "duration": "PT22S",
+        "views": 342,
+        "likes": 57,
+        "comments": 1,
+        "subscribers": 4320,
+        "channel_views": 265059,
+        "video_count": 239,
+        "views_per_hour": 342.0,
+        "like_rate": 0.16667,
+        "comment_rate": 0.00292,
+        "views_to_subscribers": 0.0792,
+        "niche_outlier_score": 65.45
+      },
+      {
+        "video_id": "CxXaNPFpzUw",
+        "query": "fe esperanza Dios",
+        "channel_id": "UCktl_BD75-5mhA4reAK8Fgw",
+        "title": "DIOS NO.ESTÁ PERDIDO CUANDO YA NO PUEDES MÁS. #oración #fe #esperanza #dios",
+        "channel_title": "𝐃𝐈𝐎𝐒 𝐒𝐈𝐆𝐔𝐄 𝐀𝐐𝐔𝐈́ ",
+        "published_at": "2026-09-07T01:36:57Z",
+        "duration": "PT16S",
+        "views": 257,
+        "likes": 35,
         "comments": 2,
-        "subscribers": 522,
-        "channel_views": 36659,
-        "video_count": 62,
-        "views_per_hour": 250.857,
-        "like_rate": 0.07629,
-        "comment_rate": 0.00412,
-        "views_to_subscribers": 0.9291,
-        "niche_outlier_score": 61.41
+        "subscribers": 3260,
+        "channel_views": 117999,
+        "video_count": 87,
+        "views_per_hour": 257.0,
+        "like_rate": 0.13619,
+        "comment_rate": 0.00778,
+        "views_to_subscribers": 0.0788,
+        "niche_outlier_score": 63.74
       },
       {
-        "video_id": "9pHprTZsGHM",
+        "video_id": "otbg6Uz8j9Q",
         "query": "oración a Dios",
-        "channel_id": "UChMY0KSSdzxO6sUa22aNpOA",
-        "title": "ORACIÓN Y REFLEXIÓN PARA EMPEZAR EL DÍA 🙏 #DIOS #FE #ORACIÓN #AMÉN #PAZ",
-        "channel_title": "Sapiencia con Juan Tamares",
-        "published_at": "2026-09-05T11:00:39Z",
-        "duration": "PT2M45S",
-        "views": 585,
-        "likes": 43,
-        "comments": 8,
-        "subscribers": 69900,
-        "channel_views": 11598825,
-        "video_count": 346,
-        "views_per_hour": 174.741,
-        "like_rate": 0.0735,
-        "comment_rate": 0.01368,
-        "views_to_subscribers": 0.0084,
-        "niche_outlier_score": 61.06
+        "channel_id": "UCjIDe6-UqeazQXotxQ8sgJw",
+        "title": "🙏 JESÚS ESTÁ ORANDO POR TI… ESCUCHA ESTA ORACIÓN#Jesus #Oracion #Dios #Fe #D2AMAS",
+        "channel_title": "D2amas",
+        "published_at": "2026-09-07T02:00:12Z",
+        "duration": "PT16S",
+        "views": 250,
+        "likes": 26,
+        "comments": 3,
+        "subscribers": 12900,
+        "channel_views": 416915,
+        "video_count": 231,
+        "views_per_hour": 250.0,
+        "like_rate": 0.104,
+        "comment_rate": 0.012,
+        "views_to_subscribers": 0.0194,
+        "niche_outlier_score": 63.26
       },
       {
-        "video_id": "bklHposOyZg",
+        "video_id": "3pfiUV_ygoI",
         "query": "Jesús Biblia reflexión",
-        "channel_id": "UC9cvAfDLBKBinGhxco4jFkA",
-        "title": "Feliz y Bendecido Día 🙌 #dios #jehova #jesus #biblia #fe #oracion #Reflexion #fyp",
-        "channel_title": "DIOS TE AMA 🙏",
-        "published_at": "2026-09-05T11:59:46Z",
-        "duration": "PT28S",
-        "views": 185,
-        "likes": 25,
+        "channel_id": "UCNLjA_RBo7VRqzCj9wKzA1Q",
+        "title": "Versículo bíblico Proverbios 12: 2 #Dios #amor #PalabradeDios #fe #reflexion #oración #amor #paz",
+        "channel_title": "Paz en Su Presencia",
+        "published_at": "2026-09-06T19:38:14Z",
+        "duration": "PT17S",
+        "views": 903,
+        "likes": 61,
+        "comments": 2,
+        "subscribers": 55,
+        "channel_views": 12311,
+        "video_count": 44,
+        "views_per_hour": 132.644,
+        "like_rate": 0.06755,
+        "comment_rate": 0.00221,
+        "views_to_subscribers": 9.03,
+        "niche_outlier_score": 62.65
+      },
+      {
+        "video_id": "9c28t5HCen4",
+        "query": "oración a Dios",
+        "channel_id": "UC4rciBbeUZu1Cd1DZlJTDLQ",
+        "title": "Oración Dios te entregó mis preocupaciones y pensamientos #oracion",
+        "channel_title": "J Rodriguez",
+        "published_at": "2026-09-07T00:12:35Z",
+        "duration": "PT52S",
+        "views": 395,
+        "likes": 50,
+        "comments": 6,
+        "subscribers": 12200,
+        "channel_views": 994571,
+        "video_count": 968,
+        "views_per_hour": 176.717,
+        "like_rate": 0.12658,
+        "comment_rate": 0.01519,
+        "views_to_subscribers": 0.0324,
+        "niche_outlier_score": 61.26
+      },
+      {
+        "video_id": "ye6S1WSTPfs",
+        "query": "Jesús Biblia reflexión",
+        "channel_id": "UC3w9tLaWnU8zZrKrmiJdiyg",
+        "title": "Evangelio del día 6 de Septiembre 2026 #jesus #Dios #reflexion #ia #evangelio #fe #biblia #mensaje",
+        "channel_title": "El Siervo De Dios",
+        "published_at": "2026-09-06T19:41:50Z",
+        "duration": "PT23S",
+        "views": 929,
+        "likes": 118,
+        "comments": 5,
+        "subscribers": 266000,
+        "channel_views": 60002601,
+        "video_count": 576,
+        "views_per_hour": 137.676,
+        "like_rate": 0.12702,
+        "comment_rate": 0.00538,
+        "views_to_subscribers": 0.0035,
+        "niche_outlier_score": 59.61
+      },
+      {
+        "video_id": "tyFi5VXrKCs",
+        "query": "oración a Dios",
+        "channel_id": "UCp_WsFfGjBaYRYWEyKi-2kQ",
+        "title": "Oración Dios te entregó mi tranquilidad esta noche #oración",
+        "channel_title": "CIRCULO DE ORACIONES",
+        "published_at": "2026-09-07T00:10:29Z",
+        "duration": "PT52S",
+        "views": 335,
+        "likes": 34,
         "comments": 0,
-        "subscribers": 9140,
-        "channel_views": 358121,
-        "video_count": 233,
-        "views_per_hour": 78.306,
-        "like_rate": 0.13514,
+        "subscribers": 809,
+        "channel_views": 83439,
+        "video_count": 104,
+        "views_per_hour": 147.563,
+        "like_rate": 0.10149,
         "comment_rate": 0.0,
-        "views_to_subscribers": 0.0202,
-        "niche_outlier_score": 56.35
+        "views_to_subscribers": 0.4141,
+        "niche_outlier_score": 59.35
       }
     ],
     "policy": {
