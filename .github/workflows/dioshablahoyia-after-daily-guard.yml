@@ -8,6 +8,8 @@ on:
 
 permissions:
   contents: write
+  issues: write
+  actions: read
 
 env:
   TZ: America/Argentina/Buenos_Aires
