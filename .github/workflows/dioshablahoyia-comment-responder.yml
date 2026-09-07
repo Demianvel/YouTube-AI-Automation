@@ -2,7 +2,6 @@ name: Dios Habla Hoy IA - Responder comentarios 24x7
 
 on:
   schedule:
-    # Monitoreo continuo 24/7: revisa comentarios nuevos cada 5 minutos.
     - cron: "*/5 * * * *"
   workflow_dispatch:
     inputs:
@@ -56,33 +55,36 @@ jobs:
           python scripts/dioshablahoyia_comment_responder_es.py --self-test
 
       - name: Verify YouTube OAuth secret exists
+        id: secret
         shell: bash
         run: |
           if [ -z "$YOUTUBE_TOKEN_DIOSHABLAHOYIA" ]; then
-            echo "Falta YOUTUBE_TOKEN_DIOSHABLAHOYIA."
-            exit 1
+            echo "valid=false" >> "$GITHUB_OUTPUT"
+            echo "::warning title=YouTube OAuth ausente::Falta YOUTUBE_TOKEN_DIOSHABLAHOYIA; el responder queda en fail-open."
+          else
+            echo "valid=true" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Preflight YouTube OAuth refresh
         id: oauth
+        if: steps.secret.outputs.valid == 'true'
         shell: bash
         run: |
           python - <<'PY'
           import json
           import os
-          from google.auth.exceptions import RefreshError
           from google.auth.transport.requests import Request
           from google.oauth2.credentials import Credentials
 
-          payload = json.loads(os.environ["YOUTUBE_TOKEN_DIOSHABLAHOYIA"])
-          creds = Credentials.from_authorized_user_info(payload, scopes=payload.get("scopes"))
-          valid = True
+          valid = False
           reason = ""
           try:
+              payload = json.loads(os.environ["YOUTUBE_TOKEN_DIOSHABLAHOYIA"])
+              creds = Credentials.from_authorized_user_info(payload, scopes=payload.get("scopes"))
               creds.refresh(Request())
-          except RefreshError as exc:
-              valid = False
-              reason = str(exc).replace("\n", " ")
+              valid = True
+          except Exception as exc:
+              reason = f"{type(exc).__name__}: {exc}".replace("\n", " ")
 
           with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as fh:
               fh.write(f"valid={'true' if valid else 'false'}\n")
@@ -91,11 +93,11 @@ jobs:
               print("OAUTH_REFRESH_OK")
           else:
               print(f"::warning title=YouTube OAuth requiere reconexion::{reason}")
-              print("El refresh token de @dioshablahoyia fue revocado o vencio. No se reintenta un invalid_grant.")
+              print("El workflow no se marca como fallo por un OAuth invalido; volvera a operar cuando el secret sea renovado.")
           PY
 
       - name: Detectar y responder comentarios solo en español
-        if: steps.oauth.outputs.valid == 'true'
+        if: steps.secret.outputs.valid == 'true' && steps.oauth.outputs.valid == 'true'
         shell: bash
         run: |
           status=1
@@ -113,7 +115,7 @@ jobs:
           exit "$status"
 
       - name: OAuth pendiente - fail open sin bloquear CI
-        if: steps.oauth.outputs.valid != 'true'
+        if: steps.secret.outputs.valid != 'true' || steps.oauth.outputs.valid != 'true'
         shell: bash
         run: |
           echo "::warning title=Accion requerida::Reconecta @dioshablahoyia para renovar YOUTUBE_TOKEN_DIOSHABLAHOYIA."
