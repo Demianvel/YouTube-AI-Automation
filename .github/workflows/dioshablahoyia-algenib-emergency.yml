@@ -22,7 +22,7 @@ jobs:
     env:
       PYTHONPATH: .
       TZ: America/Argentina/Buenos_Aires
-      CHANNEL: dioshabblahoyia
+      CHANNEL: dioshablahoyia
       CONTENT_MODE: voice
       DIOS_CATCHUP_PUBLISH_ATTEMPTS: "2"
       DIOS_CATCHUP_RETRY_WAIT_SECONDS: "8"
