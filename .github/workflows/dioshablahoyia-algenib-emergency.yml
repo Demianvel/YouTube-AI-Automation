@@ -10,6 +10,7 @@ on:
 permissions:
   contents: write
   issues: write
+  actions: read
 
 concurrency:
   group: dioshablahoyia-algenib-emergency-publisher
@@ -24,11 +25,13 @@ jobs:
       TZ: America/Argentina/Buenos_Aires
       CHANNEL: dioshablahoyia
       CONTENT_MODE: voice
+      DIOS_CATCHUP_PUBLISH_ATTEMPTS: "2"
+      DIOS_CATCHUP_RETRY_WAIT_SECONDS: "8"
 
       GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
       GEMINI_TEXT_MODEL: gemini-3.6-flash
       GEMINI_TTS_VOICE: Algenib
-      GEMINI_TTS_MAX_ATTEMPTS: "2"
+      GEMINI_TTS_MAX_ATTEMPTS: "4"
       SPIRITUAL_MALE_GEMINI_VOICE: Algenib
       SPIRITUAL_VOICE_PROFILE: voz_de_luz_serena_original_v1
       SPIRITUAL_VOICE_BRAND: Voz de Luz
@@ -70,7 +73,7 @@ jobs:
       GEMINI_VIDEO_ENABLED: "false"
 
       HF_TOKEN: ${{ secrets.HF_TOKEN }}
-      HF_ZERO_TOKEN: ${{ secrets.HF_ZERO_TOKEN }}
+      HF_ZERO_TOKEN: ${{ secrets.HF_ZERO_TOKEN || secrets.HF_TOKEN }}
       HF_REFERENCE_IMAGE_ENABLED: "true"
       HF_REFERENCE_EDITOR_ENABLED: "true"
       HF_REFERENCE_ZERO_SPACE_FIRST: "true"
@@ -101,6 +104,7 @@ jobs:
 
       - name: Install premium publisher runtime
         run: |
+          set -euo pipefail
           sudo apt-get update -qq
           sudo apt-get install -y -qq ffmpeg libsndfile1 fonts-dejavu-core git >/dev/null
           python -m pip install -q --upgrade pip
@@ -119,6 +123,7 @@ jobs:
 
       - name: Compile premium v8 publisher
         run: |
+          set -euo pipefail
           python -m py_compile \
             app/qwen_voice.py \
             app/spiritual_auto_thumbnail.py \
@@ -132,41 +137,56 @@ jobs:
       - name: Probe OpenAI image provider
         run: python scripts/probe_openai_image_api.py || true
 
-      - name: Verify OAuth and channel identity
+      - name: Verify credentials and channel identity
+        shell: bash
         run: |
-          test -n "$GEMINI_API_KEY"
-          test -n "$YOUTUBE_TOKEN_DIOSHABLAHOYIA"
+          set -euo pipefail
+          test -n "$GEMINI_API_KEY" || { echo "ERROR: falta GEMINI_API_KEY"; exit 20; }
+          test -n "$YOUTUBE_TOKEN_DIOSHABLAHOYIA" || { echo "ERROR: falta YOUTUBE_TOKEN_DIOSHABLAHOYIA"; exit 21; }
+          test -n "$HF_ZERO_TOKEN" || { echo "ERROR: falta HF_TOKEN/HF_ZERO_TOKEN"; exit 22; }
           test "$GEMINI_TTS_VOICE" = "Algenib"
           test "$SPIRITUAL_MALE_GEMINI_VOICE" = "Algenib"
           test "$SPIRITUAL_REQUIRE_PRIMARY_VOICE" = "true"
           test "$SPIRITUAL_ALLOW_QWEN_BACKUP" = "true"
           test "$TTS_FALLBACK_KOKORO" = "false"
-          python - <<'PY'
-          import json, os
-          from google.oauth2.credentials import Credentials
-          from googleapiclient.discovery import build
-          payload = json.loads(os.environ['YOUTUBE_TOKEN_DIOSHABLAHOYIA'])
-          creds = Credentials.from_authorized_user_info(payload, scopes=payload.get('scopes'))
-          yt = build('youtube', 'v3', credentials=creds, cache_discovery=False)
-          items = yt.channels().list(part='id,snippet', mine=True).execute().get('items') or []
-          if not items:
-              raise SystemExit('OAuth no devolvio ningun canal')
-          actual = str((items[0].get('snippet') or {}).get('customUrl') or '').lower().lstrip('/')
-          if actual != '@dioshablahoyia':
-              raise SystemExit(f'Canal OAuth incorrecto: {actual}')
-          print('OAUTH_OK @dioshablahoyia')
-          PY
           for ref in \
             assets/dioshablahoyia/reference/jesus_reference_a.jpg \
             assets/dioshablahoyia/reference/jesus_reference_b.jpg \
             assets/dioshablahoyia/reference/jesus_reference_c.jpg; do
-            test -s "$ref"
+            test -s "$ref" || { echo "ERROR: falta referencia $ref"; exit 23; }
           done
+          python - <<'PY'
+          import json, os, time
+          from google.oauth2.credentials import Credentials
+          from googleapiclient.discovery import build
+          payload = json.loads(os.environ['YOUTUBE_TOKEN_DIOSHABLAHOYIA'])
+          creds = Credentials.from_authorized_user_info(payload, scopes=payload.get('scopes'))
+          last = None
+          for attempt in range(1, 4):
+              try:
+                  yt = build('youtube', 'v3', credentials=creds, cache_discovery=False)
+                  items = yt.channels().list(part='id,snippet', mine=True).execute().get('items') or []
+                  if not items:
+                      raise RuntimeError('OAuth no devolvio ningun canal')
+                  actual = str((items[0].get('snippet') or {}).get('customUrl') or '').lower().lstrip('/')
+                  if actual != '@dioshablahoyia':
+                      raise RuntimeError(f'Canal OAuth incorrecto: {actual}')
+                  print('OAUTH_OK @dioshablahoyia')
+                  break
+              except Exception as exc:
+                  last = exc
+                  print(f'OAuth intento {attempt}/3 fallo: {type(exc).__name__}: {exc}', flush=True)
+                  if attempt < 3:
+                      time.sleep(5 * attempt)
+          else:
+              raise SystemExit(f'OAUTH_CHANNEL_CHECK_FAILED: {last}')
+          PY
 
       - name: Count confirmed Shorts before recovery
         id: before
         shell: bash
         run: |
+          set -euo pipefail
           COUNT="$(python scripts/dioshablahoyia_watchdog.py | python -c 'import json,sys; print(int(json.load(sys.stdin)["short_actual"]))')"
           echo "count=$COUNT" >> "$GITHUB_OUTPUT"
           echo "CONFIRMED_BEFORE=$COUNT"
@@ -182,6 +202,7 @@ jobs:
         if: always()
         shell: bash
         run: |
+          set -euo pipefail
           RECORDS=/tmp/dios-catchup/new-short-records.jsonl
           test -s "$RECORDS" || exit 0
           cp "$RECORDS" /tmp/phase-records.jsonl
@@ -222,6 +243,7 @@ jobs:
         if: always() && steps.flash.outcome != 'success'
         shell: bash
         run: |
+          set -euo pipefail
           RECORDS=/tmp/dios-catchup/new-short-records.jsonl
           test -s "$RECORDS" || exit 0
           cp "$RECORDS" /tmp/pro-records.jsonl
@@ -247,6 +269,7 @@ jobs:
       - name: Verify real progress and daily target
         shell: bash
         run: |
+          set -euo pipefail
           git fetch origin main
           git reset --hard origin/main
           BEFORE="${{ steps.before.outputs.count }}"
