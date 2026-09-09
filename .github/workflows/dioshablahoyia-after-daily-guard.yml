@@ -9,59 +9,61 @@ on:
 permissions:
   contents: write
   issues: write
-  actions: read
+  actions: write
 
 env:
   TZ: America/Argentina/Buenos_Aires
 
 jobs:
   complete_missing:
+    # Never launch a second recovery while the canonical publisher is already active.
+    if: github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
         with:
+          ref: main
           fetch-depth: 0
 
       - name: Refresh latest state
         run: |
+          set -euo pipefail
           git fetch origin main
           git reset --hard origin/main
 
       - name: Count real Shorts for current Argentina day
         id: count
+        shell: bash
         run: |
+          set -euo pipefail
           python - <<'PY'
-          import json
+          import json, os
           from datetime import datetime, timezone
           from pathlib import Path
           from zoneinfo import ZoneInfo
 
-          zone = ZoneInfo('America/Argentina/Buenos_Aires')
+          zone = ZoneInfo("America/Argentina/Buenos_Aires")
           today = datetime.now(zone).date()
-          rows = []
-          path = Path('state/history.jsonl')
+          ids = set()
+          path = Path("state/history.jsonl")
           if path.exists():
-              for raw in path.read_text(encoding='utf-8').splitlines():
+              for raw in path.read_text(encoding="utf-8").splitlines():
                   try:
                       row = json.loads(raw)
-                      dt = datetime.fromisoformat(str(row.get('created_at') or '').replace('Z', '+00:00'))
+                      dt = datetime.fromisoformat(str(row.get("created_at") or "").replace("Z", "+00:00"))
                       if dt.tzinfo is None:
                           dt = dt.replace(tzinfo=timezone.utc)
                   except Exception:
                       continue
-                  if (
-                      row.get('channel') == 'dioshablahoyia'
-                      and dt.astimezone(zone).date() == today
-                      and str(row.get('video_id') or '').strip()
-                  ):
-                      rows.append(row)
-          count = len(rows)
+                  video_id = str(row.get("video_id") or "").strip()
+                  if row.get("channel") == "dioshablahoyia" and video_id and dt.astimezone(zone).date() == today:
+                      ids.add(video_id)
+          count = len(ids)
           missing = max(0, 10 - count)
-          print(f'CONFIRMED_SHORTS={count}')
-          print(f'MISSING_SHORTS={missing}')
-          with open(__import__('os').environ['GITHUB_OUTPUT'], 'a', encoding='utf-8') as fh:
-              fh.write(f'count={count}\nmissing={missing}\n')
+          print(f"CONFIRMED_SHORTS={count}/10 MISSING={missing}")
+          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as fh:
+              fh.write(f"count={count}\nmissing={missing}\n")
           PY
 
       - name: Check canonical premium publisher is not already active
@@ -70,35 +72,19 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          ACTIVE="$(gh run list \
-            --workflow dioshablahoyia-algenib-emergency.yml \
-            --limit 30 \
-            --json status \
-            --jq '[.[] | select(.status == "queued" or .status == "in_progress" or .status == "pending" or .status == "waiting")] | length')"
+          set -euo pipefail
+          ACTIVE="$(gh run list -R "$GITHUB_REPOSITORY" --workflow dioshablahoyia-algenib-emergency.yml --limit 30 --json status --jq '[.[] | select(.status == "queued" or .status == "in_progress" or .status == "pending" or .status == "waiting")] | length')"
           echo "active=$ACTIVE" >> "$GITHUB_OUTPUT"
           echo "CANONICAL_ACTIVE=$ACTIVE"
 
-      - name: Trigger only canonical premium completion
+      - name: Trigger canonical premium completion only when needed
         if: steps.count.outputs.missing != '0' && steps.active.outputs.active == '0'
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
-          git config user.name "youtube-ai-bot"
-          git config user.email "actions@users.noreply.github.com"
-          git fetch origin main
-          git reset --hard origin/main
-          mkdir -p triggers
-          printf '%s | COMPLETE PREMIUM SHORTS | confirmed=%s missing=%s | preserve Voz de Luz Algenib + locked realistic Jesus identity | persist video_id immediately\n' \
-            "$(TZ=America/Argentina/Buenos_Aires date '+%Y-%m-%d %H:%M:%S ART')" \
-            "${{ steps.count.outputs.count }}" \
-            "${{ steps.count.outputs.missing }}" \
-            > triggers/dioshablahoyia-algenib-emergency.txt
-          git add triggers/dioshablahoyia-algenib-emergency.txt
-          if git diff --cached --quiet; then
-            echo "No trigger change needed"
-            exit 0
-          fi
-          git commit -m "chore: complete missing premium Dios Shorts"
-          git push origin HEAD:main
+          set -euo pipefail
+          gh workflow run dioshablahoyia-algenib-emergency.yml -R "$GITHUB_REPOSITORY" --ref main
 
       - name: Report target already complete
         if: steps.count.outputs.missing == '0'
-        run: echo "10/10 real Shorts already confirmed for current Argentina day; no duplicate publishing."
+        run: echo "10/10 real Shorts already confirmed; no duplicate publishing."
