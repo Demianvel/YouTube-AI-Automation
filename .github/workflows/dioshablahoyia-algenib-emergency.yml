@@ -6,6 +6,9 @@ on:
     branches: [main]
     paths:
       - "triggers/dioshablahoyia-algenib-emergency.txt"
+  schedule:
+    # Self-heal hourly in Argentina time: the catch-up script only publishes missing Shorts.
+    - cron: "5 * * * *"
 
 permissions:
   contents: write
@@ -22,7 +25,7 @@ jobs:
     env:
       PYTHONPATH: .
       TZ: America/Argentina/Buenos_Aires
-      CHANNEL: dioshablahoyia
+      CHANNEL: dioshabblahoyia
       CONTENT_MODE: voice
       DIOS_CATCHUP_PUBLISH_ATTEMPTS: "2"
       DIOS_CATCHUP_RETRY_WAIT_SECONDS: "8"
