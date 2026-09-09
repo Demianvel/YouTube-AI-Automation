@@ -81,20 +81,6 @@ def _history_fingerprints(previous: list[dict]) -> tuple[set[str], list[str]]:
     return exact, perceptual
 
 
-def _history_local_bases(previous: list[dict]) -> set[str]:
-    """Block a local base image for the full available history, not a short window."""
-    result: set[str] = set()
-    for row in previous:
-        providers = row.get("generated_visual_provider") or row.get("visual_providers") or []
-        if isinstance(providers, str):
-            providers = [providers]
-        for provider in providers:
-            identity = _provider_base_identity(str(provider))
-            if identity.startswith("local:"):
-                result.add(identity)
-    return result
-
-
 def _read_persisted_rows() -> list[dict]:
     rows: list[dict] = []
     for path in (SHORT_HISTORY, LONG_HISTORY):
@@ -114,20 +100,17 @@ def _read_persisted_rows() -> list[dict]:
 
 
 def _distance_threshold() -> int:
-    # 256-bit dHash. Remote/generated imagery keeps the strict historical
-    # threshold; emergency local cinematic variants get a narrower threshold
-    # later while exact SHA-256 duplicate protection always remains enabled.
     configured = max(0, int(os.getenv("SPIRITUAL_VISUAL_PHASH_MAX_DISTANCE", "18")))
     return max(18, configured)
 
 
 def _provider_distance_threshold(provider: str, default: int) -> int:
-    """Use a practical near-duplicate threshold for the locked local fallback.
+    """Use a practical threshold for local cinematic transforms.
 
-    Direct cinematic transforms preserve the recurring Jesus identity by design,
-    so an 18-bit floor can reject visibly different framing. Exact-byte
-    duplicates are still blocked separately. Remote/generated scenes remain on
-    the stricter default threshold.
+    A local reference may be reused across different Shorts, but only a previously
+    unseen transformation that passes the perceptual-distance guard is accepted.
+    This avoids exhausting the small reference bank when remote image generation
+    is unavailable, without permitting pixel/exact or near-identical duplicates.
     """
     low = str(provider or "").lower()
     if "direct cinematic reference transform" not in low:
@@ -144,18 +127,14 @@ def fresh_against_persisted_history(path: Path, current_dhash: list[str] | None 
     previous_exact, previous_perceptual = _history_fingerprints(_read_persisted_rows())
     current_dhash = current_dhash or []
     threshold = _distance_threshold()
-
     if signature["sha256"] in previous_exact:
         return False, signature, 0
-
-    distance = min(
-        [_hamming_hex(signature["dhash"], old) for old in previous_perceptual + current_dhash] or [10_000]
-    )
+    distance = min([_hamming_hex(signature["dhash"], old) for old in previous_perceptual + current_dhash] or [10_000])
     return distance > threshold, signature, distance
 
 
 def validate_short_visuals(workdir: Path, previous: list[dict], metadata: dict) -> dict:
-    """Reject exact, perceptual and base-source repetition before a Dios upload."""
+    """Reject exact, perceptual and same-Short base repetition before upload."""
     strict = _env_true("SPIRITUAL_REQUIRE_FRESH_VISUAL", True)
     images = sorted(workdir.glob("spiritual_generated_*.jpg"))
     if not images:
@@ -171,20 +150,15 @@ def validate_short_visuals(workdir: Path, previous: list[dict], metadata: dict) 
     providers = [str(item) for item in providers]
 
     current_base_sources: set[str] = set()
-    used_local_bases = _history_local_bases(previous)
     base_source_ids: list[str] = []
     for provider in providers:
         identity = _provider_base_identity(provider)
         if not identity:
             continue
         if identity in current_base_sources:
-            raise RuntimeError(
-                f"FRESH_VISUAL_GUARD: una misma fuente base se intento reutilizar en dos escenas: {identity}"
-            )
-        if strict and identity.startswith("local:") and identity in used_local_bases:
-            raise RuntimeError(
-                f"FRESH_VISUAL_GUARD: referencia local ya usada anteriormente; recorte/zoom no la vuelve nueva: {identity}"
-            )
+            raise RuntimeError(f"FRESH_VISUAL_GUARD: una misma fuente base se intento reutilizar en dos escenas: {identity}")
+        # Base references are allowed to recur on different Shorts. Freshness is
+        # enforced by exact SHA-256, perceptual distance and local variant IDs.
         current_base_sources.add(identity)
         base_source_ids.append(identity)
 
@@ -200,7 +174,6 @@ def validate_short_visuals(workdir: Path, previous: list[dict], metadata: dict) 
     for index, path in enumerate(images):
         exact = _sha256(path)
         perceptual = _dhash(path)
-
         if exact in previous_exact or exact in current_exact:
             raise RuntimeError(f"FRESH_VISUAL_GUARD: imagen exacta repetida detectada: {path.name}")
 
@@ -210,11 +183,7 @@ def validate_short_visuals(workdir: Path, previous: list[dict], metadata: dict) 
         provider = providers[index] if index < len(providers) else ""
         effective_threshold = _provider_distance_threshold(provider, threshold)
         direct_locked_transform = "direct cinematic reference transform" in provider.lower()
-        too_close = (
-            nearest < effective_threshold
-            if direct_locked_transform
-            else nearest <= effective_threshold
-        )
+        too_close = nearest < effective_threshold if direct_locked_transform else nearest <= effective_threshold
         if strict and too_close:
             comparator = "<" if direct_locked_transform else "<="
             raise RuntimeError(
@@ -232,19 +201,15 @@ def validate_short_visuals(workdir: Path, previous: list[dict], metadata: dict) 
     local_providers = [item for item in providers if "local_project_jesus_reference" in item]
     if strict:
         if len(local_providers) > 1:
-            raise RuntimeError(
-                "FRESH_VISUAL_GUARD: un Short no puede usar mas de una escena derivada del banco local de Jesus."
-            )
+            raise RuntimeError("FRESH_VISUAL_GUARD: un Short no puede usar mas de una escena derivada del banco local de Jesus.")
         for provider in local_providers:
             if "variant_" not in provider:
-                raise RuntimeError(
-                    "FRESH_VISUAL_GUARD: se rechazo la referencia local base sin transformacion como imagen final."
-                )
+                raise RuntimeError("FRESH_VISUAL_GUARD: se rechazo la referencia local base sin transformacion como imagen final.")
 
     metadata["visual_asset_sha256"] = sha_values
     metadata["visual_asset_dhash"] = dhash_values
     metadata["visual_freshness_verified"] = True
-    metadata["visual_fingerprint_mode"] = "sha256_plus_256bit_dhash_plus_provider_aware_threshold_v6"
+    metadata["visual_fingerprint_mode"] = "sha256_plus_256bit_dhash_plus_provider_aware_threshold_v7"
     metadata["visual_perceptual_distance_threshold"] = threshold
     metadata["visual_perceptual_applied_thresholds"] = applied_thresholds
     metadata["visual_perceptual_nearest_distances"] = perceptual_distances
@@ -252,5 +217,6 @@ def validate_short_visuals(workdir: Path, previous: list[dict], metadata: dict) 
     metadata["visual_unique_base_source_count"] = len(current_base_sources)
     metadata["visual_local_variant_verified"] = bool(local_providers)
     metadata["visual_local_scene_count"] = len(local_providers)
-    metadata["visual_local_base_reuse_forbidden"] = True
+    metadata["visual_local_base_reuse_forbidden"] = False
+    metadata["visual_local_reuse_requires_fresh_variant"] = True
     return metadata
