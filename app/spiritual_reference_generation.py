@@ -22,7 +22,6 @@ CAMERAS = (
     "over-the-shoulder contemplative composition",
     "side-profile tracking composition with strong natural depth",
 )
-
 ACTIONS = (
     "walking calmly while the robe moves naturally in the wind",
     "raising one open hand in a restrained welcoming gesture",
@@ -31,7 +30,6 @@ ACTIONS = (
     "kneeling in prayer beside an olive tree",
     "standing beside living water while turning naturally toward the light",
 )
-
 ENVIRONMENTS = (
     "Lofoten Islands in Norway at blue hour with snowy peaks and calm sea",
     "Geirangerfjord in Norway with immense cliffs and realistic waterfalls",
@@ -43,7 +41,6 @@ ENVIRONMENTS = (
     "an ancient stone path beneath dramatic clouds opening to golden light",
     "a quiet alpine lake reflecting snow-covered mountains",
 )
-
 LIGHTING = (
     "physically plausible golden sunrise",
     "soft overcast cinematic daylight",
@@ -52,11 +49,8 @@ LIGHTING = (
     "green and violet aurora light with realistic skin tones",
     "sun rays passing through moving clouds",
 )
-
 NEGATIVE_PROMPT = (
-    "text, subtitles, logo, watermark, duplicate subject, duplicate people, deformed hands, "
-    "extra fingers, malformed anatomy, plastic CGI skin, doll face, cartoon, anime, painting, "
-    "illustration, videogame, celebrity resemblance, recognizable actor, horror, gore, politics, brands"
+    "text, subtitles, logo, watermark, duplicate subject, duplicate people, deformed hands, extra fingers, malformed anatomy, plastic CGI skin, doll face, cartoon, anime, painting, illustration, videogame, celebrity resemblance, recognizable actor, horror, gore, politics, brands"
 )
 
 
@@ -105,9 +99,8 @@ def _recent_reference_names(limit_records: int = 40) -> list[str]:
     names: list[str] = []
     for row in _history_rows()[-limit_records:]:
         for label in _provider_strings(row):
-            marker = "reference:"
-            if marker in label:
-                tail = label.split(marker, 1)[1]
+            if "reference:" in label:
+                tail = label.split("reference:", 1)[1]
                 names.append(tail.split("/", 1)[0].strip())
     return names
 
@@ -116,7 +109,6 @@ def choose_reference(seed: int) -> Path:
     refs = _reference_files()
     if not refs:
         raise RuntimeError("No hay referencias del personaje en assets/dioshablahoyia/reference.")
-
     avoid_count = max(0, int(os.getenv("SPIRITUAL_REFERENCE_AVOID_RECENT", "8")))
     recent = set(_recent_reference_names(limit_records=max(20, avoid_count * 4))[-avoid_count:])
     preferred = [ref for ref in refs if ref.name not in recent]
@@ -124,19 +116,13 @@ def choose_reference(seed: int) -> Path:
     user_pool = [ref for ref in pool if "_user_" in ref.name]
     if user_pool:
         pool = user_pool
-
     safe = int(seed) & 0x7FFFFFFF
     return pool[(safe // 31) % len(pool)]
 
 
 def _variation(seed: int) -> tuple[str, str, str, str]:
     safe = int(seed) & 0x7FFFFFFF
-    return (
-        CAMERAS[safe % len(CAMERAS)],
-        ACTIONS[(safe // 7) % len(ACTIONS)],
-        ENVIRONMENTS[(safe // 13) % len(ENVIRONMENTS)],
-        LIGHTING[(safe // 19) % len(LIGHTING)],
-    )
+    return CAMERAS[safe % len(CAMERAS)], ACTIONS[(safe // 7) % len(ACTIONS)], ENVIRONMENTS[(safe // 13) % len(ENVIRONMENTS)], LIGHTING[(safe // 19) % len(LIGHTING)]
 
 
 def build_reference_prompt(base_prompt: str, seed: int, target_size: tuple[int, int] = (1080, 1920)) -> str:
@@ -148,10 +134,8 @@ def build_reference_prompt(base_prompt: str, seed: int, target_size: tuple[int, 
         f"{base_prompt}. Use the supplied image only as a visual identity and wardrobe reference for the recurring synthetic Jesus character. "
         "Create a clearly NEW photograph-like scene; do not copy the original background, pose, crop, camera angle or lighting. "
         f"New composition: {camera}. New action: {action}. New environment: {environment}. Lighting: {lighting}. "
-        "Preserve a reverent adult synthetic Jesus identity with shoulder-length wavy dark-brown hair, groomed beard, warm hazel-brown eyes, natural skin texture, "
-        "cream or ivory linen robe and optional muted beige or deep-red mantle. Keep realistic anatomy, natural hands and physically plausible fabric. "
-        f"Premium live-action cinema, photorealistic optics, natural atmospheric depth, {orientation}, no text and no watermark. "
-        f"Variation fingerprint {fingerprint}."
+        "Preserve a reverent adult synthetic Jesus identity with shoulder-length wavy dark-brown hair, groomed beard, warm hazel-brown eyes, natural skin texture, cream or ivory linen robe and optional muted beige or deep-red mantle. Keep realistic anatomy, natural hands and physically plausible fabric. "
+        f"Premium live-action cinema, photorealistic optics, natural atmospheric depth, {orientation}, no text and no watermark. Variation fingerprint {fingerprint}."
     )
 
 
@@ -195,7 +179,6 @@ def _zero_space_result_path(result) -> Path:
 def _gradio_space_client(space: str, token: str | None):
     import inspect
     from gradio_client import Client
-
     params = inspect.signature(Client).parameters
     kwargs: dict = {"verbose": False}
     if token:
@@ -215,7 +198,6 @@ def _zero_modes(token: str | None) -> list[tuple[str, str | None]]:
 
 def _predict_zero_reference(client, space: str, reference: Path, prompt: str, seed: int):
     from gradio_client import handle_file
-
     safe_seed = _safe_seed_for_space(seed)
     if "kontext" in space.lower():
         return client.predict(handle_file(str(reference)), prompt, safe_seed, False, 2.5, 22, api_name="/infer")
@@ -226,7 +208,6 @@ def _generate_reference_zerogpu(reference: Path, prompt: str, out: Path, seed: i
     space = os.getenv("HF_REFERENCE_ZERO_SPACE", "black-forest-labs/FLUX.1-Kontext-Dev").strip() or "black-forest-labs/FLUX.1-Kontext-Dev"
     token = _zero_token()
     errors: list[str] = []
-
     for mode, client_token in _zero_modes(token):
         try:
             client = _gradio_space_client(space, client_token)
@@ -242,9 +223,7 @@ def _generate_reference_zerogpu(reference: Path, prompt: str, out: Path, seed: i
 
 def _flux_zero_size(target_size: tuple[int, int]) -> tuple[int, int]:
     width, height = target_size
-    if height > width:
-        return 768, 1344
-    return 1344, 768
+    return (768, 1344) if height > width else (1344, 768)
 
 
 def _generate_text_zerogpu(reference: Path, prompt: str, out: Path, seed: int, target_size: tuple[int, int]) -> str:
@@ -252,23 +231,11 @@ def _generate_text_zerogpu(reference: Path, prompt: str, out: Path, seed: int, t
     token = _zero_token()
     width, height = _flux_zero_size(target_size)
     errors: list[str] = []
-
-    text_prompt = (
-        prompt.replace("Use the supplied image only as a visual identity and wardrobe reference for the recurring synthetic Jesus character. ", "")
-        + " Generate a fresh original frame, not a copy of any existing photograph."
-    )
+    text_prompt = prompt.replace("Use the supplied image only as a visual identity and wardrobe reference for the recurring synthetic Jesus character. ", "") + " Generate a fresh original frame, not a copy of any existing photograph."
     for mode, client_token in _zero_modes(token):
         try:
             client = _gradio_space_client(space, client_token)
-            result = client.predict(
-                text_prompt,
-                _safe_seed_for_space(seed),
-                False,
-                width,
-                height,
-                4,
-                api_name="/infer",
-            )
+            result = client.predict(text_prompt, _safe_seed_for_space(seed), False, width, height, 4, api_name="/infer")
             source = _zero_space_result_path(result)
             with Image.open(source) as generated:
                 _save_generated(generated, out, target_size)
@@ -283,9 +250,9 @@ def _safe_seed_for_space(seed: int) -> int:
 
 
 def _generate_inference_provider(reference: Path, prompt: str, out: Path, seed: int, target_size: tuple[int, int]) -> str:
-    token = os.getenv("HF_TOKEN", "").strip()
+    token = _zero_token()
     if not token:
-        raise RuntimeError("HF_TOKEN no esta disponible para image-to-image.")
+        raise RuntimeError("HF_ZERO_TOKEN/HF_TOKEN no esta disponible para image-to-image.")
     provider = os.getenv("HF_REFERENCE_IMAGE_PROVIDER", "auto").strip() or "auto"
     model = os.getenv("HF_REFERENCE_IMAGE_MODEL", "black-forest-labs/FLUX.1-Kontext-dev").strip()
     client = InferenceClient(provider=provider, api_key=token, timeout=240)
@@ -293,41 +260,30 @@ def _generate_inference_provider(reference: Path, prompt: str, out: Path, seed: 
     if image is None:
         raise RuntimeError("Hugging Face image-to-image no devolvio una imagen.")
     _save_generated(image, out, target_size)
-    return f"Hugging Face reference-guided image / {model} / reference:{reference.name}"
+    return f"Hugging Face reference-guided image / {model} / {provider} / reference:{reference.name}"
 
 
-def generate_reference_guided_image(
-    full_prompt: str,
-    out: Path,
-    seed: int,
-    target_size: tuple[int, int] = (1080, 1920),
-) -> tuple[str, str]:
+def generate_reference_guided_image(full_prompt: str, out: Path, seed: int, target_size: tuple[int, int] = (1080, 1920)) -> tuple[str, str]:
     global _REMOTE_CIRCUIT_OPEN
-
     if not _env_true("HF_REFERENCE_IMAGE_ENABLED", True):
         raise RuntimeError("HF reference image generation esta deshabilitado.")
     if _REMOTE_CIRCUIT_OPEN and _env_true("HF_REMOTE_CIRCUIT_BREAKER", True):
         raise RuntimeError("HF free-image circuit abierto para esta ejecucion; fallback inmediato.")
-
     reference = choose_reference(seed)
     prompt = build_reference_prompt(full_prompt, seed, target_size=target_size)
     zero_first = _env_true("HF_REFERENCE_ZERO_SPACE_FIRST", True)
     errors: list[str] = []
-
     zero_attempts: list[tuple[str, object]] = []
     if _env_true("HF_REFERENCE_EDITOR_ENABLED", True):
         zero_attempts.append(("ReferenceZeroGPU", lambda: _generate_reference_zerogpu(reference, prompt, out, seed, target_size)))
     if _env_true("HF_TEXT_ZERO_ENABLED", True):
         zero_attempts.append(("FluxSchnellZeroGPU", lambda: _generate_text_zerogpu(reference, prompt, out, seed, target_size)))
-
     provider_attempts: list[tuple[str, object]] = []
     if _env_true("HF_INFERENCE_PROVIDER_ENABLED", True):
         provider_attempts.append(("InferenceProvider", lambda: _generate_inference_provider(reference, prompt, out, seed, target_size)))
-
     attempts = (*zero_attempts, *provider_attempts) if zero_first else (*provider_attempts, *zero_attempts)
     if not attempts:
         raise RuntimeError("No hay rutas de generacion Hugging Face habilitadas.")
-
     for label, action in attempts:
         try:
             provider = action()
@@ -335,7 +291,6 @@ def generate_reference_guided_image(
         except Exception as exc:
             errors.append(f"{label}: {exc}")
             print(f"Hugging Face {label} no disponible: {exc}")
-
     if _env_true("HF_REMOTE_CIRCUIT_BREAKER", True):
         _REMOTE_CIRCUIT_OPEN = True
         print("HF free-image circuit abierto: las escenas restantes usaran fallback inmediato sin repetir esperas remotas.")
