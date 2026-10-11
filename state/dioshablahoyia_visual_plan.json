@@ -1,14 +1,14 @@
 {
-  "generated_at": "2026-10-10T15:30:56.987770+00:00",
-  "date": "2026-10-10",
+  "generated_at": "2026-10-11T15:53:16.704843+00:00",
+  "date": "2026-10-11",
   "family_order": [
-    "biblical_stories",
     "creation_and_nature",
     "jesus_and_prayer",
+    "norway",
     "symbols_of_faith",
-    "norway"
+    "biblical_stories"
   ],
-  "featured_location": "biblical_stories",
+  "featured_location": "creation_and_nature",
   "featured_norway_regions": [
     "Lofoten",
     "Geirangerfjord",
