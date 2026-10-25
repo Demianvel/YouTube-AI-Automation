@@ -5,13 +5,14 @@ import re
 import subprocess
 from pathlib import Path
 
-from .spiritual_tts import make_spiritual_spanish_voice
+from . import render_quality
+from .spiritual_tts import configured_gemini_voice, is_configured_gemini_provider, make_spiritual_spanish_voice
 from .premium_audio import make_premium_original_music
 from .spiritual_continuity import ensure_spoken_text, fit_and_validate_spiritual_voice
 from .spiritual_voice import polish_voice
 
-VOICE_LOCK_VERSION = "voz-de-luz-algenib-v3-natural-fixed"
-EXPECTED_VOICE = "Algenib"
+VOICE_LOCK_VERSION = "voz-de-luz-v5-configured-serene"
+EXPECTED_VOICE = "Algieba"  # default only; the configured DIOS_TTS_VOICE chain is enforced
 EXPECTED_PROFILE = "voz_de_luz_serena_original_v1"
 
 
@@ -28,7 +29,7 @@ def _cta_overlay(path: Path, duration: int) -> None:
     )
     subprocess.run([
         "ffmpeg", "-y", "-loglevel", "error", "-i", str(path),
-        "-vf", vf, "-c:v", "libx264", "-preset", "medium", "-crf", "18",
+        "-vf", vf, *render_quality.video_encode_args(),
         "-c:a", "copy", "-movflags", "+faststart", str(temp),
     ], check=True)
     if temp.exists() and temp.stat().st_size > 50_000:
@@ -40,11 +41,33 @@ def _enforce_voice_identity(used: str) -> None:
         return
     value = str(used or "")
     low = value.lower()
-    if "gemini" not in low or f":{EXPECTED_VOICE.lower()}:" not in low or "fallback" in low:
-        raise RuntimeError(
-            "VOICE_IDENTITY_GUARD: se rechazo publicar porque la narracion no usa "
-            f"Voz de Luz/{EXPECTED_VOICE} como voz primaria. Provider recibido: {value or 'vacio'}"
-        )
+    if is_configured_gemini_provider(value):
+        return
+    qwen_ok = os.getenv("SPIRITUAL_ALLOW_QWEN_BACKUP", "false").lower().strip() == "true"
+    if qwen_ok and "voz_de_luz_qwen_backup" in low and "kokoro" not in low:
+        return
+    raise RuntimeError(
+        "VOICE_IDENTITY_GUARD: se rechazo publicar porque la narracion no usa "
+        f"Voz de Luz/{configured_gemini_voice()} (o el respaldo Qwen autorizado). Provider recibido: {value or 'vacio'}"
+    )
+
+
+def narration_word_budget(duration: float) -> tuple[int, int]:
+    """(max_words, min_words) for the Voz de Luz narration.
+
+    DIOS_NARRATION_WPM sets the target pace. The default (126) reproduces the
+    historical 117-126 words per 60 s budget; the orchestrator sets a slower,
+    serene pace (110). The minimum keeps ~93% of the maximum.
+    """
+    try:
+        wpm = float(os.getenv("DIOS_NARRATION_WPM", "126"))
+    except ValueError:
+        wpm = 126.0
+    wpm = max(80.0, min(150.0, wpm))
+    seconds = max(8.0, float(duration))
+    max_words = max(36, int(seconds * wpm / 60.0))
+    min_words = max(32, int(round(max_words * 0.93)))
+    return max_words, min_words
 
 
 def _fit_text_for_natural_short_voice(text: str, duration: int, seed: int) -> tuple[str, dict]:
@@ -56,8 +79,7 @@ def _fit_text_for_natural_short_voice(text: str, duration: int, seed: int) -> tu
     retain complete phrases and the spiritual closing; the voice is never sped up.
     """
     clean = " ".join(str(text or "").split()).strip()
-    max_words = max(36, int(float(duration) * 2.10))
-    min_words = max(32, int(float(duration) * 1.95))
+    max_words, min_words = narration_word_budget(duration)
     original_words = len(clean.split())
 
     if original_words > max_words:
@@ -91,7 +113,8 @@ def _fit_text_for_natural_short_voice(text: str, duration: int, seed: int) -> tu
         "continuity_expansions": 0,
     }
     if len(clean.split()) < min_words:
-        clean, expansion = ensure_spoken_text(clean, duration, seed=seed, words_per_minute=124)
+        fill_wpm = max(60, int(round(min_words * 60.0 / max(1.0, float(duration)) / 0.98)))
+        clean, expansion = ensure_spoken_text(clean, duration, seed=seed, words_per_minute=fill_wpm)
 
     words = clean.split()
     if len(words) > max_words:
@@ -107,7 +130,7 @@ def _fit_text_for_natural_short_voice(text: str, duration: int, seed: int) -> tu
         "natural_voice_word_budget_min": min_words,
         "natural_voice_word_budget_max": max_words,
         "script_adjusted_for_fixed_voice_cadence": final_words != original_words,
-        "voice_rate_policy": "fixed_natural_algenib_empirical_117_126_words_per_60s_no_slow_stretch",
+        "voice_rate_policy": f"voz_de_luz_serene_{max_words}_words_per_{int(duration)}s_no_slow_stretch",
     }
 
 
@@ -151,7 +174,7 @@ def apply_spiritual_audio(video: Path, out: Path, channel: dict, meta: dict, dur
         f"[1:a]highpass=f=62,lowpass=f=11500,acompressor=threshold=-19dB:ratio=1.55:attack=11:release=155,loudnorm=I=-16:TP=-1.5:LRA=6,apad=pad_dur={duration}[v];"
         "[2:a]volume=0.022,lowpass=f=8200[m];[v][m]amix=inputs=2:duration=first:dropout_transition=0.4[a]",
         "-map", "0:v:0", "-map", "[a]", "-t", str(duration),
-        "-c:v", "copy", "-c:a", "aac", "-b:a", "192k", "-movflags", "+faststart", str(out),
+        "-c:v", "copy", "-c:a", "aac", "-b:a", render_quality.audio_bitrate(), "-ar", "48000", "-movflags", "+faststart", str(out),
     ], check=True)
 
     _cta_overlay(out, duration)
@@ -159,7 +182,10 @@ def apply_spiritual_audio(video: Path, out: Path, channel: dict, meta: dict, dur
     meta["voice_profile"] = EXPECTED_PROFILE
     meta["voice_identity_locked"] = True
     meta["voice_lock_version"] = VOICE_LOCK_VERSION
-    meta["voice_expected_provider"] = f"Gemini TTS/{EXPECTED_VOICE}"
+    meta["voice_expected_provider"] = f"Gemini TTS/{configured_gemini_voice()}"
+    meta["voice_brand"] = "Voz de Luz"
+    meta["voice_is_literal_voice_of_god"] = False
+    meta["audio_bitrate"] = render_quality.audio_bitrate()
     meta["voice_delivery"] = "permanent_natural_cadence_same_track_no_slow_stretch"
     meta["voice_cadence_locked"] = True
     meta["voice_slow_stretch_forbidden"] = True
