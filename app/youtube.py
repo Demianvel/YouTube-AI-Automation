@@ -165,7 +165,13 @@ def _enforce_spiritual_voice_guard(channel: dict, metadata: dict, video_path: Pa
     longest_raw = metadata.get("longest_voice_silence_seconds")
     coverage = float(coverage_raw if coverage_raw is not None else 0.0)
     longest = float(longest_raw if longest_raw is not None else 999.0)
-    if passed is not True or coverage < 0.96 or longest > 2.2:
+    try:
+        min_coverage = float(os.getenv("DIOS_MIN_VOICE_COVERAGE", "0.96"))
+    except ValueError:
+        min_coverage = 0.96
+    # Never accept less than the continuity validator's own 82% floor.
+    min_coverage = max(0.82, min(0.99, min_coverage))
+    if passed is not True or coverage < min_coverage or longest > 2.2:
         raise RuntimeError(
             "BLOQUEADO ANTES DE YOUTUBE: la narracion espiritual no supero el control de continuidad "
             f"(passed={passed}, coverage={coverage:.1%}, longest_silence={longest:.2f}s)."
