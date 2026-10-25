@@ -8,7 +8,10 @@ from googleapiclient.http import MediaFileUpload
 
 from app import pipeline, spiritual_audio, spiritual_image, spiritual_tts, youtube as youtube_module
 from app import spiritual_reference_generation as reference_generation
+from app import dios_premium_editorial_v7 as editorial_v7
 from app import dios_premium_editorial_v8 as editorial_v8
+from app import dios_brain
+from app.dios_brain import strategist as brain_strategist
 from app.dios_realistic_visual_policy import VISUAL_POLICY_ID, decorate_scene_prompt
 from app.qwen_voice import generate_qwen_premium_voice
 from app.spiritual_auto_thumbnail import build_auto_thumbnail
@@ -21,7 +24,10 @@ REALISTIC_FALLBACK_VERSION = "dios-realistic-scenic-fallback-v5"
 _ORIGINAL_PIPELINE_UPLOAD = pipeline.upload_video
 _ORIGINAL_PIPELINE_UNIQUENESS = pipeline.validate_spiritual_uniqueness
 _ORIGINAL_APPEND_HISTORY = pipeline.append_history
+_ORIGINAL_V7_CHOOSE_THEME = editorial_v7._choose_theme
 _LAST_THUMBNAIL_FIELDS: dict = {}
+_LAST_BRAIN_FIELDS: dict = {}
+_LAST_THEME: dict = {}
 
 
 def _allow_qwen_backup() -> bool:
@@ -32,8 +38,7 @@ def _premium_hybrid_voice(path: Path, text: str) -> str:
     locked._assert_permanent_voice_environment()
     try:
         used = spiritual_tts._gemini_spiritual_voice(path, text)
-        low = str(used or "").lower()
-        if "gemini" not in low or ":algenib:" not in low or "kokoro" in low:
+        if not spiritual_tts.is_configured_gemini_provider(used):
             raise RuntimeError(f"VOICE_IDENTITY_LOCK: proveedor Gemini inesperado: {used}")
         spiritual_tts._brand_master(path)
         return used
@@ -41,8 +46,8 @@ def _premium_hybrid_voice(path: Path, text: str) -> str:
         if not _allow_qwen_backup() or not spiritual_tts._is_gemini_quota_error(exc):
             raise
         print(
-            "Gemini/Algenib sin cuota. Activando respaldo local Hugging Face Qwen3-TTS; "
-            "es una voz premium alternativa, no se etiqueta como Algenib identica.",
+            f"Gemini/{spiritual_tts.configured_gemini_voice()} sin cuota. Activando respaldo local Hugging Face Qwen3-TTS; "
+            "es una voz premium alternativa de Voz de Luz, no se etiqueta como la voz Gemini.",
             flush=True,
         )
         used = generate_qwen_premium_voice(path, text)
@@ -144,8 +149,39 @@ def _premium_visual_upload_guard(channel: dict, metadata: dict) -> None:
     locked._ORIGINAL_VISUAL_GUARD(channel, metadata)
 
 
+def _brain_choose_theme(previous: list[dict]):
+    """Strategist agent first; the original v7 selector stays as fallback."""
+    global _LAST_THEME
+    result = None
+    if dios_brain.enabled():
+        try:
+            result = dios_brain.brain_choose_theme(editorial_v7, previous)
+        except Exception as exc:
+            print(f"Dios Brain strategist no disponible ({exc}); se usa el selector editorial v7.", flush=True)
+            result = None
+    if result is None:
+        brain_strategist.LAST_DECISION = {"brain_selection_mode": "original_v7_selector"}
+        result = _ORIGINAL_V7_CHOOSE_THEME(previous)
+    _LAST_THEME = dict(result[0])
+    return result
+
+
+def _brain_generate_metadata(channel: dict, previous: list[dict], retries: int = 5) -> dict:
+    metadata = editorial_v8.generate_metadata(channel, previous, retries=retries)
+    try:
+        metadata.update({k: v for k, v in dict(brain_strategist.LAST_DECISION).items() if v is not None})
+        if _LAST_THEME:
+            metadata["_brain_theme"] = dict(_LAST_THEME)
+    except Exception as exc:
+        print(f"Dios Brain: no se pudo adjuntar la decision del estratega ({exc}).", flush=True)
+    return metadata
+
+
 def _premium_uniqueness(metadata: dict, previous: list[dict]) -> dict:
     metadata = editorial_v8.restore_unique_packaging(metadata, previous)
+    # Writer/SEO + CTA + quality editor run after every existing SEO transform so
+    # nothing downstream overwrites them; any brain failure keeps the original.
+    metadata = dios_brain.apply_brain_packaging(metadata, previous, themes=editorial_v7.THEMES)
     metadata["visual_policy"] = VISUAL_POLICY_ID
     metadata["visual_abstract_geometry_allowed"] = False
     metadata["visual_character_rotation_required"] = True
@@ -175,7 +211,11 @@ def _set_thumbnail_verified(channel: dict, video_id: str, thumbnail: Path) -> tu
 
 
 def _premium_upload(channel: dict, metadata: dict, video_path: Path) -> str:
-    global _LAST_THUMBNAIL_FIELDS
+    global _LAST_THUMBNAIL_FIELDS, _LAST_BRAIN_FIELDS
+    try:
+        _LAST_BRAIN_FIELDS = dios_brain.record_fields(metadata)
+    except Exception:
+        _LAST_BRAIN_FIELDS = {}
     thumbnail = build_auto_thumbnail(
         video_path.parent,
         metadata,
@@ -216,12 +256,16 @@ def _premium_upload(channel: dict, metadata: dict, video_path: Path) -> str:
 def _append_history_with_thumbnail(path, record: dict) -> None:
     enriched = dict(record)
     enriched.update(_LAST_THUMBNAIL_FIELDS)
+    # Analyst agent: persist the variants used so future runs can prefer winners.
+    for key, value in _LAST_BRAIN_FIELDS.items():
+        enriched.setdefault(key, value)
     _ORIGINAL_APPEND_HISTORY(path, enriched)
 
 
 def configure_hybrid_publisher() -> None:
     locked.configure_locked_publisher()
-    pipeline.generate_metadata = editorial_v8.generate_metadata
+    editorial_v7._choose_theme = _brain_choose_theme
+    pipeline.generate_metadata = _brain_generate_metadata
     pipeline.validate_spiritual_uniqueness = _premium_uniqueness
     pipeline.upload_video = _premium_upload
     pipeline.append_history = _append_history_with_thumbnail
