@@ -9,15 +9,72 @@ import wave
 from pathlib import Path
 
 
-# Permanent original voice identity for Dios Habla Hoy.
-# Algenib is the only allowed narrator. Alternate/local voices are deliberately
-# disabled so a quota or provider failure can never silently change the channel.
-MALE_GEMINI_VOICE_DEFAULT = "Algenib"
+# Permanent narrator identity for Dios Habla Hoy: "Voz de Luz".
+# The Gemini prebuilt voice is configurable (DIOS_TTS_VOICE, default Algieba,
+# a smooth male voice) with an explicit fallback chain (default Schedar).
+# Voz de Luz is always presented as a narrator reflecting on Scripture, never as
+# the literal voice of God. Kokoro stays disabled; the local Qwen3-TTS backup is
+# handled by the hybrid publisher only on Gemini quota errors.
+DEFAULT_GEMINI_VOICE = "Algieba"
+DEFAULT_GEMINI_VOICE_FALLBACKS = ("Schedar",)
+DEFAULT_GEMINI_TTS_MODEL = "gemini-3.8-flash-tts"
+DEFAULT_GEMINI_TTS_MODEL_FALLBACKS = ("gemini-3.1-flash-tts-preview",)
+MALE_GEMINI_VOICE_DEFAULT = DEFAULT_GEMINI_VOICE  # compatibility alias
 MALE_KOKORO_VOICE_DEFAULT = "em_alex"  # compatibility constant only; never used
 SPIRITUAL_VOICE_PROFILE = "voz_de_luz_serena_original_v1"
 VOICE_BRAND_NAME = "Voz de Luz"
-VOICE_LOCK_VERSION = "voz-de-luz-algenib-v4-hard-lock"
+VOICE_LOCK_VERSION = "voz-de-luz-v5-configured-serene"
 REFERENCE_MODE = "fixed_original_identity_no_speaker_clone"
+
+
+def _split_names(raw: str) -> list[str]:
+    return [item.strip() for item in str(raw or "").replace(";", ",").split(",") if item.strip()]
+
+
+def _valid_voice_name(name: str) -> bool:
+    return bool(re.fullmatch(r"[A-Za-z][A-Za-z0-9_-]{1,40}", name or ""))
+
+
+def configured_gemini_voice() -> str:
+    """Primary narrator voice: DIOS_TTS_VOICE, then legacy GEMINI_TTS_VOICE, then Algieba."""
+    for name in ("DIOS_TTS_VOICE", "GEMINI_TTS_VOICE"):
+        value = os.getenv(name, "").strip()
+        if value:
+            if not _valid_voice_name(value):
+                raise RuntimeError(f"VOICE_LOCK: {name}={value!r} no es un nombre de voz Gemini valido.")
+            return value
+    return DEFAULT_GEMINI_VOICE
+
+
+def gemini_voice_chain() -> list[str]:
+    """Configured voice first, then DIOS_TTS_VOICE_FALLBACKS (default: Schedar)."""
+    chain = [configured_gemini_voice()]
+    raw = os.getenv("DIOS_TTS_VOICE_FALLBACKS")
+    fallbacks = _split_names(raw) if raw is not None else list(DEFAULT_GEMINI_VOICE_FALLBACKS)
+    for voice in fallbacks:
+        if _valid_voice_name(voice) and voice.lower() not in {v.lower() for v in chain}:
+            chain.append(voice)
+    return chain
+
+
+def gemini_tts_models() -> list[str]:
+    """GEMINI_TTS_MODEL first (default GA 3.8 flash TTS), then GEMINI_TTS_MODEL_FALLBACKS."""
+    primary = os.getenv("GEMINI_TTS_MODEL", "").strip() or DEFAULT_GEMINI_TTS_MODEL
+    models = _split_names(primary)
+    raw = os.getenv("GEMINI_TTS_MODEL_FALLBACKS")
+    fallbacks = _split_names(raw) if raw is not None else list(DEFAULT_GEMINI_TTS_MODEL_FALLBACKS)
+    for model in fallbacks:
+        if model not in models:
+            models.append(model)
+    return models
+
+
+def is_configured_gemini_provider(used: str) -> bool:
+    """True when a provider label comes from Gemini TTS with a voice of the configured chain."""
+    low = str(used or "").lower()
+    if "gemini" not in low or "kokoro" in low or "fallback" in low:
+        return False
+    return any(f":{voice.lower()}:" in low for voice in gemini_voice_chain())
 
 
 def safe_tts_chunks(text: str, max_words: int = 42, max_chars: int = 300) -> list[str]:
@@ -75,14 +132,13 @@ def _director_notes(mode: str) -> str:
     semantic = {
         "night_prayer": "Keep the emotional emphasis gentle and comforting, appropriate for evening listening.",
         "prayer": "Keep the emotional emphasis sincere, close and compassionate, as a guided prayer.",
-        "biblical_story": "Keep the emotional emphasis clear and engaging, with subtle narrative interest.",
-        "biblical_reflection": "Keep the emotional emphasis thoughtful, warm and conversational.",
-    }.get(mode, "Keep the emotional emphasis thoughtful, warm and conversational.")
+        "biblical_story": "Keep the emotional emphasis clear and tender, with subtle narrative interest.",
+        "biblical_reflection": "Keep the emotional emphasis thoughtful, warm, loving and peaceful.",
+    }.get(mode, "Keep the emotional emphasis thoughtful, warm, loving and peaceful.")
     return (
-        "Use the permanent channel cadence for every format: a natural conversational flow at roughly "
-        "134 to 142 words per minute. Most phrase pauses should feel like normal human breathing, roughly "
-        "120 to 280 milliseconds, with an occasional meaningful transition never intentionally exceeding "
-        "about 400 milliseconds. Do not slow down for prayer or night content and do not speed up for stories. "
+        "Use the permanent channel cadence for every format: a slow, unhurried, gentle pace of roughly "
+        "105 to 120 words per minute. Leave soft, serene breathing pauses between phrases, usually 300 to 600 "
+        "milliseconds, and never longer than about 800 milliseconds, so the narration still flows continuously. "
         "Keep speaking rate, perceived age, accent, pitch register, vocal texture, resonance and speaking distance fixed. "
         + semantic
     )
@@ -119,15 +175,20 @@ def _brand_master(path: Path) -> None:
 
 
 def _locked_gemini_voice() -> str:
-    requested = os.getenv("GEMINI_TTS_VOICE", MALE_GEMINI_VOICE_DEFAULT).strip() or MALE_GEMINI_VOICE_DEFAULT
+    """Return the configured narrator voice; the lock now means "configured voice only"."""
     locked = os.getenv("SPIRITUAL_VOICE_LOCKED", "true").lower().strip()
     if locked != "true":
         raise RuntimeError("VOICE_LOCK: SPIRITUAL_VOICE_LOCKED debe permanecer true para Dios Habla Hoy.")
-    if requested.lower() != MALE_GEMINI_VOICE_DEFAULT.lower():
-        raise RuntimeError(
-            f"VOICE_LOCK: GEMINI_TTS_VOICE={requested} no coincide con la voz fija {MALE_GEMINI_VOICE_DEFAULT}."
-        )
-    return MALE_GEMINI_VOICE_DEFAULT
+    return configured_gemini_voice()
+
+
+def _is_model_access_error(exc: Exception) -> bool:
+    text = str(exc).lower()
+    markers = (
+        "404", "not_found", "not found", "permission_denied", "403", "is not supported",
+        "unsupported", "invalid model", "does not have access", "not available", "restricted",
+    )
+    return any(marker in text for marker in markers)
 
 
 def _is_gemini_quota_error(exc: Exception) -> bool:
@@ -148,42 +209,46 @@ def _gemini_retry_seconds(exc: Exception, default: float = 65.0) -> float:
     return max(15.0, min(120.0, float(default)))
 
 
-def _gemini_spiritual_voice(path: Path, text: str) -> str:
-    from google import genai
-
-    api_key = os.getenv("GEMINI_API_KEY", "").strip()
-    if not api_key:
-        raise RuntimeError("Falta GEMINI_API_KEY para Voz de Luz / Algenib.")
-
-    model = os.getenv("GEMINI_TTS_MODEL", "gemini-3.1-flash-tts-preview").strip()
-    voice = _locked_gemini_voice()
-    mode = _delivery_mode(text)
-    client = genai.Client(api_key=api_key)
-    prompt = f"""
+def _voice_prompt(text: str, voice: str, mode: str) -> str:
+    return f"""
 Synthesize speech only. Do not read these directions aloud.
 
-### PERMANENT CHANNEL VOICE — VOZ DE LUZ
-Use the Algenib ADULT MALE voice for the entire narration. Create one stable, original vocal identity for Dios Habla Hoy called Voz de Luz. It must not imitate, clone, identify or reproduce any real speaker.
+### PERMANENT CHANNEL NARRATOR — VOZ DE LUZ
+Use the {voice} adult male voice for the entire narration. Voz de Luz is the original narrator of Dios Habla Hoy: a human-sounding storyteller who reflects on the Bible. Voz de Luz is NEVER the literal voice of God or of Jesus and must not sound like a divine proclamation. It must not imitate, clone, identify or reproduce any real speaker.
 
 ### VOICE CONSISTENCY LOCK — {VOICE_LOCK_VERSION}
-This must sound like the SAME narrator used in every previous and future Dios Habla Hoy upload. Keep the same perceived age, baritone register, vocal texture, speaking distance, neutral Latin-American Spanish accent, resonance, pitch and calm energy. Prayer, story, reflection and night-prayer modes may change ONLY semantic and emotional emphasis. They must NOT change speaking speed, pause style, cadence, perceived age, accent, pitch register, vocal texture or vocal character.
+This must sound like the SAME narrator in every Dios Habla Hoy upload. Keep the same perceived age, warm register, vocal texture, speaking distance, neutral Latin-American Spanish accent, resonance, pitch and calm energy. Prayer, story, reflection and night-prayer modes may change ONLY the emotional emphasis, never the speed, pause style, accent or vocal character.
 
 ### VOCAL IDENTITY
-Original mature male baritone with warm chest resonance, relaxed throat, lightly textured human timbre, clear consonants and open vowels. Neutral Latin-American Spanish with excellent diction and professional but natural locution. The sound is serene, luminous, compassionate and close, as if speaking personally to one listener.
+Smooth, soft, warm male voice with gentle chest resonance, relaxed throat, clear consonants and open vowels. Neutral Latin-American Spanish with excellent diction. The sound is serene, luminous, loving and close, as if speaking quietly and personally to one listener who needs peace.
 
 ### EMOTIONAL BALANCE
-Blend tenderness, fluidity and calm authority. Communicate peace, faith, hope, love, safety and reverence without theatrical solemnity.
+Calm, peaceful, tender and loving. Communicate paz, amor, esperanza, consuelo and confianza with soft reverence, without theatrical solemnity and without preacher intensity.
 
 ### DELIVERY MODE
 {mode}
 {_director_notes(mode)}
 
 ### PERMANENT SPEECH RULES
-Speak naturally and continuously. Link phrases smoothly. Use normal human breaths and short organic pauses; do not create long reflective gaps. Never drag vowels or stretch words to fill time. Never slow the speech to make the narration match a target duration. Give subtle heartfelt emphasis to Dios, Jesús, Señor, Biblia, fe, amor, paz, esperanza and consuelo. Finish sentences with soft controlled cadences. Avoid whispering, shouting, growling, exaggerated bass, sing-song rhythm, robotic spacing, commercial-announcer energy, movie-trailer drama, fake preacher cadence, cathedral echo or long empty silences.
+Speak slowly, softly and continuously. Link phrases smoothly with serene, natural breathing pauses that never become long empty gaps. Never drag vowels or stretch words artificially. Give subtle heartfelt emphasis to Dios, Jesús, Señor, Biblia, fe, amor, paz, esperanza and consuelo. Finish sentences with soft, gentle cadences. Avoid gravelly or raspy texture, whispering, shouting, growling, exaggerated bass, sing-song rhythm, robotic spacing, commercial-announcer energy, movie-trailer drama, fake preacher cadence and cathedral echo.
 
 ### TRANSCRIPT — SPEAK EXACTLY THIS TEXT
 {text}
 """.strip()
+
+
+def _gemini_spiritual_voice(path: Path, text: str) -> str:
+    from google import genai
+
+    api_key = os.getenv("GEMINI_API_KEY", "").strip()
+    if not api_key:
+        raise RuntimeError(f"Falta GEMINI_API_KEY para {VOICE_BRAND_NAME}.")
+
+    _locked_gemini_voice()
+    voices = gemini_voice_chain()
+    models = gemini_tts_models()
+    mode = _delivery_mode(text)
+    client = genai.Client(api_key=api_key)
 
     try:
         configured_attempts = int(os.getenv("GEMINI_TTS_MAX_ATTEMPTS", "4"))
@@ -192,41 +257,58 @@ Speak naturally and continuously. Link phrases smoothly. Use normal human breath
     max_attempts = max(2, min(6, configured_attempts))
 
     last_error: Exception | None = None
-    for attempt in range(1, max_attempts + 1):
-        try:
-            interaction = client.interactions.create(
-                model=model,
-                input=prompt,
-                response_format={"type": "audio"},
-                generation_config={"speech_config": [{"voice": voice}]},
-            )
-            output_audio = getattr(interaction, "output_audio", None)
-            data = getattr(output_audio, "data", None) if output_audio is not None else None
-            if not data:
-                raise RuntimeError("Gemini TTS no devolvio audio.")
-            _write_pcm_wave(path, base64.b64decode(data), rate=24000)
-            return f"{model}:{voice}:{SPIRITUAL_VOICE_PROFILE}:{mode}:{VOICE_LOCK_VERSION}"
-        except Exception as exc:
-            last_error = exc
-            if attempt >= max_attempts:
-                break
-            if _is_gemini_quota_error(exc):
-                wait_seconds = _gemini_retry_seconds(exc)
-                print(
-                    "Gemini TTS marco limite de cuota; "
-                    f"esperando {wait_seconds:.1f}s antes del intento {attempt + 1}/{max_attempts} "
-                    f"con la MISMA {VOICE_BRAND_NAME}/{voice}."
-                )
-                time.sleep(wait_seconds)
-            else:
-                wait_seconds = min(15.0, 2.5 * attempt)
-                print(
-                    f"Gemini TTS fallo temporalmente ({exc}); reintento {attempt + 1}/{max_attempts} "
-                    f"en {wait_seconds:.1f}s sin cambiar la voz."
-                )
-                time.sleep(wait_seconds)
+    quota_seen = False
+    for voice in voices:
+        prompt = _voice_prompt(text, voice, mode)
+        for model in models:
+            for attempt in range(1, max_attempts + 1):
+                try:
+                    interaction = client.interactions.create(
+                        model=model,
+                        input=prompt,
+                        response_format={"type": "audio"},
+                        generation_config={"speech_config": [{"voice": voice}]},
+                    )
+                    output_audio = getattr(interaction, "output_audio", None)
+                    data = getattr(output_audio, "data", None) if output_audio is not None else None
+                    if not data:
+                        raise RuntimeError("Gemini TTS no devolvio audio.")
+                    _write_pcm_wave(path, base64.b64decode(data), rate=24000)
+                    return f"{model}:{voice}:{SPIRITUAL_VOICE_PROFILE}:{mode}:{VOICE_LOCK_VERSION}"
+                except Exception as exc:
+                    last_error = exc
+                    if _is_gemini_quota_error(exc):
+                        quota_seen = True
+                    elif _is_model_access_error(exc):
+                        print(f"Gemini TTS {model} no disponible para {voice} ({exc}); probando el siguiente modelo.")
+                        break
+                    if attempt >= max_attempts:
+                        break
+                    if _is_gemini_quota_error(exc):
+                        wait_seconds = _gemini_retry_seconds(exc)
+                        print(
+                            "Gemini TTS marco limite de cuota; "
+                            f"esperando {wait_seconds:.1f}s antes del intento {attempt + 1}/{max_attempts} "
+                            f"con {VOICE_BRAND_NAME}/{voice} en {model}."
+                        )
+                    else:
+                        wait_seconds = min(15.0, 2.5 * attempt)
+                        print(
+                            f"Gemini TTS fallo temporalmente ({exc}); reintento {attempt + 1}/{max_attempts} "
+                            f"en {wait_seconds:.1f}s sin cambiar la voz."
+                        )
+                    time.sleep(wait_seconds)
+        if quota_seen:
+            # A quota wall is account-wide: switching voice would not help and the
+            # hybrid publisher decides whether the local Qwen backup takes over.
+            break
+        print(f"{VOICE_BRAND_NAME}: la voz {voice} no pudo generarse; probando la siguiente voz configurada.")
 
-    raise RuntimeError(f"Gemini TTS fallo despues de {max_attempts} intentos: {last_error}")
+    # Keep the quota marker in the message so the hybrid Qwen backup can detect it.
+    marker = " [quota 429 RESOURCE_EXHAUSTED]" if quota_seen else ""
+    raise RuntimeError(
+        f"Gemini TTS fallo para voces {voices} y modelos {models}{marker}: {last_error}"
+    )
 
 
 def _kokoro_chunked_voice(path: Path, text: str) -> None:
@@ -238,14 +320,14 @@ def _kokoro_chunked_voice(path: Path, text: str) -> None:
 
 
 def make_spiritual_spanish_voice(path: Path, text: str) -> str:
-    """Generate only the permanent Voz de Luz / Algenib narrator."""
+    """Generate only the configured Voz de Luz Gemini narrator (default Algieba -> Schedar)."""
     provider = os.getenv("TTS_PROVIDER", "gemini_tts").lower().strip()
     require_primary = os.getenv("SPIRITUAL_REQUIRE_PRIMARY_VOICE", "true").lower().strip()
     fallback_kokoro = os.getenv("TTS_FALLBACK_KOKORO", "false").lower().strip()
 
     if provider not in {"gemini", "gemini_tts", "gemini-tts"}:
         raise RuntimeError(
-            f"VOICE_LOCK: TTS_PROVIDER={provider or 'vacio'} no esta permitido; se exige Gemini TTS/{MALE_GEMINI_VOICE_DEFAULT}."
+            f"VOICE_LOCK: TTS_PROVIDER={provider or 'vacio'} no esta permitido; se exige Gemini TTS/{configured_gemini_voice()}."
         )
     if require_primary != "true":
         raise RuntimeError("VOICE_LOCK: SPIRITUAL_REQUIRE_PRIMARY_VOICE debe permanecer true.")
@@ -256,8 +338,7 @@ def make_spiritual_spanish_voice(path: Path, text: str) -> str:
     if not path.exists() or path.stat().st_size < 1000:
         raise RuntimeError(f"{used} genero un archivo de voz espiritual invalido.")
 
-    low = used.lower()
-    if "gemini" not in low or f":{MALE_GEMINI_VOICE_DEFAULT.lower()}:" not in low or "fallback" in low or "kokoro" in low:
+    if not is_configured_gemini_provider(used):
         raise RuntimeError(f"VOICE_LOCK: proveedor de voz inesperado: {used}")
 
     _brand_master(path)
