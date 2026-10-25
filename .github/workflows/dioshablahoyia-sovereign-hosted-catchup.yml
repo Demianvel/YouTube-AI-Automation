@@ -2,10 +2,6 @@ name: Dios Habla Hoy - Catch-up soberano sin cuotas
 
 on:
   workflow_dispatch:
-  schedule:
-    # 09:17, 15:17 y 21:17 de Argentina (UTC-3). Si ya hay 10/10,
-    # el job corta antes de instalar el runtime pesado.
-    - cron: "17 0,12,18 * * *"
   push:
     branches: [main]
     paths:
