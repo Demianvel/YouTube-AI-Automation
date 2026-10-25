@@ -11,7 +11,7 @@ import scripts.publish_dios_fast as fast
 
 
 VOICE_PROVIDER = "gemini_tts"
-VOICE_NAME = "Algenib"
+VOICE_NAME = spiritual_tts.DEFAULT_GEMINI_VOICE  # default; DIOS_TTS_VOICE / GEMINI_TTS_VOICE override
 VOICE_BRAND = "Voz de Luz"
 VOICE_PROFILE = "voz_de_luz_serena_original_v1"
 VISUAL_LOCK_VERSION = "dios-realistic-reference-lock-v1"
@@ -25,7 +25,11 @@ REFERENCE_NAMES = (
 
 def _assert_permanent_voice_environment() -> None:
     provider = os.getenv("TTS_PROVIDER", "").strip().lower()
-    requested = os.getenv("GEMINI_TTS_VOICE", "").strip()
+    try:
+        requested = spiritual_tts.configured_gemini_voice()
+    except RuntimeError as exc:
+        requested = ""
+        print(exc)
     brand = os.getenv("SPIRITUAL_VOICE_BRAND", "").strip()
     profile = os.getenv("SPIRITUAL_VOICE_PROFILE", "").strip()
     locked = os.getenv("SPIRITUAL_VOICE_LOCKED", "").strip().lower()
@@ -35,8 +39,8 @@ def _assert_permanent_voice_environment() -> None:
     errors: list[str] = []
     if provider != VOICE_PROVIDER:
         errors.append(f"TTS_PROVIDER={provider or 'vacio'}")
-    if requested.lower() != VOICE_NAME.lower():
-        errors.append(f"GEMINI_TTS_VOICE={requested or 'vacio'}")
+    if not requested:
+        errors.append("DIOS_TTS_VOICE/GEMINI_TTS_VOICE=invalido")
     if brand != VOICE_BRAND:
         errors.append(f"SPIRITUAL_VOICE_BRAND={brand or 'vacio'}")
     if profile != VOICE_PROFILE:
@@ -50,7 +54,7 @@ def _assert_permanent_voice_environment() -> None:
 
     if errors:
         raise RuntimeError(
-            "VOICE_IDENTITY_LOCK: configuracion incompatible con Voz de Luz / Algenib: "
+            "VOICE_IDENTITY_LOCK: configuracion incompatible con Voz de Luz: "
             + ", ".join(errors)
         )
 
@@ -73,15 +77,14 @@ def _locked_choose_reference(seed: int) -> Path:
 
 
 def _strict_algenib_voice(path: Path, text: str) -> str:
-    """Generate only the permanent Voz de Luz / Algenib identity.
+    """Generate only the configured Voz de Luz Gemini voice (name kept for compatibility).
 
     There is deliberately no local/Kokoro/espeak fallback here. If Gemini TTS is
     unavailable, publication stops instead of changing the narrator.
     """
     _assert_permanent_voice_environment()
     used = spiritual_tts._gemini_spiritual_voice(path, text)
-    low = str(used or "").lower()
-    if "gemini" not in low or ":algenib:" not in low or "fallback" in low or "kokoro" in low:
+    if not spiritual_tts.is_configured_gemini_provider(used):
         raise RuntimeError(f"VOICE_IDENTITY_LOCK: proveedor inesperado: {used}")
     spiritual_tts._brand_master(path)
     return used
