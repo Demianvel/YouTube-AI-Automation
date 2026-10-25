@@ -1,0 +1,114 @@
+name: Dios - Reconectar YouTube (sin Termux)
+
+# Paso 1: ejecutar sin "respuesta" -> muestra la URL de autorizacion de Google.
+# Paso 2: abrir la URL en el celu, aceptar TODOS los permisos y copiar la URL
+#         final (http://localhost/?...code=...), aunque la pagina no cargue.
+# Paso 3: ejecutar de nuevo pegando esa URL en "respuesta".
+# Requiere el secret GH_SECRETS_TOKEN (PAT fine-grained, solo este repo,
+# permiso "Secrets: Read and write") para guardar el token nuevo.
+# Nunca se imprime ningun token: el repo es publico.
+
+on:
+  workflow_dispatch:
+    inputs:
+      respuesta:
+        description: "URL final copiada de Google (vacio = generar URL)"
+        required: false
+        default: ""
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dios-reauth-youtube
+  cancel-in-progress: false
+
+jobs:
+  reauth:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    env:
+      OLD_TOKEN: ${{ secrets.YOUTUBE_TOKEN_DIOSHABLAHOYIA }}
+      GH_SECRETS_TOKEN: ${{ secrets.GH_SECRETS_TOKEN }}
+      RESPUESTA: ${{ github.event.inputs.respuesta }}
+      REPO: ${{ github.repository }}
+    steps:
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: python -m pip install -q google-api-python-client google-auth requests
+      - name: Autorizar
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json, os, re, subprocess, sys, urllib.parse, requests
+          from google.oauth2.credentials import Credentials
+          from googleapiclient.discovery import build
+
+          SCOPES = [
+              "https://www.googleapis.com/auth/youtube.upload",
+              "https://www.googleapis.com/auth/youtube.readonly",
+              "https://www.googleapis.com/auth/youtube.force-ssl",
+          ]
+          REDIRECT = "http://localhost"
+          def say(level, title, msg):
+              print(f"::{level} title={title}::{msg}", flush=True)
+
+          old = json.loads(os.environ.get("OLD_TOKEN") or "{}")
+          cid, csec = old.get("client_id"), old.get("client_secret")
+          if not cid or not csec:
+              say("error", "Falta cliente OAuth", "El secret actual no trae client_id/client_secret.")
+              sys.exit(1)
+
+          raw = (os.environ.get("RESPUESTA") or "").strip()
+          if not raw:
+              url = "https://accounts.google.com/o/oauth2/v2/auth?" + urllib.parse.urlencode({
+                  "client_id": cid, "redirect_uri": REDIRECT, "response_type": "code",
+                  "scope": " ".join(SCOPES), "access_type": "offline", "prompt": "consent",
+                  "include_granted_scopes": "true",
+              })
+              say("notice", "PASO 1 - Abri esta URL", url)
+              sys.exit(0)
+
+          if not os.environ.get("GH_SECRETS_TOKEN"):
+              say("error", "Falta GH_SECRETS_TOKEN", "Crea el secret GH_SECRETS_TOKEN antes de pegar el codigo; el codigo no se uso.")
+              sys.exit(1)
+          m = re.search(r"[?&]code=([^&\s]+)", raw)
+          code = urllib.parse.unquote(m.group(1)) if m else raw
+          r = requests.post("https://oauth2.googleapis.com/token", data={
+              "code": code, "client_id": cid, "client_secret": csec,
+              "redirect_uri": REDIRECT, "grant_type": "authorization_code",
+          }, timeout=30)
+          if not r.ok:
+              say("error", "Google rechazo el codigo", f"{r.status_code} {r.json().get('error')} {r.json().get('error_description','')}. Genera una URL nueva y repeti.")
+              sys.exit(1)
+          tok = r.json()
+          granted = set((tok.get("scope") or "").split())
+          missing = [s for s in SCOPES if s not in granted]
+          if missing or not tok.get("refresh_token"):
+              say("error", "Permisos incompletos", f"Faltan: {missing} refresh={bool(tok.get('refresh_token'))}. Acepta todos los permisos.")
+              sys.exit(1)
+
+          creds = Credentials(token=tok["access_token"], refresh_token=tok["refresh_token"],
+                              token_uri="https://oauth2.googleapis.com/token",
+                              client_id=cid, client_secret=csec, scopes=SCOPES)
+          yt = build("youtube", "v3", credentials=creds, cache_discovery=False)
+          items = yt.channels().list(part="id,snippet", mine=True).execute().get("items") or []
+          handle = ((items[0]["snippet"].get("customUrl") if items else "") or "").lower()
+          if handle != "@dioshablahoyia":
+              say("error", "Canal incorrecto", f"Se autorizo {handle or 'ningun canal'}; elegi Dios Habla Hoy IA.")
+              sys.exit(1)
+
+          if not os.environ.get("GH_SECRETS_TOKEN"):
+              say("error", "Falta GH_SECRETS_TOKEN", "Token OK pero no puedo guardarlo: crea el secret GH_SECRETS_TOKEN.")
+              sys.exit(1)
+          payload = json.loads(creds.to_json())
+          payload["account"] = "dioshablahoyia"
+          p = subprocess.run(["gh", "secret", "set", "YOUTUBE_TOKEN_DIOSHABLAHOYIA", "--repo", os.environ["REPO"]],
+                             input=json.dumps(payload), text=True, capture_output=True,
+                             env={**os.environ, "GH_TOKEN": os.environ["GH_SECRETS_TOKEN"]})
+          if p.returncode != 0:
+              say("error", "No pude guardar el secret", re.sub(r"[A-Za-z0-9_\-]{30,}", "<redacted>", p.stderr)[:300])
+              sys.exit(1)
+          say("notice", "LISTO", "Canal @dioshablahoyia reconectado y secret actualizado.")
+          PY
