@@ -115,6 +115,7 @@ def render_still_motion(
     preset: str = "veryfast",
     crf: int = 19,
     salt: str = "",
+    oversample: float = 2.0,
 ) -> str:
     frames = max(1, int(round(float(duration) * fps)))
     profile, label = motion_profile(source, index=index, salt=salt)
@@ -128,8 +129,9 @@ def render_still_motion(
     sharpen = 0.10 + ((digest >> 16) % 5) * 0.04
     vignette_angle = 5.5 + ((digest >> 20) % 5) * 0.25
 
-    scale_w = width * 2
-    scale_h = height * 2
+    factor = max(1.1, min(2.0, float(oversample or 2.0)))
+    scale_w = int(round(width * factor / 2.0)) * 2
+    scale_h = int(round(height * factor / 2.0)) * 2
     vf = (
         f"scale={scale_w}:{scale_h}:force_original_aspect_ratio=increase,"
         f"crop={scale_w}:{scale_h},"
