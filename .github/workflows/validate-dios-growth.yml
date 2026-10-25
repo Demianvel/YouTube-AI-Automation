@@ -7,6 +7,12 @@ on:
     paths:
       - "app/spiritual_*.py"
       - "app/dios_*.py"
+      - "app/dios_brain/**"
+      - "app/render_quality.py"
+      - "app/youtube.py"
+      - "scripts/dios_orchestrator.py"
+      - "scripts/validate_dios_brain.py"
+      - ".github/workflows/dios-orchestrator.yml"
       - "scripts/publish_dios_*.py"
       - "scripts/dioshablahoyia_catchup_shorts_hybrid.py"
       - "scripts/dioshablahoyia_watchdog.py"
@@ -38,11 +44,14 @@ jobs:
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y -qq ffmpeg fonts-dejavu-core
-          pip install -q "pillow>=11" requests "numpy>=1.26,<3" "huggingface_hub>=0.34.4,<2" "gradio_client>=1.11,<3"
+          pip install -q "pillow>=11" requests "numpy>=1.26,<3" "huggingface_hub>=0.34.4,<2" "gradio_client>=1.11,<3" "pyyaml>=6"
 
       - name: Compile spiritual Python modules
         run: |
           python -m compileall -q app scripts
+
+      - name: Validate Dios Brain, Voz de Luz config and orchestrator
+        run: python scripts/validate_dios_brain.py
 
       - name: Validate realistic biblical visual policy
         run: python scripts/validate_dios_realistic_visual_policy.py
@@ -148,4 +157,9 @@ jobs:
           grep -q 'black-forest-labs/FLUX.1-schnell' .github/workflows/dioshablahoyia-algenib-emergency.yml
           grep -q 'realistic_biblical_premium_v5' .github/workflows/dioshablahoyia-shorts-5min.yml
           grep -q 'validate_dios_realistic_visual_policy.py' .github/workflows/dioshablahoyia-shorts-5min.yml
+          grep -q 'scripts/dios_orchestrator.py run' .github/workflows/dios-orchestrator.yml
+          grep -q 'group: dioshablahoyia-shorts-publisher' .github/workflows/dios-orchestrator.yml
+          grep -q 'group: dioshablahoyia-shorts-publisher' .github/workflows/dioshablahoyia-algenib-emergency.yml
+          grep -q 'DIOS_RENDER_4K: "false"' .github/workflows/dios-orchestrator.yml
+          grep -q 'apply_brain_packaging' scripts/publish_dios_hybrid.py
           echo "Current 10-Short premium architecture validation OK"
