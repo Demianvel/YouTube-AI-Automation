@@ -3,7 +3,7 @@ name: Dios Habla Hoy IA - Playlist automática
 on:
   schedule:
     # Revisa cada 2 horas como red de seguridad para incorporar cualquier subida futura.
-    - cron: "43 */2 * * *"
+    - cron: "43 6 * * *"
   workflow_run:
     workflows:
       - "Generate and publish Shorts"
