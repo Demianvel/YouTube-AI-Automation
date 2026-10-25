@@ -188,12 +188,17 @@ def _dynamic_tags(metadata: dict) -> list[str]:
     family = _tag_family(metadata)
     long_form = _is_long_form(metadata)
     tags: list[str] = []
-    for original in _TAG_PACKS[family]:
+    # Dios Brain writer/SEO tags (if any) go first; the curated pack fills the rest.
+    brain_tags = [str(value).strip()[:60] for value in (metadata.get("brain_tags") or [])[:9] if str(value).strip()]
+    for original in brain_tags + list(_TAG_PACKS[family]):
         tag = original
         if long_form and tag.startswith("Shorts"):
             tag = tag.replace("Shorts", "Videos", 1)
-        if _normalize(tag) not in {_normalize(existing) for existing in tags}:
-            tags.append(tag)
+        if _normalize(tag) in {_normalize(existing) for existing in tags}:
+            continue
+        if _youtube_tag_cost(tags + [tag]) > 500:
+            continue
+        tags.append(tag)
 
     reference = " ".join(str(metadata.get("bible_reference") or "").split())[:55]
     topic = " ".join(str(metadata.get("content_family") or metadata.get("topic") or "").split())[:65]
