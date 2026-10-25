@@ -10,6 +10,7 @@ import requests
 from huggingface_hub import InferenceClient
 from PIL import Image, ImageDraw, ImageEnhance, ImageFilter, ImageOps
 
+from . import render_quality
 from .hf_video import _safe_seed
 from .spiritual_reference_generation import generate_reference_guided_image
 
@@ -297,7 +298,7 @@ def generate_spiritual_short(channel: dict, meta: dict, workdir: Path, final: Pa
     visual = workdir / "spiritual_generated_visual.mp4"
     subprocess.run([
         "ffmpeg", "-y", "-loglevel", "error", "-f", "concat", "-safe", "0", "-i", str(manifest),
-        "-an", "-c:v", "libx264", "-preset", "medium", "-crf", "18", "-pix_fmt", "yuv420p",
+        "-an", *render_quality.video_encode_args(),
         "-movflags", "+faststart", str(visual),
     ], check=True)
 
@@ -309,7 +310,8 @@ def generate_spiritual_short(channel: dict, meta: dict, workdir: Path, final: Pa
     meta["external_media_allowed"] = False
     meta["original_generated_media_only"] = True
     meta["character_reference_profile"] = "dioshablahoyia_photoreal_human_v4_reference_guided"
-    meta["render_quality"] = "1080x1920_30fps_photoreal_original_reference_guided_high_variety_fallback"
+    meta["render_quality"] = f"{render_quality.quality_label()}_photoreal_original_reference_guided_high_variety_fallback"
+    meta["render_resolution"] = "x".join(str(v) for v in render_quality.short_size())
     meta["still_fallback_explicitly_enabled"] = True
     meta["local_visual_variants_per_reference"] = 30
     meta["local_reference_count"] = len(list(REFERENCE_DIR.glob("jesus_reference_*.jpg")))
