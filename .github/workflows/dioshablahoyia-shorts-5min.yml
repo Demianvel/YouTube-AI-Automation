@@ -1,10 +1,8 @@
 name: Dios Habla Hoy IA - 10 Shorts diarios
 
 on:
-  schedule:
-    # Argentina UTC-3: 07:20, 09:20, 11:20, 13:20, 15:20, 17:20, 19:20, 21:20, 22:20, 23:20
-    - cron: "20 10,12,14,16,18,20,22 * * *"
-    - cron: "20 0,1,2 * * *"
+  # Sin schedule: el unico publicador programado es dios-orchestrator.yml
+  # (Orquestador 10 Shorts 24/7). Este workflow queda solo para uso manual.
   workflow_dispatch:
   push:
     branches: [main]
