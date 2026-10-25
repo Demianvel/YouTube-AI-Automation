@@ -19,6 +19,7 @@ from app.spiritual_fresh_reference_bank import (
     is_noah_prompt,
     subject_prompt,
 )
+from app import render_quality
 from app.spiritual_visual_motion import render_still_motion
 from app.visual_variety_v3 import attach_visual_pack_v3
 
@@ -37,7 +38,13 @@ def _fast_local_metadata(channel: dict, previous: list[dict], retries: int = 5) 
 
 
 def _fast_animate(source: Path, out: Path, duration: int, index: int) -> None:
-    label = render_still_motion(source, out, duration, index, width=1080, height=1920, fps=24, preset="veryfast", crf=20, salt="dios-short-v3")
+    width, height = render_quality.short_size()
+    label = render_still_motion(
+        source, out, duration, index,
+        width=width, height=height, fps=render_quality.short_fps(),
+        preset=render_quality.x264_preset(), crf=render_quality.x264_crf(),
+        salt="dios-short-v3", oversample=render_quality.oversample(),
+    )
     print(f"Movimiento cinematografico escena {index + 1}: {label}")
 
 
