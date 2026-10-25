@@ -26,6 +26,9 @@ def _env_int(name: str, default: int, minimum: int, maximum: int) -> int:
 
 
 PUBLISH_ATTEMPTS = _env_int("DIOS_CATCHUP_PUBLISH_ATTEMPTS", 1, 1, 3)
+# Orchestrator controls: confirmed target for "now" (slots elapsed) and max new uploads this run.
+RUN_TARGET = _env_int("DIOS_CATCHUP_TARGET", DAILY_TARGET, 0, DAILY_TARGET)
+MAX_NEW_THIS_RUN = _env_int("DIOS_CATCHUP_MAX_NEW", DAILY_TARGET, 0, DAILY_TARGET)
 RETRY_WAIT_SECONDS = _env_int("DIOS_CATCHUP_RETRY_WAIT_SECONDS", 0, 0, 75)
 
 
@@ -76,22 +79,25 @@ def main() -> int:
     _checkpoint(baseline)
 
     initial = _today_uploaded_count()
-    missing = max(0, DAILY_TARGET - initial)
+    target = RUN_TARGET
+    missing = max(0, min(target - initial, MAX_NEW_THIS_RUN))
+    voice = os.getenv("DIOS_TTS_VOICE") or os.getenv("GEMINI_TTS_VOICE") or "Algieba"
     print(f"Shorts confirmados hoy (Argentina): {initial}")
-    print(f"Shorts faltantes para llegar a {DAILY_TARGET}: {missing}")
-    print("Voz: Algenib primaria; Qwen3-TTS local solo ante cuota Gemini.", flush=True)
+    print(f"Objetivo de esta ejecucion: {target}/{DAILY_TARGET}; maximo nuevos en esta ejecucion: {MAX_NEW_THIS_RUN}")
+    print(f"Shorts a publicar ahora: {missing}")
+    print(f"Voz de Luz: Gemini {voice} primaria; Qwen3-TTS local solo ante cuota Gemini.", flush=True)
 
-    if initial >= DAILY_TARGET:
-        print("Objetivo diario ya completo.")
+    if initial >= target or missing <= 0:
+        print("Objetivo de esta ejecucion ya completo.")
         return 0
 
     for index in range(1, missing + 1):
         current = _today_uploaded_count()
-        if current >= DAILY_TARGET:
-            print(f"Objetivo alcanzado durante la ejecucion: {current}/{DAILY_TARGET}.")
+        if current >= target:
+            print(f"Objetivo alcanzado durante la ejecucion: {current}/{target}.")
             break
 
-        print(f"=== Recuperando Short {index} de {missing}; actual={current}/{DAILY_TARGET} ===", flush=True)
+        print(f"=== Publicando Short {index} de {missing}; actual={current}/{target} ===", flush=True)
         success = False
         before_attempt = current
         for attempt in range(1, PUBLISH_ATTEMPTS + 1):
@@ -127,7 +133,7 @@ def main() -> int:
     print(f"Total confirmado hoy tras catch-up: {total}")
     if total > DAILY_TARGET:
         raise RuntimeError(f"DAILY_CAP_BREACH: {total}>{DAILY_TARGET}")
-    if total > initial or total >= DAILY_TARGET:
+    if total > initial or total >= target:
         return 0
     return 1
 
