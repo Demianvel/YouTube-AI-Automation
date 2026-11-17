@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-11-16T19:45:52.878725+00:00",
-  "date": "2026-11-16",
+  "generated_at": "2026-11-17T18:42:09.573001+00:00",
+  "date": "2026-11-17",
   "family_order": [
     "creation_and_nature",
     "biblical_stories",
@@ -15,7 +15,7 @@
     "Tromso",
     "Senja"
   ],
-  "featured_biblical_story": "rotating biblical story",
+  "featured_biblical_story": "Noah's Ark",
   "forced_daily_visual_family": null,
   "semantic_rotation_required": true,
   "policy": "daily deterministic rotation informed by aggregate channel signals; no family is forced every day; no autonomous model retraining",
